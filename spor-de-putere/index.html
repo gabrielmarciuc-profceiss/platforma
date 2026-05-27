@@ -183,27 +183,27 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 
     <div class="group-label">BENEFICIAR</div>
     <div class="fg fg2">
-      <div class="f"><label>Nume și prenume</label><input type="text" id="ben_nume" placeholder="ex: Marciuc Gabriel"></div>
+      <div class="f"><label>Nume și prenume</label><input type="text" id="ben_nume" placeholder="ex: Ionescu Popescu"></div>
       <div class="f"><label>CNP / CUI</label><input type="text" id="ben_cnp" placeholder="ex: 1234567890123"></div>
     </div>
     <div class="fg fg3">
-      <div class="f"><label>CI / BI Seria</label><input type="text" id="ben_ci_seria" placeholder="ex: IF"></div>
-      <div class="f"><label>CI / BI Nr.</label><input type="text" id="ben_ci_nr" placeholder="ex: 989180"></div>
-      <div class="f"><label>Telefon</label><input type="text" id="ben_tel" placeholder="ex: 0799 996 036"></div>
+      <div class="f"><label>CI / BI Seria</label><input type="text" id="ben_ci_seria" placeholder="ex: XX"></div>
+      <div class="f"><label>CI / BI Nr.</label><input type="text" id="ben_ci_nr" placeholder="ex: 123456"></div>
+      <div class="f"><label>Telefon</label><input type="text" id="ben_tel" placeholder="ex: 0722 222 222"></div>
     </div>
     <div class="f"><label>Email (opțional)</label><input type="email" id="ben_email"></div>
     <div class="f"><label>Adresa de domiciliu (din CI)</label>
-      <input type="text" id="ben_adr_domiciliu" placeholder="ex: Jud. Ilfov, Sat Stefanestii de Jos, Str. Linia de Centura nr. 50, bl. Q10, sc. B, ap. 205">
+      <input type="text" id="ben_adr_domiciliu" placeholder="asa cum apare in buletin">
       <span class="hint">Adresa din CI a beneficiarului — folosită în antetul adresei de înaintare.</span>
     </div>
     <div class="f"><label>Adresa instalație (loc de consum)</label>
-      <input type="text" id="ben_adr" placeholder="ex: Jud. Ilfov, Sat Stefanestii de Jos, Str. Linia de Centura nr. 50, bl. N46B1, ap. 005">
+      <input type="text" id="ben_adr" placeholder="adresa de consum">
       <span class="hint">Adresa unde e instalația — poate diferi de domiciliu.</span>
     </div>
 
     <div class="group-label">DATE TEHNICE INSTALAȚIE</div>
     <div class="fg fg3">
-      <div class="f"><label>POD (cod loc consum)</label><input type="text" id="pod" placeholder="ex: RO001E401026205"></div>
+      <div class="f"><label>POD (cod loc consum)</label><input type="text" id="pod" placeholder="ex: RO001E12345678"></div>
       <div class="f"><label>NLC (opțional)</label><input type="text" id="nlc"></div>
       <div class="f"><label>Tip instalație</label>
         <select id="tip_instalatie">
@@ -226,7 +226,7 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 
     <div class="group-label">AVIZ TEHNIC DE RACORDARE (ATR)</div>
     <div class="fg fg2">
-      <div class="f"><label>Nr. ATR</label><input type="text" id="atr_nr" placeholder="ex: 29092376"></div>
+      <div class="f"><label>Nr. ATR</label><input type="text" id="atr_nr" placeholder="ex: 12345678"></div>
       <div class="f"><label>Data ATR</label><input type="date" id="atr_data"></div>
     </div>
     <div class="f"><label>Operator distribuție (OD) — denumire completă</label>
@@ -243,11 +243,11 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 
     <div class="group-label">EXECUTANT (PERSOANĂ AUTORIZATĂ + FIRMĂ)</div>
     <div class="fg fg2">
-      <div class="f"><label>Nume persoană autorizată</label><input type="text" id="exec_nume" placeholder="ex: PROFIR SORIN"></div>
-      <div class="f"><label>Legitimație ANRE persoană</label><input type="text" id="exec_anre" placeholder="ex: IIB nr. 202011023"></div>
+      <div class="f"><label>Nume persoană autorizată</label><input type="text" id="exec_nume" placeholder="ex: Popescu Ion"></div>
+      <div class="f"><label>Legitimație ANRE persoană</label><input type="text" id="exec_anre" placeholder="ex: IIB nr. 12345/2024"></div>
     </div>
     <div class="f"><label>Atestate ANRE firmă (lista cu virgulă)</label>
-      <input type="text" id="firma_atestate" placeholder="ex: 24200, 24201, 24202, 24203, 24204 / 16-02-2026">
+      <input type="text" id="firma_atestate" placeholder="ex: 12345, 12346, 12347 / DD-MM-AAAA">
     </div>
 
     <div class="group-label">NUMERE DOCUMENTE (DIN BULETINELE PRAM ȘI DECLARAȚIA EXECUTANTULUI)</div>
@@ -255,15 +255,15 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
       Aceste numere apar în Adresa de înaintare (la opisul documentelor) și în Memoriu. Sunt cele de pe documentele preîncărcate (buletin PRAM, declarație executant).
     </div>
     <div class="fg fg2">
-      <div class="f"><label>Buletin priză pământ — nr.</label><input type="text" id="pram_priza_nr" placeholder="ex: 242"></div>
+      <div class="f"><label>Buletin priză pământ — nr.</label><input type="text" id="pram_priza_nr" placeholder="ex: 100"></div>
       <div class="f"><label>Buletin priză pământ — data</label><input type="date" id="pram_priza_data"></div>
     </div>
     <div class="fg fg2">
-      <div class="f"><label>Rezistență priză pământ MĂSURATĂ (Ω)</label><input type="text" id="pram_priza_masurata" placeholder="ex: 0,53"></div>
-      <div class="f"><label>Rezistență priză pământ CALCULATĂ (Ω)</label><input type="text" id="pram_priza_calculata" placeholder="ex: 0,69"></div>
+      <div class="f"><label>Rezistență priză pământ MĂSURATĂ (Ω)</label><input type="text" id="pram_priza_masurata" placeholder="ex: 0,XX"></div>
+      <div class="f"><label>Rezistență priză pământ CALCULATĂ (Ω)</label><input type="text" id="pram_priza_calculata" placeholder="ex: 0,XX"></div>
     </div>
     <div class="fg fg2">
-      <div class="f"><label>Buletin izolație — nr.</label><input type="text" id="pram_izolatie_nr" placeholder="ex: 243"></div>
+      <div class="f"><label>Buletin izolație — nr.</label><input type="text" id="pram_izolatie_nr" placeholder="ex: 101"></div>
       <div class="f"><label>Buletin izolație — data</label><input type="date" id="pram_izolatie_data"></div>
     </div>
     <div class="fg fg2">
@@ -318,7 +318,7 @@ const DOCS_DEF = [
   // 3 — AUTO TEMPLATE (PDF static în templates/, se atașează automat la fiecare dosar)
   { id:'d3', type:'auto_template', title:'Autorizație persoană executantă (ANRE)',
     templateUrl:'templates/autorizatie-persoana.pdf',
-    desc:'Atestatul ANRE al persoanei autorizate (Profir Sorin). Preîncărcat în repo — se atașează AUTOMAT la fiecare dosar generat.' },
+    desc:'Atestatul ANRE al persoanei autorizate. Preîncărcat în repo — se atașează AUTOMAT la fiecare dosar generat.' },
 
   // 4 — EDITABIL (Memoriu de prezentare — format I7-2011, secțiuni structurate)
   { id:'d4', type:'editable', title:'Memoriu de prezentare',
@@ -518,7 +518,7 @@ function renderEditableFields(d) {
     'mem_concluzii': 'Instalatia electrica interioara a fost executata cu respectarea prevederilor Normativului I7-2011, a normelor de protectia muncii si PSI in vigoare. Instalatia corespunde din punct de vedere tehnic si indeplineste conditiile pentru punerea sub tensiune.',
 
     // ── Tabel încăperi ── (câte o linie: Denumire | Suprafata | Mediu | Umiditate | Clasificare | Observatii)
-    'tabel_incaperi': 'Vestibul | 5,3 mp | Normal | Normal | BE1a | -\nGrup sanitar (P) | 1,0 mp | Umed | Umed | BE2 | Zona 2 baie\nHol (P) | 2,6 mp | Normal | Normal | BE1a | -\nBucatarie | 11,5 mp | Normal | Normal | BE1a | -\nCamera de zi | 32,0 mp | Normal | Normal | BE1a | -\nHol (Et.) | 5,1 mp | Normal | Normal | BE1a | -\nBaie (Et.) | 4,6 mp | Umed | Umed | BE2 | Zona 2 baie\nDormitor 1 | 12,8 mp | Normal | Normal | BE1a | -\nBaie 2 (Et.) | 3,6 mp | Umed | Umed | BE2 | Zona 2 baie\nDormitor 2 | 14,8 mp | Normal | Normal | BE1a | -\nDormitor 3 | 11,4 mp | Normal | Normal | BE1a | -\nCasa scarii 1 | 3,2 mp | Normal | Normal | BE1a | -\nCasa scarii 2 | 3,6 mp | Normal | Normal | BE1a | -\nBalcon 1 | 3,1 mp | Normal | Normal | BE1a | Spatiu exterior acoperit\nBalcon 2 | 0,5 mp | Normal | Normal | BE1a | Spatiu exterior acoperit',
+    'tabel_incaperi': 'Hol intrare | X,X mp | Normal | Normal | BE1a | -\nLiving | X,X mp | Normal | Normal | BE1a | -\nBucatarie | X,X mp | Normal | Normal | BE1a | -\nBaie | X,X mp | Umed | Umed | BE2 | Zona 2 baie\nDormitor 1 | X,X mp | Normal | Normal | BE1a | -\nDormitor 2 | X,X mp | Normal | Normal | BE1a | -\nBalcon | X,X mp | Normal | Normal | BE1a | Spatiu exterior acoperit',
 
     // ── Buletin priza pamant ──
     'priza_obiectiv': 'VERIFICARE PRIZA DE PAMANT-LOCUINTA',
