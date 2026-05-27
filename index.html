@@ -60,8 +60,10 @@ h1{font-size:24px;font-weight:500;color:#1a1a1a;margin-bottom:6px;text-align:cen
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;}
 .card{position:relative;display:flex;flex-direction:column;padding:22px;border-radius:14px;border:1px solid #e8e8e0;background:#fff;text-decoration:none;color:inherit;transition:all .2s ease;cursor:pointer;min-height:200px;}
 .card:hover{border-color:#1D9E75;box-shadow:0 6px 20px rgba(29,158,117,0.12);transform:translateY(-3px);}
-.card .icon{margin-bottom:14px;line-height:1;height:72px;display:flex;align-items:center;}
-.card .icon img{display:block;width:72px;height:72px;object-fit:contain;}
+.card .icon{margin-bottom:14px;line-height:1;height:78px;width:88px;position:relative;}
+.card .icon .main{position:absolute;inset:0;width:78px;height:78px;object-fit:contain;left:0;top:0;}
+.card .icon .overlay{position:absolute;top:-6px;right:-6px;width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));}
+.card .icon .overlay-bl{position:absolute;bottom:-6px;left:-4px;width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));}
 .card .icon svg{display:block;width:64px;height:64px;}
 .card .title{font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:6px;line-height:1.3;}
 .card .desc{font-size:12px;color:#666;line-height:1.55;flex:1;}
@@ -100,35 +102,53 @@ h1{font-size:24px;font-weight:500;color:#1a1a1a;margin-bottom:6px;text-align:cen
   <div class="cards">
     <a class="card" href="configurator-fotovoltaic/">
       <span class="badge active">Activ</span>
-      <div class="icon"><img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Sun/3D/sun_3d.png" alt="Configurator" onerror="this.outerHTML='☀️'"></div>
+      <div class="icon">
+        <img class="main" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/House%20with%20garden/3D/house_with_garden_3d.png" alt="" onerror="this.outerHTML='🏡'">
+        <img class="overlay" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Sun/3D/sun_3d.png" alt="" onerror="this.outerHTML='☀️'">
+        <img class="overlay-bl" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Battery/3D/battery_3d.png" alt="" onerror="this.outerHTML='🔋'">
+      </div>
       <div class="title">Configurator sistem fotovoltaic</div>
       <div class="desc">Genereaza oferta completa: dimensionare, productie, ROI, alegere invertor/baterie din catalog, PDF final.</div>
       <div class="cta">Deschide &rarr;</div>
     </a>
     <a class="card" href="spor-de-putere/">
       <span class="badge active">Activ</span>
-      <div class="icon"><img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/High%20voltage/3D/high_voltage_3d.png" alt="Spor putere" onerror="this.outerHTML='⚡'"></div>
+      <div class="icon">
+        <img class="main" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/High%20voltage/3D/high_voltage_3d.png" alt="" onerror="this.outerHTML='⚡'">
+        <img class="overlay" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Chart%20increasing/3D/chart_increasing_3d.png" alt="" onerror="this.outerHTML='📈'">
+      </div>
       <div class="title">Proiect spor de putere</div>
       <div class="desc">Dosar tehnic pentru majorarea puterii instalate. Documentatie + scheme + memorii tehnice.</div>
       <div class="cta">Vezi &rarr;</div>
     </a>
     <a class="card" href="schema-bloc/">
       <span class="badge active">Activ</span>
-      <div class="icon"><img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Bar%20chart/3D/bar_chart_3d.png" alt="Schema bloc" onerror="this.outerHTML='📊'"></div>
+      <div class="icon">
+        <img class="main" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Spiral%20notepad/3D/spiral_notepad_3d.png" alt="" onerror="this.outerHTML='📒'">
+        <img class="overlay" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Pencil/3D/pencil_3d.png" alt="" onerror="this.outerHTML='✏️'">
+      </div>
       <div class="title">Proiect schema bloc</div>
       <div class="desc">Editor pentru scheme bloc (tablouri electrice, conexiuni). Genereaza plansa pentru documentatia de proiect.</div>
       <div class="cta">Deschide &rarr;</div>
     </a>
     <a class="card" href="Dosar-prosumator/">
       <span class="badge soon">In curand</span>
-      <div class="icon"><img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Money%20bag/3D/money_bag_3d.png" alt="Dosar prosumator" onerror="this.outerHTML='💰'"></div>
+      <div class="icon">
+        <img class="main" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Open%20file%20folder/3D/open_file_folder_3d.png" alt="" onerror="this.outerHTML='📂'">
+        <img class="overlay" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Money%20with%20wings/3D/money_with_wings_3d.png" alt="" onerror="this.outerHTML='💸'">
+        <img class="overlay-bl" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/High%20voltage/3D/high_voltage_3d.png" alt="" onerror="this.outerHTML='⚡'">
+      </div>
       <div class="title">Dosar prosumator</div>
       <div class="desc">Documentatie pentru inregistrarea ca prosumator: cerere, declaratii, scheme si anexe pentru depunere la furnizor / ANRE.</div>
       <div class="cta">Vezi &rarr;</div>
     </a>
     <a class="card" href="Dosar-utilizare/">
       <span class="badge soon">In curand</span>
-      <div class="icon"><img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Toolbox/3D/toolbox_3d.png" alt="Dosar utilizare" onerror="this.outerHTML='🧰'"></div>
+      <div class="icon">
+        <img class="main" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Card%20index%20dividers/3D/card_index_dividers_3d.png" alt="" onerror="this.outerHTML='🗂️'">
+        <img class="overlay" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Electric%20plug/3D/electric_plug_3d.png" alt="" onerror="this.outerHTML='🔌'">
+        <img class="overlay-bl" src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Light%20bulb/3D/light_bulb_3d.png" alt="" onerror="this.outerHTML='💡'">
+      </div>
       <div class="title">Dosar utilizare</div>
       <div class="desc">Documentatia de utilizare a instalatiei: instructiuni operare, mentenanta, fise tehnice si breviar de calcul pentru beneficiar.</div>
       <div class="cta">Vezi &rarr;</div>
