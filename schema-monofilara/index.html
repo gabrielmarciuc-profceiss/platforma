@@ -262,10 +262,42 @@ function buildSVG() {
 
   // Dimensiuni
   const cn = Math.max(circuits.length, 1);
-  const circCellW = 110; // lățime per circuit
+  const circStep = 130; // distanta fixa intre circuite
   const margin = 50;
-  const minW = 1400;
-  const drawingW = Math.max(minW, cn * circCellW + 350);
+  const leftPad = 100;            // spatiu la stanga primului circuit
+
+  // ── Pre-calculează lățimile reale ale blocului PV (text-aware) ────────
+  // Folosim aceste dimensiuni ca să rezervăm spațiu suficient la dreapta,
+  // astfel încât circuitele din TGD să NU se suprapună niciodată cu PV.
+  const autoW = (text, fontSize, padding, minW) => Math.max(minW, Math.ceil(String(text).length * fontSize * 0.55) + padding * 2);
+  const pvDims = { acW: 0, invW: 0, dcW: 0, batW: 0, strBlockW: 0, leftHalf: 0, rightHalf: 0 };
+  if (pvOn) {
+    const minBoxW = 180;
+    pvDims.acW = autoW(val('f_pv_ac'), 9, 8, autoW('PROTECTIE AC', 9, 8, minBoxW));
+    pvDims.invW = autoW(val('f_pv_invertor'), 10, 10, autoW('INVERTOR', 12, 10, minBoxW + 20));
+    pvDims.dcW = autoW(val('f_pv_dc'), 9, 8, autoW('PROTECTIE DC', 9, 8, minBoxW));
+    pvDims.strBlockW = 70 * 2 + 12;
+    pvDims.batW = isChecked('f_pv_baterie_on') ? autoW(val('f_pv_baterie'), 8.5, 8, 120) : 0;
+    const colMaxHalf = Math.max(pvDims.acW, pvDims.invW, pvDims.dcW, pvDims.strBlockW) / 2;
+    // Cât se extinde coloana centrală PV la STÂNGA pvCenter (boxuri AC/INV/DC/strings)
+    pvDims.leftHalf = colMaxHalf + 14;
+    // Cât se extinde la DREAPTA pvCenter (boxuri + bateria laterală opțională)
+    pvDims.rightHalf = colMaxHalf + 14 + (pvDims.batW > 0 ? (16 + pvDims.batW + 14) : 0);
+  }
+
+  // Spațiu la dreapta ultimului circuit, calculat dinamic:
+  // garantăm că PV nu se suprapune NICIODATĂ peste circuitele din TGD.
+  const circuitLabelHalfW = 60; // jumătate din lățimea label-ului ultimului circuit (~120px)
+  const pvSafetyGap = 70;       // gap minim între ultimul circuit și marginea PV
+  const pvRightMargin = margin + 10;
+  const rightPad = pvOn
+    ? (circuitLabelHalfW + pvSafetyGap + pvDims.leftHalf + pvDims.rightHalf + pvRightMargin)
+    : 120;
+
+  // Lațime calculată să acomodeze toate circuitele + paddings
+  const widthForCircuits = leftPad + (cn - 1) * circStep + rightPad;
+  const minW = pvOn ? 1300 : 1000;
+  const drawingW = Math.max(minW, widthForCircuits);
 
   // Y-uri pe verticala (sectiunile principale)
   let y = margin;
@@ -286,8 +318,14 @@ function buildSVG() {
   y += cartoucheH + 30;
   const totalH = y + margin;
 
-  // Centru schemă (axa verticală principală)
-  const cx = drawingW / 2 - (pvOn ? 200 : 0); // shift left daca PV e activ
+  // Centru schemă = poziția ULTIMULUI circuit (sub diferential)
+  // Ultimul circuit la lastCircX, celelalte spre stânga
+  const lastCircX = drawingW - rightPad;
+  const firstCircX = lastCircX - (cn - 1) * circStep;
+  const cx = lastCircX;
+
+  // Centrul coloanei PV — calculat să respecte constrângerea de zero suprapunere
+  const pvCenter = pvOn ? (lastCircX + circuitLabelHalfW + pvSafetyGap + pvDims.leftHalf) : 0;
 
   // Pozitii fire pe verticala (faze + N + PE)
   const wireXs = [];
@@ -330,9 +368,10 @@ function buildSVG() {
   svg += `<text x="${cx}" y="${ySource + 22}" text-anchor="middle" font-weight="bold" font-size="13">${esc(val('f_sursa'))}</text>`;
   svg += `<text x="${cx}" y="${ySource + 42}" text-anchor="middle" font-size="10" fill="#555">${wireLabels.join(' / ')}</text>`;
 
-  // Fire coboara din sursa
+  // Fire coboara din sursa - CONTINUU pana la intrerupator general
+  // Daca PV e activ, trec prin TC-uri si punct conectare
   wireXs.forEach((wx, i) => {
-    svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${ySource + 55}" x2="${wx}" y2="${yPVjunction + (pvOn ? 50 : 0)}"/>`;
+    svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${ySource + 55}" x2="${wx}" y2="${yIG}"/>`;
   });
   svg += `<text x="${cx + srcW/2 + 10}" y="${ySource + 75}" font-size="10" font-weight="bold" fill="#444">${esc(val('f_cablu_col'))}</text>`;
 
@@ -353,12 +392,13 @@ function buildSVG() {
     });
     svg += `<text x="${cx - srcW/2 - 10}" y="${jY + 4}" text-anchor="end" font-size="9.5" font-weight="bold" fill="#1B2A4A">Punct conectare PV →</text>`;
 
-    // Linie orizontala spre PV box (continua mai jos)
-    const pvBoxX = drawingW - margin - 360;
+    // Linie orizontala spre intrarea AC a PV (intra în PROTECTIE AC, sus în coloana PV)
+    // Folosim pvCenter dinamic ca să se alinieze cu noul layout fără overlap
+    const pvEntryBaseX = pvCenter - 12; // intră ușor stânga de centrul PV
     wireXs.forEach((wx, i) => {
-      const ly = jY - i * 3; // offset mic per faza ca sa nu se suprapuna
-      svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${jY}" x2="${pvBoxX + 20 + i*4}" y2="${jY}"/>`;
-      svg += `<line class="wire wire-${wireLabels[i]}" x1="${pvBoxX + 20 + i*4}" y1="${jY}" x2="${pvBoxX + 20 + i*4}" y2="${yIG + 30}"/>`;
+      const drop = pvEntryBaseX + i * 5;
+      svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${jY}" x2="${drop}" y2="${jY}"/>`;
+      svg += `<line class="wire wire-${wireLabels[i]}" x1="${drop}" y1="${jY}" x2="${drop}" y2="${yIG + 30}"/>`;
     });
   }
 
@@ -385,9 +425,9 @@ function buildSVG() {
     svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${yDif + 40}" x2="${wx}" y2="${yBusbar}"/>`;
   });
 
-  // ── BUSBAR DISTRIBUITOR ────────────────────────────────────────────
-  const busL = margin;
-  const busR = drawingW - margin - (pvOn ? 380 : 0); // scurtat daca PV
+  // ── BUSBAR DISTRIBUITOR — limitat strict la primul/ultimul circuit ─
+  const busL = Math.min(firstCircX - 20, cx - 20);
+  const busR = lastCircX + 20;
   wireXs.forEach((wx, i) => {
     const busY = yBusbar + i * 5;
     svg += `<line class="wire wire-${wireLabels[i]}" x1="${busL}" y1="${busY}" x2="${busR}" y2="${busY}" stroke-width="2.5"/>`;
@@ -395,13 +435,9 @@ function buildSVG() {
   });
   svg += `<text x="${busL + 5}" y="${yBusbar - 5}" font-size="10" font-style="italic" fill="#555">BUSBAR DISTRIBUITOR</text>`;
 
-  // ── CIRCUITE (routing Manhattan, ortogonal) ───────────────────────
-  const circStart = margin + 30;
-  const circEnd = busR - 30;
-  const circStep = circuits.length > 0 ? (circEnd - circStart) / circuits.length : circCellW;
-
+  // ── CIRCUITE — pozitionate cu ULTIMUL la cx (centru), celelalte spre stanga ──
   circuits.forEach((c, i) => {
-    const ccx = circStart + circStep * (i + 0.5);
+    const ccx = firstCircX + i * circStep;
     const phase = (c.faza || 'L1').toUpperCase();
     const phaseColor = (phase === 'L1' || phase === 'L') ? 'L1' :
                        (phase === 'L2') ? 'L2' :
@@ -473,98 +509,123 @@ function buildSVG() {
     svg += `<text x="${ccx}" y="${yAfterBrk + 84}" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#1B2A4A">${esc(truncate(c.dest, 18))}</text>`;
   });
 
-  // ── CONDUCTOR PE & PRIZA PAMANT ────────────────────────────────────
-  // Conductor PE de la TGD jos la priza pamant
+  // ── CONDUCTOR PE & PRIZA PAMANT (traseu evidențiat continuu) ──────
   const peBarY = yPE;
-  svg += `<line class="wire wire-PE" x1="${peX}" y1="${yBusbar - 5}" x2="${peX}" y2="${peBarY}" stroke-width="2"/>`;
-  svg += `<text x="${peX + 5}" y="${peBarY - 5}" font-size="9" font-weight="bold" fill="#1a7a3a">PE: ${esc(val('f_priza_pe'))}</text>`;
-  // Bara PE
-  svg += `<line class="wire wire-PE" x1="${margin}" y1="${peBarY}" x2="${drawingW - margin}" y2="${peBarY}" stroke-width="2"/>`;
-  svg += `<text x="${margin + 5}" y="${peBarY - 5}" font-size="10" font-weight="bold" fill="#1a7a3a">BARA PE (echipotențializare)</text>`;
-  // Priza pamant (simbol triunghi)
+  // PE-ul pornește DIN bara N (ultimul fir din busbar - jos de tot) și coboară la stânga
+  const peStartY = yBusbar + (totalWires - 1) * 5; // pe ultimul fir N
+  const peJunctionX = busL - 15; // punct de plecare PE (înainte de busbar)
+  // Linie orizontală de la N busbar la punctul PE (junction)
+  svg += `<line class="wire wire-PE" x1="${peJunctionX}" y1="${peStartY}" x2="${peJunctionX}" y2="${peStartY}" stroke-width="2"/>`;
+  // Conductor PE coboara
+  svg += `<line class="wire wire-PE" x1="${peJunctionX}" y1="${peStartY}" x2="${peJunctionX}" y2="${peBarY}" stroke-width="2.5"/>`;
+  // Eticheta PE pe traseu
+  svg += `<text x="${peJunctionX + 5}" y="${peBarY - 8}" font-size="9" font-weight="bold" fill="#1a7a3a">PE: ${esc(val('f_priza_pe'))}</text>`;
+  // Bara PE (centură de echipotențializare) — linie continuă verde groasă
+  svg += `<line class="wire wire-PE" x1="${margin}" y1="${peBarY}" x2="${drawingW - margin}" y2="${peBarY}" stroke-width="3" stroke-dasharray="0"/>`;
+  svg += `<rect x="${margin}" y="${peBarY - 4}" width="${drawingW - 2*margin}" height="8" fill="none" stroke="#1a7a3a" stroke-width="1.5"/>`;
+  svg += `<text x="${margin + 8}" y="${peBarY - 8}" font-size="10" font-weight="bold" fill="#1a7a3a">⏚ BARĂ PE — Centură de echipotențializare</text>`;
+  // Junction la conexiunea PE-bus
+  svg += `<circle cx="${peJunctionX}" cy="${peBarY}" r="3" fill="#1a7a3a"/>`;
+  // Priza pamant — coboara de pe bara PE, in centrul schemei
   const pgX = drawingW/2;
-  svg += `<line class="wire wire-PE" x1="${pgX}" y1="${peBarY}" x2="${pgX}" y2="${yGround}" stroke-width="2"/>`;
-  svg += `<line stroke="#1a7a3a" stroke-width="2" x1="${pgX - 20}" y1="${yGround}" x2="${pgX + 20}" y2="${yGround}"/>`;
-  svg += `<line stroke="#1a7a3a" stroke-width="1.6" x1="${pgX - 15}" y1="${yGround + 5}" x2="${pgX + 15}" y2="${yGround + 5}"/>`;
-  svg += `<line stroke="#1a7a3a" stroke-width="1.2" x1="${pgX - 10}" y1="${yGround + 10}" x2="${pgX + 10}" y2="${yGround + 10}"/>`;
-  svg += `<line stroke="#1a7a3a" stroke-width="1" x1="${pgX - 5}" y1="${yGround + 15}" x2="${pgX + 5}" y2="${yGround + 15}"/>`;
-  svg += `<text x="${pgX}" y="${yGround + 30}" text-anchor="middle" font-size="10" font-weight="bold" fill="#1a7a3a">${esc(val('f_priza_tip'))}</text>`;
-  svg += `<text x="${pgX}" y="${yGround + 42}" text-anchor="middle" font-size="9" fill="#555">${esc(val('f_priza_rez'))}</text>`;
+  svg += `<line class="wire wire-PE" x1="${pgX}" y1="${peBarY}" x2="${pgX}" y2="${yGround}" stroke-width="2.5"/>`;
+  svg += `<circle cx="${pgX}" cy="${peBarY}" r="3" fill="#1a7a3a"/>`;
+  // Simbol priza pamant (triunghi liniat - standard IEC)
+  svg += `<line stroke="#1a7a3a" stroke-width="2.5" x1="${pgX - 22}" y1="${yGround}" x2="${pgX + 22}" y2="${yGround}"/>`;
+  svg += `<line stroke="#1a7a3a" stroke-width="2" x1="${pgX - 16}" y1="${yGround + 6}" x2="${pgX + 16}" y2="${yGround + 6}"/>`;
+  svg += `<line stroke="#1a7a3a" stroke-width="1.5" x1="${pgX - 10}" y1="${yGround + 12}" x2="${pgX + 10}" y2="${yGround + 12}"/>`;
+  svg += `<line stroke="#1a7a3a" stroke-width="1" x1="${pgX - 4}" y1="${yGround + 18}" x2="${pgX + 4}" y2="${yGround + 18}"/>`;
+  svg += `<text x="${pgX}" y="${yGround + 32}" text-anchor="middle" font-size="10" font-weight="bold" fill="#1a7a3a">${esc(val('f_priza_tip'))}</text>`;
+  svg += `<text x="${pgX}" y="${yGround + 44}" text-anchor="middle" font-size="9" fill="#555">${esc(val('f_priza_rez'))}</text>`;
 
-  // ── BLOC PV (in dreapta, daca e activ) ─────────────────────────────
+  // ── BLOC PV (in dreapta, daca e activ) — boxuri compacte auto-sized ─
   if (pvOn) {
-    const pvX = drawingW - margin - 360;
-    const pvW = 360;
+    // pvCenter este pre-calculat sus, garantează gap de siguranță față de ultimul circuit
+    const minBoxW = 180;
     const pvTop = yIG;
-    let py = pvTop;
+    let py = pvTop + 8;
 
-    // Container PV
-    svg += `<rect x="${pvX - 10}" y="${pvTop - 10}" width="${pvW + 20}" height="${circAreaStart - pvTop + 180}" fill="#FFF9E0" stroke="#F9A630" stroke-width="2" stroke-dasharray="6,3" rx="6"/>`;
-    svg += `<text x="${pvX + pvW/2}" y="${pvTop - 18}" text-anchor="middle" font-weight="bold" font-size="13" fill="#854F0B">⚡ SISTEM FOTOVOLTAIC</text>`;
+    // Titlu PV info
+    svg += `<text x="${pvCenter}" y="${pvTop - 10}" text-anchor="middle" font-weight="bold" font-size="12" fill="#854F0B">⚡ SISTEM FOTOVOLTAIC</text>`;
+    const pvInfoText = `${val('f_pv_putere')} · ${val('f_pv_panouri')}`;
+    svg += `<text x="${pvCenter}" y="${py + 8}" text-anchor="middle" font-size="9.5" font-weight="bold">${esc(pvInfoText)}</text>`;
+    py += 20;
 
-    // Title PV info
-    py += 8;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 10}" text-anchor="middle" font-size="10" font-weight="bold">${esc(val('f_pv_putere'))} · ${esc(val('f_pv_panouri'))}</text>`;
-    py += 24;
+    // PROTECTIE AC — auto-sized (max din 2 linii)
+    const acText1 = 'PROTECTIE AC';
+    const acText2 = val('f_pv_ac');
+    const acW = autoW(acText2, 9, 8, autoW(acText1, 9, 8, minBoxW));
+    svg += `<rect class="dif" x="${pvCenter - acW/2}" y="${py}" width="${acW}" height="28" rx="2"/>`;
+    svg += `<text x="${pvCenter}" y="${py + 11}" text-anchor="middle" font-size="8.5" font-weight="bold">${esc(acText1)}</text>`;
+    svg += `<text x="${pvCenter}" y="${py + 22}" text-anchor="middle" font-size="9">${esc(acText2)}</text>`;
+    py += 32;
+    svg += `<line class="wire" x1="${pvCenter}" y1="${py - 4}" x2="${pvCenter}" y2="${py + 4}"/>`;
 
-    // Protecție AC
-    svg += `<rect class="dif" x="${pvX}" y="${py}" width="${pvW}" height="30"/>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 12}" text-anchor="middle" font-size="9" font-weight="bold">PROTECTIE AC</text>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 24}" text-anchor="middle" font-size="9">${esc(val('f_pv_ac'))}</text>`;
-    py += 38;
-    svg += `<line class="wire" x1="${pvX + pvW/2}" y1="${py - 8}" x2="${pvX + pvW/2}" y2="${py + 5}"/>`;
+    // INVERTOR — auto-sized
+    const invText = val('f_pv_invertor');
+    const invW = autoW(invText, 10, 10, autoW('INVERTOR', 12, 10, minBoxW + 20));
+    svg += `<rect class="box-inv" x="${pvCenter - invW/2}" y="${py + 4}" width="${invW}" height="40" rx="2"/>`;
+    svg += `<text x="${pvCenter}" y="${py + 19}" text-anchor="middle" font-weight="bold" font-size="11">INVERTOR</text>`;
+    svg += `<text x="${pvCenter}" y="${py + 35}" text-anchor="middle" font-size="9.5">${esc(invText)}</text>`;
+    py += 50;
 
-    // Invertor
-    svg += `<rect class="box-inv" x="${pvX}" y="${py + 5}" width="${pvW}" height="55"/>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 25}" text-anchor="middle" font-weight="bold" font-size="13">INVERTOR</text>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 42}" text-anchor="middle" font-size="10">${esc(val('f_pv_invertor'))}</text>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 54}" text-anchor="middle" font-size="9" fill="#555">Cablu AC: ${esc(val('f_pv_cabluAC'))}</text>`;
-    py += 65;
-
-    // Baterie (daca e bifata) - lateral, conectata la invertor
+    // BATERIE (lateral, doar daca e bifata) — auto-sized
     if (isChecked('f_pv_baterie_on')) {
-      svg += `<line class="wire" x1="${pvX + pvW/2}" y1="${py - 5}" x2="${pvX + pvW/2}" y2="${py + 6}" stroke="#854F0B"/>`;
-      svg += `<line class="wire" x1="${pvX + pvW/2}" y1="${py + 6}" x2="${pvX + pvW/2 + 60}" y2="${py + 6}" stroke="#854F0B"/>`;
-      svg += `<line class="wire" x1="${pvX + pvW/2 + 60}" y1="${py + 6}" x2="${pvX + pvW/2 + 60}" y2="${py + 14}" stroke="#854F0B"/>`;
-      svg += `<rect class="box-bat" x="${pvX + pvW/2 + 20}" y="${py + 14}" width="${pvW/2 - 30}" height="40"/>`;
-      svg += `<text x="${pvX + pvW * 0.75}" y="${py + 30}" text-anchor="middle" font-weight="bold" font-size="11" fill="#0F7A52">BATERIE</text>`;
-      svg += `<text x="${pvX + pvW * 0.75}" y="${py + 45}" text-anchor="middle" font-size="9">${esc(val('f_pv_baterie'))}</text>`;
-      // Eticheta BAT
-      svg += `<text x="${pvX + pvW/2 - 5}" y="${py + 5}" text-anchor="end" font-size="8" font-weight="bold" fill="#854F0B">BAT+/-</text>`;
-      py += 60;
-    } else {
-      py += 10;
+      const batText = val('f_pv_baterie');
+      const batW = autoW(batText, 8.5, 8, 120);
+      const batH = 32;
+      const batX = pvCenter + invW/2 + 16; // lateral dreapta-invertor
+      const batY = py - 38; // aliniat cu invertorul
+
+      // Linie conectare invertor → baterie
+      svg += `<line class="wire" x1="${pvCenter + invW/2}" y1="${batY + batH/2}" x2="${batX}" y2="${batY + batH/2}" stroke="#854F0B"/>`;
+      svg += `<rect class="box-bat" x="${batX}" y="${batY}" width="${batW}" height="${batH}" rx="2"/>`;
+      svg += `<text x="${batX + batW/2}" y="${batY + 12}" text-anchor="middle" font-weight="bold" font-size="9" fill="#0F7A52">BATERIE</text>`;
+      svg += `<text x="${batX + batW/2}" y="${batY + 25}" text-anchor="middle" font-size="8.5">${esc(batText)}</text>`;
     }
 
-    // Linie DC catre protectie DC (continua jos)
-    svg += `<line class="wire-dc-pos" x1="${pvX + pvW/2 - 8}" y1="${py - 5}" x2="${pvX + pvW/2 - 8}" y2="${py + 6}"/>`;
-    svg += `<line class="wire-dc-neg" x1="${pvX + pvW/2 + 8}" y1="${py - 5}" x2="${pvX + pvW/2 + 8}" y2="${py + 6}"/>`;
-    svg += `<text x="${pvX + pvW/2 - 15}" y="${py + 2}" text-anchor="end" font-size="8" fill="#c0392b">DC+</text>`;
-    svg += `<text x="${pvX + pvW/2 + 15}" y="${py + 2}" font-size="8" fill="#2471a3">DC-</text>`;
+    // PROTECTIE DC — auto-sized
+    const dcText1 = 'PROTECTIE DC';
+    const dcText2 = val('f_pv_dc');
+    const dcW = autoW(dcText2, 9, 8, autoW(dcText1, 9, 8, minBoxW));
+    svg += `<line class="wire-dc-pos" x1="${pvCenter - 8}" y1="${py}" x2="${pvCenter - 8}" y2="${py + 4}"/>`;
+    svg += `<line class="wire-dc-neg" x1="${pvCenter + 8}" y1="${py}" x2="${pvCenter + 8}" y2="${py + 4}"/>`;
+    svg += `<text x="${pvCenter - 14}" y="${py + 1}" text-anchor="end" font-size="7.5" fill="#c0392b">DC+</text>`;
+    svg += `<text x="${pvCenter + 14}" y="${py + 1}" font-size="7.5" fill="#2471a3">DC-</text>`;
+    svg += `<rect class="dif" x="${pvCenter - dcW/2}" y="${py + 4}" width="${dcW}" height="28" rx="2"/>`;
+    svg += `<text x="${pvCenter}" y="${py + 15}" text-anchor="middle" font-size="8.5" font-weight="bold">${esc(dcText1)}</text>`;
+    svg += `<text x="${pvCenter}" y="${py + 26}" text-anchor="middle" font-size="9">${esc(dcText2)}</text>`;
+    py += 38;
 
-    // Protecție DC
-    svg += `<rect class="dif" x="${pvX}" y="${py + 6}" width="${pvW}" height="30"/>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 18}" text-anchor="middle" font-size="9" font-weight="bold">PROTECTIE DC</text>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 30}" text-anchor="middle" font-size="9">${esc(val('f_pv_dc'))}</text>`;
-    py += 44;
+    // Cablu DC info
+    svg += `<text x="${pvCenter}" y="${py + 4}" text-anchor="middle" font-size="8.5" font-style="italic" fill="#555">${esc(val('f_pv_cabluDC'))}</text>`;
+    py += 12;
 
-    // Cablu DC
-    svg += `<text x="${pvX + pvW/2}" y="${py + 8}" text-anchor="middle" font-size="9" font-style="italic" fill="#555">${esc(val('f_pv_cabluDC'))}</text>`;
-    py += 16;
+    // Stringuri PV — 2 boxuri compacte
+    const strW = 70;
+    const strH = 36;
+    const strGap = 12;
+    const strBlockW = strW * 2 + strGap;
+    const strStartX = pvCenter - strBlockW/2;
+    svg += `<line class="wire-dc-pos" x1="${strStartX + strW/2}" y1="${py}" x2="${strStartX + strW/2}" y2="${py + 6}"/>`;
+    svg += `<line class="wire-dc-neg" x1="${strStartX + strW + strGap + strW/2}" y1="${py}" x2="${strStartX + strW + strGap + strW/2}" y2="${py + 6}"/>`;
+    svg += `<rect class="box-panel" x="${strStartX}" y="${py + 6}" width="${strW}" height="${strH}" rx="2"/>`;
+    svg += `<text x="${strStartX + strW/2}" y="${py + 22}" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">STRING PV1</text>`;
+    svg += `<text x="${strStartX + strW/2}" y="${py + 34}" text-anchor="middle" font-size="8" fill="#fff">panouri</text>`;
+    svg += `<rect class="box-panel" x="${strStartX + strW + strGap}" y="${py + 6}" width="${strW}" height="${strH}" rx="2"/>`;
+    svg += `<text x="${strStartX + strW + strGap + strW/2}" y="${py + 22}" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">STRING PV2</text>`;
+    svg += `<text x="${strStartX + strW + strGap + strW/2}" y="${py + 34}" text-anchor="middle" font-size="8" fill="#fff">panouri</text>`;
+    py += strH + 10;
 
-    // Stringuri PV (2 panouri vizuale)
-    svg += `<line class="wire-dc-pos" x1="${pvX + 60}" y1="${py - 6}" x2="${pvX + 60}" y2="${py + 4}"/>`;
-    svg += `<line class="wire-dc-neg" x1="${pvX + pvW - 60}" y1="${py - 6}" x2="${pvX + pvW - 60}" y2="${py + 4}"/>`;
-    const stringW = (pvW - 80) / 2 - 10;
-    svg += `<rect class="box-panel" x="${pvX + 30}" y="${py + 4}" width="${stringW}" height="50"/>`;
-    svg += `<text x="${pvX + 30 + stringW/2}" y="${py + 22}" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">STRING PV1</text>`;
-    svg += `<text x="${pvX + 30 + stringW/2}" y="${py + 38}" text-anchor="middle" font-size="8" fill="#fff">panouri serie</text>`;
-    svg += `<rect class="box-panel" x="${pvX + pvW - 30 - stringW}" y="${py + 4}" width="${stringW}" height="50"/>`;
-    svg += `<text x="${pvX + pvW - 30 - stringW/2}" y="${py + 22}" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">STRING PV2</text>`;
-    svg += `<text x="${pvX + pvW - 30 - stringW/2}" y="${py + 38}" text-anchor="middle" font-size="8" fill="#fff">panouri serie</text>`;
+    // PE conectat la PV (mass)
+    svg += `<line class="wire wire-PE" x1="${pvCenter}" y1="${py}" x2="${pvCenter}" y2="${peBarY}" stroke-width="1.5"/>`;
 
-    // PE conectat si la PV (mass)
-    svg += `<line class="wire wire-PE" x1="${pvX + pvW/2}" y1="${py + 54}" x2="${pvX + pvW/2}" y2="${peBarY}" stroke-width="1.5"/>`;
+    // Container PV — aliniat exact pe extentul real (asimetric, pentru baterie)
+    const pvContX = pvCenter - pvDims.leftHalf - 6;
+    const pvContW = pvDims.leftHalf + pvDims.rightHalf + 12;
+    const pvContY = pvTop - 16;
+    const pvContH = py - pvContY + 4;
+    svg += `<rect x="${pvContX}" y="${pvContY}" width="${pvContW}" height="${pvContH}" fill="none" stroke="#F9A630" stroke-width="1.8" stroke-dasharray="6,3" rx="6"/>`;
   }
 
   // ── CARTOUCHE jos ──────────────────────────────────────────────────
