@@ -10,109 +10,81 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
-
-#toolbar{
-  background:#1B2A4A;color:#fff;padding:10px 18px;
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-  position:sticky;top:0;z-index:100;
-}
+#toolbar{background:#1B2A4A;color:#fff;padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:100;}
 #toolbar h1{font-size:13px;font-weight:bold;flex:1;}
-#toolbar button,#toolbar a.btn{
-  background:#2a4080;color:#fff;border:none;padding:6px 14px;
-  border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;
-  text-decoration:none;display:inline-block;
-}
+#toolbar button,#toolbar a.btn{background:#2a4080;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;text-decoration:none;display:inline-block;}
 #toolbar button:hover,#toolbar a.btn:hover{background:#3a5090;}
 #toolbar button.green{background:#1a7a3a;}
 #toolbar button.green:hover{background:#229944;}
 #toolbar a.back{background:#444;}
-
-.mode-toggle{
-  background:#2a4080;padding:4px 10px;border-radius:4px;
-  display:flex;align-items:center;gap:8px;font-size:12px;
-}
+.mode-toggle{background:#2a4080;padding:4px 10px;border-radius:4px;display:flex;align-items:center;gap:8px;font-size:12px;}
 .mode-toggle label{cursor:pointer;padding:4px 8px;border-radius:3px;font-weight:bold;}
 .mode-toggle label.active{background:#1a7a3a;}
 .mode-toggle input[type=radio]{display:none;}
-
-.tip{
-  background:#fff3cd;color:#856404;font-size:11px;
-  padding:5px 12px;border-left:3px solid #ffc107;margin:8px 16px;
-}
-
+.tip{background:#fff3cd;color:#856404;font-size:11px;padding:5px 12px;border-left:3px solid #ffc107;margin:8px 16px;}
 #main{display:flex;gap:0;}
-
-#side-panel{
-  width:380px;background:#fff;border-right:1px solid #ddd;
-  padding:14px;overflow-y:auto;max-height:calc(100vh - 48px);
-  position:sticky;top:48px;font-size:12px;
-}
+#side-panel{width:400px;background:#fff;border-right:1px solid #ddd;padding:14px;overflow-y:auto;max-height:calc(100vh - 48px);position:sticky;top:48px;font-size:12px;}
 #side-panel h2{font-size:13px;margin-bottom:10px;color:#1B2A4A;border-bottom:1px solid #ddd;padding-bottom:6px;}
-.section-title{
-  font-size:11px;font-weight:bold;color:#1B2A4A;
-  background:#e8eef8;padding:4px 8px;
-  margin:12px -14px 8px -14px;border-left:3px solid #1B2A4A;
-}
+.section-title{font-size:11px;font-weight:bold;color:#1B2A4A;background:#e8eef8;padding:5px 8px;margin:14px -14px 8px -14px;border-left:3px solid #1B2A4A;display:flex;justify-content:space-between;align-items:center;}
+.section-title .add-btn{background:#1a7a3a;color:#fff;border:none;padding:3px 9px;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;}
+.section-title .add-btn:hover{background:#229944;}
 .field-group{margin-bottom:10px;}
 .field-group label{display:block;font-size:11px;color:#555;margin-bottom:3px;font-weight:bold;}
-.field-group input,.field-group textarea{
-  width:100%;padding:5px 8px;border:1px solid #ccc;border-radius:3px;
-  font-size:12px;font-family:Arial,sans-serif;
-}
-.field-group textarea{font-family:'Consolas',monospace;font-size:11px;line-height:1.4;}
-.field-group input:focus,.field-group textarea:focus{outline:none;border-color:#1B2A4A;}
+.field-group input,.field-group select,.field-group textarea{width:100%;padding:5px 8px;border:1px solid #ccc;border-radius:3px;font-size:12px;font-family:Arial,sans-serif;}
+.field-group input:focus,.field-group select:focus,.field-group textarea:focus{outline:none;border-color:#1B2A4A;}
 .field-group .hint{font-size:10px;color:#888;display:block;margin-top:3px;line-height:1.4;}
 
-#svg-panel{
-  flex:1;padding:16px;overflow:auto;background:#e8ecf0;
-  min-height:calc(100vh - 48px);
-}
+/* Card circuit individual */
+.circ-card{background:#fafaf5;border:1px solid #e0e0d8;border-radius:6px;padding:10px;margin-bottom:8px;position:relative;}
+.circ-card .circ-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.circ-card .circ-num{background:#1B2A4A;color:#fff;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:bold;}
+.circ-card .del-btn{background:#A32D2D;color:#fff;border:none;width:22px;height:22px;border-radius:3px;cursor:pointer;font-size:14px;font-weight:bold;line-height:1;}
+.circ-card .del-btn:hover{background:#C0392B;}
+.circ-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;}
+.circ-row input,.circ-row select{padding:4px 6px;font-size:11px;border:1px solid #ccc;border-radius:3px;width:100%;}
+.circ-card input.cod{font-weight:bold;background:#fff3cd;}
+.circ-card input.dest{grid-column:1/-1;}
+
+#svg-panel{flex:1;padding:16px;overflow:auto;background:#e8ecf0;min-height:calc(100vh - 48px);}
 #svg-wrapper{background:white;display:inline-block;box-shadow:0 2px 8px rgba(0,0,0,0.15);position:relative;}
 #svg-wrapper svg{display:block;}
-#svg-wrapper svg text{cursor:pointer;}
-#svg-wrapper svg text:hover{fill:#0055ff !important;text-decoration:underline;}
+#svg-wrapper svg text{cursor:default;}
 
 .zoom-controls{display:flex;gap:6px;align-items:center;}
 .zoom-controls button{padding:4px 10px;font-size:13px;font-weight:bold;}
 #zoom-label{font-size:12px;min-width:40px;text-align:center;}
 
 @media print{
-  @page{size:A4 landscape;margin:10mm;}
+  @page{size:A3 landscape;margin:8mm;}
   body{background:white !important;}
   #toolbar,#side-panel,.tip{display:none !important;}
   #main{display:block;}
   #svg-panel{padding:0 !important;background:white !important;}
   #svg-wrapper{box-shadow:none !important;}
   #svg-wrapper svg{transform:none !important;width:100% !important;height:auto !important;max-width:100%;}
-  #svg-wrapper svg text{cursor:default !important;}
 }
 </style>
 </head>
 <body>
 
 <div id="toolbar">
-  <h1>⚡ Editor Schemă Monofilară — Instalație de Utilizare</h1>
-
+  <h1>⚡ Editor Schemă Monofilară</h1>
   <div class="mode-toggle">
     <span>Branșament:</span>
     <label id="lbl-mono"><input type="radio" name="branch" value="mono"> Monofazat</label>
     <label id="lbl-tri" class="active"><input type="radio" name="branch" value="tri" checked> Trifazat</label>
   </div>
-
   <div class="mode-toggle">
     <span>Sistem PV:</span>
     <label id="lbl-nopv" class="active"><input type="radio" name="pv" value="no" checked> Fără</label>
     <label id="lbl-pv"><input type="radio" name="pv" value="yes"> Cu sistem fotovoltaic</label>
   </div>
-
   <div class="zoom-controls">
     <button onclick="zoom(-0.1)">−</button>
     <span id="zoom-label">100%</span>
     <button onclick="zoom(0.1)">+</button>
     <button onclick="resetZoom()">↺</button>
   </div>
-
-  <button onclick="rebuild()">🔄 Reconstruiește</button>
   <button class="green" onclick="downloadSVG()">⬇ SVG</button>
   <button onclick="downloadPNG()">⬇ PNG</button>
   <button onclick="window.print()" style="background:#854F0B;">🖨 Print</button>
@@ -120,7 +92,7 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
 </div>
 
 <div class="tip">
-  💡 <strong>Cum funcționează:</strong> Editezi în panoul stânga (titlu, antet, lista de circuite). Schema se actualizează automat. Apoi exporți PDF/PNG sau printezi direct (A4 landscape).
+  💡 Editezi câmpurile în panoul din stânga. Schema se actualizează automat. Apoi exporți SVG/PNG sau printezi (A3 landscape).
 </div>
 
 <div id="main">
@@ -133,31 +105,34 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
     <div class="field-group"><label>POD</label><input type="text" id="f_pod" value="RO001E12345678"></div>
     <div class="field-group"><label>Putere instalată</label><input type="text" id="f_putere" value="20 kW"></div>
 
-    <div class="section-title">Sursă & Întrerupător general</div>
-    <div class="field-group"><label>Titlu sursă (BMP)</label><input type="text" id="f_sursa" value="BMP EXISTENT - Disjunctor 40A 4P"></div>
+    <div class="section-title"><span>Sursă & Întrerupător general</span></div>
+    <div class="field-group"><label>Sursă (BMP / contor de la OD)</label><input type="text" id="f_sursa" value="BMP EXISTENT - Disjunctor 40A 4P"></div>
     <div class="field-group"><label>Cablu coloană principală</label><input type="text" id="f_cablu_col" value="CYY-F 5x6 mmp"></div>
-    <div class="field-group"><label>Întrerupător general TGD</label><input type="text" id="f_ig" value="ÎNTRERUPĂTOR GENERAL 40A 4P"></div>
-    <div class="field-group"><label>Diferențial general</label><input type="text" id="f_diferential_gen" value="ÎNTRERUPĂTOR DIFERENȚIAL 63A / 30mA"></div>
+    <div class="field-group"><label>Întrerupător general TGD</label><input type="text" id="f_ig" value="INTRERUPATOR GENERAL 40A 4P"></div>
+    <div class="field-group"><label>Diferențial general</label><input type="text" id="f_diferential_gen" value="DIFERENTIAL 63A / 30mA"></div>
 
-    <div class="section-title">Circuite (din TGD)</div>
-    <div class="field-group">
-      <label style="display:flex;justify-content:space-between;align-items:center;">
-        <span>Listă circuite (COD | Destinație | Siguranță | Cablu | Diferențial)</span>
-        <button type="button" onclick="addCircuit()" style="background:#1a7a3a;color:#fff;border:none;padding:3px 10px;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;">+ Adaugă</button>
-      </label>
-      <textarea id="f_circuite" rows="9">C1 | Iluminat (L1) | C10-1P+N | 3x1,5 mmp CYY-F | 2A/30mA
-C2 | Prize generale (L1) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-C3 | Prize generale (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-C4 | Mașină spălat (L3) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-C5 | Centrală termică (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-C6 | Rezervă | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA</textarea>
-      <span class="hint">Default: 6 circuite. Click „+ Adaugă" pentru circuit nou (sau editezi direct textarea — câte o linie per circuit).</span>
+    <div class="section-title">
+      <span>Circuite din TGD</span>
+      <button type="button" class="add-btn" onclick="addCircuit()">+ Adaugă</button>
+    </div>
+    <div id="circuits-container"></div>
+
+    <div class="section-title"><span>Împământare (priza de pământ)</span></div>
+    <div class="field-group"><label>Tip priză pământ</label>
+      <input type="text" id="f_priza_tip" value="Priza de pamant artificiala">
+    </div>
+    <div class="field-group"><label>Rezistență dispersie (Ω) — măsurată</label>
+      <input type="text" id="f_priza_rez" value="R ≤ 4 Ohm (conform I7-2011)">
+    </div>
+    <div class="field-group"><label>Conductor PE / centură de echipotențializare</label>
+      <input type="text" id="f_priza_pe" value="Cu 16 mm² (PE) + BEP 25 mm²">
     </div>
 
-    <div class="section-title" id="pv-section-title" style="display:none;">⚡ Sistem fotovoltaic</div>
+    <div class="section-title" id="pv-section-title" style="display:none;"><span>⚡ Sistem fotovoltaic</span></div>
     <div id="pv-section" style="display:none;">
+      <div class="field-group"><label>Putere PV instalată (kWp)</label><input type="text" id="f_pv_putere" value="11,04 kWp"></div>
+      <div class="field-group"><label>Nr. panouri × putere</label><input type="text" id="f_pv_panouri" value="24 × 460Wp Jinko Neo"></div>
       <div class="field-group"><label>Model invertor</label><input type="text" id="f_pv_invertor" value="GoodWe GW10K-ET-20 (10 kW Hibrid)"></div>
-      <div class="field-group"><label>Putere PV (kWp)</label><input type="text" id="f_pv_putere" value="11,04 kWp"></div>
       <div class="field-group" style="margin-bottom:10px;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
           <input type="checkbox" id="f_pv_baterie_on" checked>
@@ -168,15 +143,21 @@ C6 | Rezervă | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA</textarea>
         <label>Model baterie</label>
         <input type="text" id="f_pv_baterie" value="GoodWe LX A5.0-30 · 10,24 kWh">
       </div>
-      <div class="field-group"><label>Protecție DC (descărcător + siguranțe fuzibile)</label>
-        <input type="text" id="f_pv_dc" value="DC SPD Tip 2 + Sep. fuzibili 2×16A (PV1) + 2×16A (PV2)">
+      <div class="field-group"><label>Protecție DC</label>
+        <input type="text" id="f_pv_dc" value="Sep. fuzibili 2×16A + DC SPD Tip 2">
       </div>
-      <div class="field-group"><label>Protecție AC (descărcător + sig. + diferențial)</label>
-        <input type="text" id="f_pv_ac" value="AC SPD Tip 2 + Sig. 20A + Diferențial 30mA">
+      <div class="field-group"><label>Protecție AC</label>
+        <input type="text" id="f_pv_ac" value="Sig. 20A + AC SPD Tip 2 + Diferential 30mA">
+      </div>
+      <div class="field-group"><label>Cablu DC</label>
+        <input type="text" id="f_pv_cabluDC" value="2 × 6 mmp H1Z2Z2-K (PV1+PV2)">
+      </div>
+      <div class="field-group"><label>Cablu AC invertor → punct conectare</label>
+        <input type="text" id="f_pv_cabluAC" value="CYY-F 5×6 mmp">
       </div>
     </div>
 
-    <div class="section-title">Cartouche (date proiect)</div>
+    <div class="section-title"><span>Cartouche</span></div>
     <div class="field-group"><label>Proiectant</label><input type="text" id="f_proiectant" value="POPESCU ION"></div>
     <div class="field-group"><label>ANRE proiectant</label><input type="text" id="f_anre" value="IIB nr. 12345/2024"></div>
     <div class="field-group"><label>Firma executantă</label><input type="text" id="f_firma" value="PROFCEISS ELECTRIC SRL"></div>
@@ -191,312 +172,429 @@ C6 | Rezervă | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA</textarea>
 <script>
 let currentScale = 1.0;
 
+// State: lista de circuite (defaulturi orientative — editabile)
+let circuits = [
+  { cod: 'C1', dest: 'Iluminat 1', sig: 'C10-1P+N', cablu: '3x1,5 CYY-F', dif: '30mA', faza: 'L1' },
+  { cod: 'C2', dest: 'Iluminat 2', sig: 'C10-1P+N', cablu: '3x1,5 CYY-F', dif: '30mA', faza: 'L2' },
+  { cod: 'C3', dest: 'Priza 1 - bucatarie', sig: 'C16-2P+N', cablu: '3x2,5 CYY-F', dif: '30mA', faza: 'L1' },
+  { cod: 'C4', dest: 'Priza 2 - living', sig: 'C16-2P+N', cablu: '3x2,5 CYY-F', dif: '30mA', faza: 'L2' },
+  { cod: 'C5', dest: 'Cuptor electric', sig: 'C16-2P+N', cablu: '3x2,5 CYY-F', dif: '30mA', faza: 'L3' },
+  { cod: 'C6', dest: 'Rezerva', sig: 'C16-2P+N', cablu: '3x2,5 CYY-F', dif: '30mA', faza: 'L1' }
+];
+
 function getBranch() { return document.querySelector('input[name="branch"]:checked').value; }
 function getPV() { return document.querySelector('input[name="pv"]:checked').value === 'yes'; }
 function val(id) { return document.getElementById(id).value || ''; }
 function isChecked(id) { const e = document.getElementById(id); return e && e.checked; }
 
+// ── Render circuite form ──
+function renderCircuits() {
+  const c = document.getElementById('circuits-container');
+  const isTri = getBranch() === 'tri';
+  const phaseOpts = isTri ? ['L1','L2','L3','3P+N'] : ['L','N'];
+  c.innerHTML = circuits.map((cir, i) => `
+    <div class="circ-card">
+      <div class="circ-head">
+        <span class="circ-num">Circuit ${i+1}</span>
+        <button type="button" class="del-btn" onclick="delCircuit(${i})" title="Sterge">×</button>
+      </div>
+      <div class="circ-row">
+        <input class="cod" type="text" placeholder="COD" value="${escapeAttr(cir.cod)}" oninput="updCirc(${i},'cod',this.value)">
+        <select onchange="updCirc(${i},'faza',this.value)">
+          ${phaseOpts.map(p => `<option value="${p}" ${p===cir.faza?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+      <div class="circ-row">
+        <input class="dest" type="text" placeholder="Descriere funcționalitate (ex: cuptor, iluminat 1, priza auto, sauna...)" value="${escapeAttr(cir.dest)}" oninput="updCirc(${i},'dest',this.value)" title="Editabil — scrii orice descriere a circuitului">
+      </div>
+      <div class="circ-row">
+        <input type="text" placeholder="Siguranta (ex: C16-2P+N)" value="${escapeAttr(cir.sig)}" oninput="updCirc(${i},'sig',this.value)">
+        <input type="text" placeholder="Diferential" value="${escapeAttr(cir.dif)}" oninput="updCirc(${i},'dif',this.value)">
+      </div>
+      <div class="circ-row">
+        <input class="dest" type="text" placeholder="Cablu" value="${escapeAttr(cir.cablu)}" oninput="updCirc(${i},'cablu',this.value)">
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/'/g, '&apos;'); }
+
+function updCirc(i, field, value) {
+  circuits[i][field] = value;
+  rebuild();
+}
+
 function addCircuit() {
-  const ta = document.getElementById('f_circuite');
-  const lines = ta.value.split('\n').filter(Boolean);
-  const next = `C${lines.length + 1} | Circuit nou | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA`;
-  ta.value = ta.value + (ta.value.endsWith('\n') ? '' : '\n') + next;
-  ta.rows = Math.max(parseInt(ta.rows||6), lines.length + 2);
+  const n = circuits.length + 1;
+  circuits.push({ cod: `C${n}`, dest: 'Circuit nou', sig: 'C16-2P+N', cablu: '3x2,5 CYY-F', dif: '30mA', faza: getBranch() === 'tri' ? 'L1' : 'L' });
+  renderCircuits();
+  rebuild();
+}
+
+function delCircuit(i) {
+  if (!confirm('Sterg circuitul ' + circuits[i].cod + '?')) return;
+  circuits.splice(i, 1);
+  renderCircuits();
   rebuild();
 }
 
 function togglePVSection() {
   const on = getPV();
   document.getElementById('pv-section').style.display = on ? 'block' : 'none';
-  document.getElementById('pv-section-title').style.display = on ? 'block' : 'none';
+  document.getElementById('pv-section-title').style.display = on ? 'flex' : 'none';
 }
 
 function toggleBaterieGroup() {
   document.getElementById('pv_baterie_group').style.display = isChecked('f_pv_baterie_on') ? 'block' : 'none';
 }
 
-function parseCircuits() {
-  const text = val('f_circuite');
-  return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
-    const parts = line.split('|').map(p => p.trim());
-    return {
-      cod: parts[0] || '-',
-      dest: parts[1] || '-',
-      sig: parts[2] || '-',
-      cablu: parts[3] || '-',
-      dif: parts[4] || '-'
-    };
-  });
-}
-
+// ─────────────────────────────────────────────────────────────────────────
+// BUILD SVG — Schema monofilara profesionala cu routing ortogonal
+// ─────────────────────────────────────────────────────────────────────────
 function buildSVG() {
   const branch = getBranch();
-  const circuits = parseCircuits();
+  const pvOn = getPV();
   const isTri = branch === 'tri';
+  const phaseCount = isTri ? 3 : 1;
+  const wireLabels = isTri ? ['L1','L2','L3','N'] : ['L','N'];
+  const totalWires = isTri ? 4 : 2;
 
-  // Layout: top BMP, bus bar, circuits branching down
-  const W = 1400;
-  const titleH = 60;
-  const sourceH = 110;
-  const igH = 80;
-  const difH = 60;
-  const busH = 30;
-  const circH = 130; // each circuit takes this much vertical space
-  const margin = 40;
-  const circuitCount = circuits.length;
-  const cartoucheH = 130;
+  // Dimensiuni
+  const cn = Math.max(circuits.length, 1);
+  const circCellW = 110; // lățime per circuit
+  const margin = 50;
+  const minW = 1400;
+  const drawingW = Math.max(minW, cn * circCellW + 350);
 
-  // Calculate width based on circuits (need horizontal space)
-  const circW = Math.max(80, Math.floor((W - 2*margin) / Math.max(circuitCount, 1)));
-  const totalCircuitsW = circW * circuitCount;
-  const drawingW = Math.max(W, totalCircuitsW + 2*margin);
-
-  const totalH = titleH + sourceH + igH + difH + busH + circH + cartoucheH + margin*2;
-
-  // Header
-  const titluStr = val('f_titlu');
-  const beneficiar = val('f_beneficiar');
-  const adresa = val('f_adresa');
-  const pod = val('f_pod');
-  const putere = val('f_putere');
-
+  // Y-uri pe verticala (sectiunile principale)
   let y = margin;
+  const yTitle = y; y += 50;
+  const ySource = y; y += 70;
+  const yWires1Start = y;          // BMP coboara
+  y += 50;
+  const yPVjunction = y;           // Punct conectare PV (cu TCs)
+  y += pvOn ? 60 : 30;             // Mai mult spatiu daca e PV
+  const yIG = y; y += 70;          // Intrerupator general
+  const yDif = y; y += 60;         // Diferential
+  const yBusbar = y; y += 30;      // Busbar distributor
+  const circAreaStart = y;
+  y += 180;                        // Zona circuitelor
+  const yPE = y; y += 50;          // Conductor PE catre priza pamant
+  const yGround = y; y += 50;      // Priza pamant
+  const cartoucheH = 130;
+  y += cartoucheH + 30;
+  const totalH = y + margin;
+
+  // Centru schemă (axa verticală principală)
+  const cx = drawingW / 2 - (pvOn ? 200 : 0); // shift left daca PV e activ
+
+  // Pozitii fire pe verticala (faze + N + PE)
+  const wireXs = [];
+  const wireSpacing = 14;
+  const startWireX = cx - ((totalWires - 1) * wireSpacing) / 2;
+  for (let i = 0; i < totalWires; i++) wireXs.push(startWireX + i * wireSpacing);
+  const peX = wireXs[totalWires - 1] + wireSpacing * 2; // PE separat
+
+  // Start SVG
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${drawingW}" height="${totalH}" viewBox="0 0 ${drawingW} ${totalH}" font-family="Arial,sans-serif" font-size="11">`;
   svg += `<style>
     .box { fill: white; stroke: black; stroke-width: 1.5; }
-    .box-imp { fill: #f0f8ff; stroke: black; stroke-width: 2; }
-    .wire { fill: none; stroke: black; stroke-width: 1.5; }
+    .box-imp { fill: #f0f8ff; stroke: black; stroke-width: 1.8; }
+    .box-pv { fill: #FFF9E0; stroke: #F9A630; stroke-width: 1.5; }
+    .box-inv { fill: #E3F2FD; stroke: #1976D2; stroke-width: 1.5; }
+    .box-bat { fill: #E8F5E9; stroke: #0F7A52; stroke-width: 1.5; }
+    .box-panel { fill: #1B2A4A; stroke: #000; stroke-width: 0.8; }
+    .wire { fill: none; stroke: black; stroke-width: 1.5; stroke-linecap: square; }
     .wire-L1 { stroke: #c0392b; }
     .wire-L2 { stroke: #d4a017; }
     .wire-L3 { stroke: #2471a3; }
     .wire-N { stroke: #2980b9; }
+    .wire-PE { stroke: #1a7a3a; stroke-dasharray: 4,2; }
+    .wire-dc-pos { fill: none; stroke: #c0392b; stroke-width: 1.5; }
+    .wire-dc-neg { fill: none; stroke: #2471a3; stroke-width: 1.5; }
     .brk { fill: white; stroke: black; stroke-width: 1.2; }
-    .dif { fill: #fffbe6; stroke: #c0392b; stroke-width: 1.4; }
+    .dif { fill: #FFE082; stroke: #C78F0B; stroke-width: 1.4; }
+    .ct { fill: none; stroke: #c0392b; stroke-width: 2; }
+    .junction { fill: black; }
+    text { font-family: Arial, sans-serif; }
   </style>`;
 
-  // Titlu schemă
-  svg += `<text x="${drawingW/2}" y="${y+22}" text-anchor="middle" font-size="16" font-weight="bold">${escapeXml(titluStr)}</text>`;
-  svg += `<text x="${drawingW/2}" y="${y+42}" text-anchor="middle" font-size="11" fill="#555">Beneficiar: ${escapeXml(beneficiar)} · Adresa: ${escapeXml(adresa)} · POD: ${escapeXml(pod)} · Putere: ${escapeXml(putere)}</text>`;
+  // ── TITLU & info ───────────────────────────────────────────────────
+  svg += `<text x="${drawingW/2}" y="${yTitle + 22}" text-anchor="middle" font-size="16" font-weight="bold">${esc(val('f_titlu'))}</text>`;
+  svg += `<text x="${drawingW/2}" y="${yTitle + 42}" text-anchor="middle" font-size="11" fill="#555">Beneficiar: ${esc(val('f_beneficiar'))} · Adresa: ${esc(val('f_adresa'))} · POD: ${esc(val('f_pod'))} · Putere: ${esc(val('f_putere'))}</text>`;
 
-  y += titleH;
+  // ── SURSA (BMP) ─────────────────────────────────────────────────────
+  const srcW = 320;
+  svg += `<rect class="box-imp" x="${cx - srcW/2}" y="${ySource}" width="${srcW}" height="55"/>`;
+  svg += `<text x="${cx}" y="${ySource + 22}" text-anchor="middle" font-weight="bold" font-size="13">${esc(val('f_sursa'))}</text>`;
+  svg += `<text x="${cx}" y="${ySource + 42}" text-anchor="middle" font-size="10" fill="#555">${wireLabels.join(' / ')}</text>`;
 
-  // Sursa (BMP)
-  const sourceX = drawingW/2 - 200;
-  svg += `<rect class="box-imp" x="${sourceX}" y="${y}" width="400" height="60"/>`;
-  svg += `<text x="${drawingW/2}" y="${y+25}" text-anchor="middle" font-weight="bold" font-size="13" data-id="sursa">${escapeXml(val('f_sursa'))}</text>`;
-  svg += `<text x="${drawingW/2}" y="${y+45}" text-anchor="middle" font-size="10" fill="#555">${isTri ? 'L1 / L2 / L3 / N' : 'L / N'}</text>`;
-
-  // Wires from BMP down
-  const wireX = drawingW/2;
-  const wireSpacing = isTri ? 15 : 20;
-  const wireXs = isTri ? [wireX-30, wireX-10, wireX+10, wireX+30] : [wireX-10, wireX+10];
-  const wireColors = isTri ? ['L1','L2','L3','N'] : ['L1','N'];
-
-  y += 60;
-  // Wire labels
-  svg += `<text x="${drawingW/2 + 220}" y="${y+15}" font-size="10" font-weight="bold" data-id="cablu_col">${escapeXml(val('f_cablu_col'))}</text>`;
-  // Wires from source to intrerupator general
+  // Fire coboara din sursa
   wireXs.forEach((wx, i) => {
-    svg += `<line class="wire wire-${wireColors[i]}" x1="${wx}" y1="${y}" x2="${wx}" y2="${y+50}"/>`;
+    svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${ySource + 55}" x2="${wx}" y2="${yPVjunction + (pvOn ? 50 : 0)}"/>`;
   });
-  y += 50;
+  svg += `<text x="${cx + srcW/2 + 10}" y="${ySource + 75}" font-size="10" font-weight="bold" fill="#444">${esc(val('f_cablu_col'))}</text>`;
 
-  // Intrerupator general
-  const igX = drawingW/2 - 150;
-  svg += `<rect class="box-imp" x="${igX}" y="${y}" width="300" height="60"/>`;
-  // Mini-breakers
+  // ── PUNCT CONECTARE PV + TC-uri ────────────────────────────────────
+  if (pvOn) {
+    // TC-uri pe fiecare faza (Bobine Curent)
+    const tcY = yPVjunction + 5;
+    wireXs.slice(0, isTri ? 3 : 1).forEach((wx, i) => {
+      svg += `<ellipse cx="${wx}" cy="${tcY + 12}" rx="9" ry="14" fill="white" stroke="#c0392b" stroke-width="2"/>`;
+      svg += `<text x="${wx - 14}" y="${tcY + 16}" text-anchor="end" font-size="8.5" font-weight="bold" fill="#c0392b">CT${i+1}</text>`;
+    });
+    svg += `<text x="${cx + srcW/2 + 10}" y="${tcY + 16}" font-size="9.5" font-weight="bold" fill="#c0392b">TC-uri (intrari Smart Meter)</text>`;
+
+    // Punct junction (T) pentru conexiune AC PV in firele principale
+    const jY = yPVjunction + 45;
+    wireXs.forEach((wx, i) => {
+      svg += `<circle class="junction" cx="${wx}" cy="${jY}" r="3"/>`;
+    });
+    svg += `<text x="${cx - srcW/2 - 10}" y="${jY + 4}" text-anchor="end" font-size="9.5" font-weight="bold" fill="#1B2A4A">Punct conectare PV →</text>`;
+
+    // Linie orizontala spre PV box (continua mai jos)
+    const pvBoxX = drawingW - margin - 360;
+    wireXs.forEach((wx, i) => {
+      const ly = jY - i * 3; // offset mic per faza ca sa nu se suprapuna
+      svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${jY}" x2="${pvBoxX + 20 + i*4}" y2="${jY}"/>`;
+      svg += `<line class="wire wire-${wireLabels[i]}" x1="${pvBoxX + 20 + i*4}" y1="${jY}" x2="${pvBoxX + 20 + i*4}" y2="${yIG + 30}"/>`;
+    });
+  }
+
+  // ── INTRERUPATOR GENERAL ───────────────────────────────────────────
+  const igW = 250;
+  svg += `<rect class="box-imp" x="${cx - igW/2}" y="${yIG}" width="${igW}" height="55"/>`;
   wireXs.forEach((wx, i) => {
-    svg += `<rect class="brk" x="${wx-6}" y="${y+18}" width="12" height="20"/>`;
+    svg += `<rect class="brk" x="${wx-6}" y="${yIG + 18}" width="12" height="20"/>`;
   });
-  svg += `<text x="${drawingW/2}" y="${y+50}" text-anchor="middle" font-weight="bold" font-size="11" data-id="ig">${escapeXml(val('f_ig'))}</text>`;
-  y += 60;
+  svg += `<text x="${cx}" y="${yIG + 50}" text-anchor="middle" font-weight="bold" font-size="11">${esc(val('f_ig'))}</text>`;
 
-  // Wires to differential
+  // Fire IG → Diferential
   wireXs.forEach((wx, i) => {
-    svg += `<line class="wire wire-${wireColors[i]}" x1="${wx}" y1="${y}" x2="${wx}" y2="${y+30}"/>`;
+    svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${yIG + 55}" x2="${wx}" y2="${yDif}"/>`;
   });
-  y += 30;
 
-  // Diferential general
-  const difX = drawingW/2 - 175;
-  svg += `<rect class="dif" x="${difX}" y="${y}" width="350" height="50"/>`;
-  svg += `<text x="${drawingW/2}" y="${y+30}" text-anchor="middle" font-weight="bold" font-size="11" data-id="dif_gen">${escapeXml(val('f_diferential_gen'))}</text>`;
-  y += 50;
+  // ── DIFERENTIAL GENERAL ────────────────────────────────────────────
+  const difW = 280;
+  svg += `<rect class="dif" x="${cx - difW/2}" y="${yDif}" width="${difW}" height="40"/>`;
+  svg += `<text x="${cx}" y="${yDif + 25}" text-anchor="middle" font-weight="bold" font-size="11">${esc(val('f_diferential_gen'))}</text>`;
 
-  // Wires from differential to bus bar
+  // Fire Dif → Busbar
   wireXs.forEach((wx, i) => {
-    svg += `<line class="wire wire-${wireColors[i]}" x1="${wx}" y1="${y}" x2="${wx}" y2="${y+25}"/>`;
+    svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${yDif + 40}" x2="${wx}" y2="${yBusbar}"/>`;
   });
-  y += 25;
 
-  // Bus bar (busbara distribuitor)
-  const busStartX = margin;
-  const busEndX = drawingW - margin;
-  const busY = y;
-  const busSpacing = 4; // distance between bus lines
-
-  // Draw bus bars (one per phase + neutral)
+  // ── BUSBAR DISTRIBUITOR ────────────────────────────────────────────
+  const busL = margin;
+  const busR = drawingW - margin - (pvOn ? 380 : 0); // scurtat daca PV
   wireXs.forEach((wx, i) => {
-    const localBusY = busY + i * 5;
-    svg += `<line class="wire wire-${wireColors[i]}" x1="${busStartX}" y1="${localBusY}" x2="${busEndX}" y2="${localBusY}" stroke-width="2.5"/>`;
-    // Connect from wire down to bus
-    svg += `<line class="wire wire-${wireColors[i]}" x1="${wx}" y1="${y-25}" x2="${wx}" y2="${localBusY}"/>`;
+    const busY = yBusbar + i * 5;
+    svg += `<line class="wire wire-${wireLabels[i]}" x1="${busL}" y1="${busY}" x2="${busR}" y2="${busY}" stroke-width="2.5"/>`;
+    svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${yBusbar - 5}" x2="${wx}" y2="${busY}"/>`;
   });
-  svg += `<text x="${drawingW - margin - 5}" y="${busY - 5}" text-anchor="end" font-size="10" font-style="italic" fill="#555">BUSBAR DISTRIBUITOR</text>`;
-  y += 30;
+  svg += `<text x="${busL + 5}" y="${yBusbar - 5}" font-size="10" font-style="italic" fill="#555">BUSBAR DISTRIBUITOR</text>`;
 
-  // Circuits (branching down from bus bar)
-  const circStartX = margin + circW/2;
+  // ── CIRCUITE (routing Manhattan, ortogonal) ───────────────────────
+  const circStart = margin + 30;
+  const circEnd = busR - 30;
+  const circStep = circuits.length > 0 ? (circEnd - circStart) / circuits.length : circCellW;
 
   circuits.forEach((c, i) => {
-    const cx = circStartX + i * circW;
+    const ccx = circStart + circStep * (i + 0.5);
+    const phase = (c.faza || 'L1').toUpperCase();
+    const phaseColor = (phase === 'L1' || phase === 'L') ? 'L1' :
+                       (phase === 'L2') ? 'L2' :
+                       (phase === 'L3') ? 'L3' : 'L1';
+    const isThreePhase = phase === '3P+N';
 
-    // Determine which phase based on destination (try to extract from text)
-    const destLower = c.dest.toLowerCase();
-    let phaseColor = 'L1';
-    if (destLower.includes('(l1)') || destLower.includes('faza l1') || destLower.includes('faza r')) phaseColor = 'L1';
-    else if (destLower.includes('(l2)') || destLower.includes('faza l2') || destLower.includes('faza s')) phaseColor = 'L2';
-    else if (destLower.includes('(l3)') || destLower.includes('faza l3') || destLower.includes('faza t')) phaseColor = 'L3';
-    else if (destLower.includes('trifazat') || destLower.includes('3p+n') || destLower.includes('r-s-t')) phaseColor = 'L1'; // trifazat — use multi
-    if (isTri && (destLower.includes('trifazat') || destLower.includes('3p+n') || destLower.includes('r-s-t'))) {
-      // Draw all 3 phases
+    if (isThreePhase && isTri) {
+      // 3 faze + N
       [0,1,2].forEach((pi, idx) => {
         const px = wireXs[pi];
-        svg += `<line class="wire wire-${wireColors[pi]}" x1="${px}" y1="${busY + pi*5}" x2="${cx-10+idx*10}" y2="${y + 10}"/>`;
-        svg += `<line class="wire wire-${wireColors[pi]}" x1="${cx-10+idx*10}" y1="${y + 10}" x2="${cx-10+idx*10}" y2="${y + 30}"/>`;
+        const lx = ccx - 12 + idx * 6;
+        const localBusY = yBusbar + pi * 5;
+        svg += `<circle class="junction" cx="${lx}" cy="${localBusY}" r="2.5"/>`;
+        // Vertical down from busbar
+        svg += `<line class="wire wire-${wireLabels[pi]}" x1="${lx}" y1="${localBusY}" x2="${lx}" y2="${circAreaStart + 15}"/>`;
       });
-      // Neutral
-      svg += `<line class="wire wire-N" x1="${wireXs[3]}" y1="${busY + 3*5}" x2="${cx+20}" y2="${y + 10}"/>`;
-      svg += `<line class="wire wire-N" x1="${cx+20}" y1="${y + 10}" x2="${cx+20}" y2="${y + 30}"/>`;
+      // N
+      const nx = ccx + 12;
+      const nBusY = yBusbar + 3 * 5;
+      svg += `<circle class="junction" cx="${nx}" cy="${nBusY}" r="2.5"/>`;
+      svg += `<line class="wire wire-N" x1="${nx}" y1="${nBusY}" x2="${nx}" y2="${circAreaStart + 15}"/>`;
     } else {
-      // Single phase: faza + N
-      const phaseIdx = (phaseColor === 'L1') ? 0 : (phaseColor === 'L2' ? 1 : 2);
-      const px = isTri ? wireXs[phaseIdx] : wireXs[0];
-      const nx = isTri ? wireXs[3] : wireXs[1];
-      svg += `<line class="wire wire-${phaseColor}" x1="${px}" y1="${busY + (isTri?phaseIdx:0)*5}" x2="${cx-5}" y2="${y + 10}"/>`;
-      svg += `<line class="wire wire-${phaseColor}" x1="${cx-5}" y1="${y + 10}" x2="${cx-5}" y2="${y + 30}"/>`;
-      svg += `<line class="wire wire-N" x1="${nx}" y1="${busY + (isTri?3:1)*5}" x2="${cx+5}" y2="${y + 10}"/>`;
-      svg += `<line class="wire wire-N" x1="${cx+5}" y1="${y + 10}" x2="${cx+5}" y2="${y + 30}"/>`;
+      // monofazat (faza + N)
+      const phaseIdx = isTri ? (phase === 'L1' ? 0 : phase === 'L2' ? 1 : 2) : 0;
+      const px = wireXs[phaseIdx];
+      const nx = wireXs[totalWires - 1];
+      const lxP = ccx - 5;
+      const lxN = ccx + 5;
+      const localBusYP = yBusbar + phaseIdx * 5;
+      const localBusYN = yBusbar + (totalWires - 1) * 5;
+      svg += `<circle class="junction" cx="${lxP}" cy="${localBusYP}" r="2.5"/>`;
+      svg += `<line class="wire wire-${phaseColor}" x1="${lxP}" y1="${localBusYP}" x2="${lxP}" y2="${circAreaStart + 15}"/>`;
+      svg += `<circle class="junction" cx="${lxN}" cy="${localBusYN}" r="2.5"/>`;
+      svg += `<line class="wire wire-N" x1="${lxN}" y1="${localBusYN}" x2="${lxN}" y2="${circAreaStart + 15}"/>`;
     }
 
-    // Siguranță (breaker)
-    svg += `<rect class="brk" x="${cx-15}" y="${y + 30}" width="30" height="22"/>`;
-    svg += `<text x="${cx}" y="${y + 45}" text-anchor="middle" font-size="8.5" font-weight="bold" data-id="sig_${i}">${escapeXml(c.sig)}</text>`;
-
-    // Code circuit (sus de tot)
-    svg += `<text x="${cx}" y="${y - 5}" text-anchor="middle" font-size="11" font-weight="bold" fill="#1B2A4A" data-id="cod_${i}">${escapeXml(c.cod)}</text>`;
-
-    // Wire to differential
-    svg += `<line class="wire wire-${phaseColor}" x1="${cx-5}" y1="${y + 52}" x2="${cx-5}" y2="${y + 75}"/>`;
-    svg += `<line class="wire wire-N" x1="${cx+5}" y1="${y + 52}" x2="${cx+5}" y2="${y + 75}"/>`;
-
-    // Diferențial (if any)
-    if (c.dif && c.dif !== '-') {
-      svg += `<rect class="dif" x="${cx-20}" y="${y + 75}" width="40" height="18"/>`;
-      svg += `<text x="${cx}" y="${y + 88}" text-anchor="middle" font-size="7.5" font-weight="bold" data-id="dif_${i}">${escapeXml(c.dif)}</text>`;
-      svg += `<line class="wire wire-${phaseColor}" x1="${cx-5}" y1="${y + 93}" x2="${cx-5}" y2="${y + 105}"/>`;
-      svg += `<line class="wire wire-N" x1="${cx+5}" y1="${y + 93}" x2="${cx+5}" y2="${y + 105}"/>`;
+    // Cod circuit
+    svg += `<text x="${ccx}" y="${circAreaStart + 12}" text-anchor="middle" font-size="11" font-weight="bold" fill="#1B2A4A">${esc(c.cod)}</text>`;
+    // Siguranță (simbol IEC profesional: rectangle + linie oblica contact + curba arc)
+    const bx = ccx - 12, by = circAreaStart + 18, bw = 24, bh = 26;
+    svg += `<rect class="brk" x="${bx}" y="${by}" width="${bw}" height="${bh}"/>`;
+    // Linie verticala (axa) prin mijloc
+    svg += `<line x1="${ccx}" y1="${by}" x2="${ccx}" y2="${by + bh}" stroke="black" stroke-width="0.8" stroke-dasharray="2,2"/>`;
+    // Contact mobil: linie oblica de la pivot (jos) spre dreapta sus
+    svg += `<line x1="${ccx}" y1="${by + bh - 4}" x2="${ccx + 8}" y2="${by + 4}" stroke="black" stroke-width="1.5"/>`;
+    // Pivot (cerc mic)
+    svg += `<circle cx="${ccx}" cy="${by + bh - 4}" r="1.5" fill="black"/>`;
+    // Arc magnetotermic (mic semicerc indicand protectie automata)
+    svg += `<path d="M ${ccx + 4} ${by + 2} a 4 4 0 0 1 4 4" fill="none" stroke="black" stroke-width="1.2"/>`;
+    // Eticheta valoare (sub simbol)
+    svg += `<text x="${ccx}" y="${by + bh + 10}" text-anchor="middle" font-size="9" font-weight="bold">${esc(c.sig)}</text>`;
+    // Wire down (dupa eticheta sigurantei)
+    const phaseColorPick = isThreePhase ? 'L1' : phaseColor;
+    const yAfterBrk = circAreaStart + 60;
+    svg += `<line class="wire wire-${phaseColorPick}" x1="${ccx-5}" y1="${yAfterBrk}" x2="${ccx-5}" y2="${yAfterBrk + 12}"/>`;
+    svg += `<line class="wire wire-N" x1="${ccx+5}" y1="${yAfterBrk}" x2="${ccx+5}" y2="${yAfterBrk + 12}"/>`;
+    // Diferențial (daca există)
+    if (c.dif && c.dif !== '-' && c.dif.trim() !== '') {
+      svg += `<rect class="dif" x="${ccx - 24}" y="${yAfterBrk + 12}" width="48" height="18"/>`;
+      svg += `<text x="${ccx}" y="${yAfterBrk + 25}" text-anchor="middle" font-size="8" font-weight="bold">${esc(c.dif)}</text>`;
+      svg += `<line class="wire wire-${phaseColorPick}" x1="${ccx-5}" y1="${yAfterBrk + 30}" x2="${ccx-5}" y2="${yAfterBrk + 42}"/>`;
+      svg += `<line class="wire wire-N" x1="${ccx+5}" y1="${yAfterBrk + 30}" x2="${ccx+5}" y2="${yAfterBrk + 42}"/>`;
     }
-
-    // Cablu info
-    svg += `<text x="${cx}" y="${y + 115}" text-anchor="middle" font-size="8" fill="#555" data-id="cablu_${i}">${escapeXml(c.cablu)}</text>`;
-
-    // Destinație
-    svg += `<text x="${cx}" y="${y + 128}" text-anchor="middle" font-size="9" font-weight="bold" data-id="dest_${i}">${escapeXml(truncate(c.dest, 18))}</text>`;
+    // Cablu
+    svg += `<text x="${ccx}" y="${yAfterBrk + 56}" text-anchor="middle" font-size="8" fill="#555">${esc(truncate(c.cablu, 20))}</text>`;
+    // Faza
+    svg += `<text x="${ccx}" y="${yAfterBrk + 68}" text-anchor="middle" font-size="8" font-weight="bold" fill="${phaseColor === 'L1' ? '#c0392b' : phaseColor === 'L2' ? '#d4a017' : '#2471a3'}">${esc(phase)}</text>`;
+    // Destinație (descrierea funcționalității — câmp editabil)
+    svg += `<text x="${ccx}" y="${yAfterBrk + 84}" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#1B2A4A">${esc(truncate(c.dest, 18))}</text>`;
   });
-  y += circH;
 
-  // Cartouche jos
-  const cartX = margin;
-  const cartY = totalH - cartoucheH - margin;
-  const cartW = drawingW - 2*margin;
-  svg += `<rect class="box" x="${cartX}" y="${cartY}" width="${cartW}" height="${cartoucheH - 10}"/>`;
-  svg += `<text x="${cartX + 10}" y="${cartY + 22}" font-weight="bold" font-size="12">SCHEMA ELECTRICA MONOFILARA</text>`;
-  svg += `<line x1="${cartX + 10}" y1="${cartY + 30}" x2="${cartX + cartW - 10}" y2="${cartY + 30}" stroke="black" stroke-width="0.5"/>`;
-  svg += `<text x="${cartX + 10}" y="${cartY + 50}" font-size="10" font-weight="bold">Beneficiar:</text>`;
-  svg += `<text x="${cartX + 100}" y="${cartY + 50}" font-size="10" data-id="cart_ben">${escapeXml(beneficiar)}</text>`;
-  svg += `<text x="${cartX + 10}" y="${cartY + 65}" font-size="10" font-weight="bold">Adresa:</text>`;
-  svg += `<text x="${cartX + 100}" y="${cartY + 65}" font-size="10" data-id="cart_adr">${escapeXml(adresa)}</text>`;
-  svg += `<text x="${cartX + 10}" y="${cartY + 80}" font-size="10" font-weight="bold">POD:</text>`;
-  svg += `<text x="${cartX + 100}" y="${cartY + 80}" font-size="10" font-weight="bold" data-id="cart_pod">${escapeXml(pod)}</text>`;
-  svg += `<text x="${cartX + 10}" y="${cartY + 95}" font-size="10" font-weight="bold">Putere instalata:</text>`;
-  svg += `<text x="${cartX + 130}" y="${cartY + 95}" font-size="10" font-weight="bold" data-id="cart_put">${escapeXml(putere)}</text>`;
+  // ── CONDUCTOR PE & PRIZA PAMANT ────────────────────────────────────
+  // Conductor PE de la TGD jos la priza pamant
+  const peBarY = yPE;
+  svg += `<line class="wire wire-PE" x1="${peX}" y1="${yBusbar - 5}" x2="${peX}" y2="${peBarY}" stroke-width="2"/>`;
+  svg += `<text x="${peX + 5}" y="${peBarY - 5}" font-size="9" font-weight="bold" fill="#1a7a3a">PE: ${esc(val('f_priza_pe'))}</text>`;
+  // Bara PE
+  svg += `<line class="wire wire-PE" x1="${margin}" y1="${peBarY}" x2="${drawingW - margin}" y2="${peBarY}" stroke-width="2"/>`;
+  svg += `<text x="${margin + 5}" y="${peBarY - 5}" font-size="10" font-weight="bold" fill="#1a7a3a">BARA PE (echipotențializare)</text>`;
+  // Priza pamant (simbol triunghi)
+  const pgX = drawingW/2;
+  svg += `<line class="wire wire-PE" x1="${pgX}" y1="${peBarY}" x2="${pgX}" y2="${yGround}" stroke-width="2"/>`;
+  svg += `<line stroke="#1a7a3a" stroke-width="2" x1="${pgX - 20}" y1="${yGround}" x2="${pgX + 20}" y2="${yGround}"/>`;
+  svg += `<line stroke="#1a7a3a" stroke-width="1.6" x1="${pgX - 15}" y1="${yGround + 5}" x2="${pgX + 15}" y2="${yGround + 5}"/>`;
+  svg += `<line stroke="#1a7a3a" stroke-width="1.2" x1="${pgX - 10}" y1="${yGround + 10}" x2="${pgX + 10}" y2="${yGround + 10}"/>`;
+  svg += `<line stroke="#1a7a3a" stroke-width="1" x1="${pgX - 5}" y1="${yGround + 15}" x2="${pgX + 5}" y2="${yGround + 15}"/>`;
+  svg += `<text x="${pgX}" y="${yGround + 30}" text-anchor="middle" font-size="10" font-weight="bold" fill="#1a7a3a">${esc(val('f_priza_tip'))}</text>`;
+  svg += `<text x="${pgX}" y="${yGround + 42}" text-anchor="middle" font-size="9" fill="#555">${esc(val('f_priza_rez'))}</text>`;
 
-  const rightX = cartX + cartW - 350;
-  svg += `<text x="${rightX}" y="${cartY + 50}" font-size="10" font-weight="bold">Proiectant:</text>`;
-  svg += `<text x="${rightX + 90}" y="${cartY + 50}" font-size="10" data-id="cart_proj">${escapeXml(val('f_proiectant'))} (${escapeXml(val('f_anre'))})</text>`;
-  svg += `<text x="${rightX}" y="${cartY + 65}" font-size="10" font-weight="bold">Firma:</text>`;
-  svg += `<text x="${rightX + 90}" y="${cartY + 65}" font-size="10" data-id="cart_firma">${escapeXml(val('f_firma'))}</text>`;
-  svg += `<text x="${rightX}" y="${cartY + 80}" font-size="10" font-weight="bold">Data:</text>`;
-  svg += `<text x="${rightX + 90}" y="${cartY + 80}" font-size="10" data-id="cart_data">${escapeXml(val('f_data'))}</text>`;
+  // ── BLOC PV (in dreapta, daca e activ) ─────────────────────────────
+  if (pvOn) {
+    const pvX = drawingW - margin - 360;
+    const pvW = 360;
+    const pvTop = yIG;
+    let py = pvTop;
 
-  // ── BLOC PV (când e activ toggle-ul) ──
-  if (getPV()) {
-    const pvX = drawingW - margin - 280;
-    const pvY = busY + 50;
-    const pvW = 280;
     // Container PV
-    svg += `<rect x="${pvX}" y="${pvY}" width="${pvW}" height="${circH - 20}" fill="#FFF9E0" stroke="#F9A630" stroke-width="2" stroke-dasharray="6,3" rx="6"/>`;
-    svg += `<text x="${pvX + pvW/2}" y="${pvY + 18}" text-anchor="middle" font-weight="bold" font-size="12" fill="#854F0B">⚡ SISTEM FOTOVOLTAIC (anexat)</text>`;
-    svg += `<text x="${pvX + pvW/2}" y="${pvY + 32}" text-anchor="middle" font-size="9" fill="#666" data-id="pv_putere">${escapeXml(val('f_pv_putere'))}</text>`;
+    svg += `<rect x="${pvX - 10}" y="${pvTop - 10}" width="${pvW + 20}" height="${circAreaStart - pvTop + 180}" fill="#FFF9E0" stroke="#F9A630" stroke-width="2" stroke-dasharray="6,3" rx="6"/>`;
+    svg += `<text x="${pvX + pvW/2}" y="${pvTop - 18}" text-anchor="middle" font-weight="bold" font-size="13" fill="#854F0B">⚡ SISTEM FOTOVOLTAIC</text>`;
 
-    // Wire from busbar to PV section (intrarea AC din PV merge la busbar)
-    svg += `<line class="wire wire-L1" x1="${pvX + pvW/2}" y1="${busY + 2.5}" x2="${pvX + pvW/2}" y2="${pvY}" stroke-width="1.5"/>`;
-    svg += `<text x="${pvX + pvW/2 + 8}" y="${pvY - 4}" font-size="9" font-style="italic" fill="#666">AC → busbar</text>`;
+    // Title PV info
+    py += 8;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 10}" text-anchor="middle" font-size="10" font-weight="bold">${esc(val('f_pv_putere'))} · ${esc(val('f_pv_panouri'))}</text>`;
+    py += 24;
 
-    let py = pvY + 42;
-    // Protectie AC (descărcător + sig + diferențial)
-    svg += `<rect class="dif" x="${pvX + 14}" y="${py}" width="${pvW - 28}" height="28" fill="#FFE082"/>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 17}" text-anchor="middle" font-size="9" font-weight="bold" data-id="pv_ac">${escapeXml(val('f_pv_ac'))}</text>`;
-    py += 36;
-    svg += `<line class="wire wire-L1" x1="${pvX + pvW/2}" y1="${py - 8}" x2="${pvX + pvW/2}" y2="${py + 4}"/>`;
+    // Protecție AC
+    svg += `<rect class="dif" x="${pvX}" y="${py}" width="${pvW}" height="30"/>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 12}" text-anchor="middle" font-size="9" font-weight="bold">PROTECTIE AC</text>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 24}" text-anchor="middle" font-size="9">${esc(val('f_pv_ac'))}</text>`;
+    py += 38;
+    svg += `<line class="wire" x1="${pvX + pvW/2}" y1="${py - 8}" x2="${pvX + pvW/2}" y2="${py + 5}"/>`;
 
     // Invertor
-    svg += `<rect class="box-imp" x="${pvX + 14}" y="${py + 4}" width="${pvW - 28}" height="40" fill="#E3F2FD"/>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 22}" text-anchor="middle" font-weight="bold" font-size="11">INVERTOR</text>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 36}" text-anchor="middle" font-size="9" data-id="pv_invertor">${escapeXml(truncate(val('f_pv_invertor'), 38))}</text>`;
-    py += 48;
+    svg += `<rect class="box-inv" x="${pvX}" y="${py + 5}" width="${pvW}" height="55"/>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 25}" text-anchor="middle" font-weight="bold" font-size="13">INVERTOR</text>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 42}" text-anchor="middle" font-size="10">${esc(val('f_pv_invertor'))}</text>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 54}" text-anchor="middle" font-size="9" fill="#555">Cablu AC: ${esc(val('f_pv_cabluAC'))}</text>`;
+    py += 65;
 
-    // Baterie (dacă e bifată)
+    // Baterie (daca e bifata) - lateral, conectata la invertor
     if (isChecked('f_pv_baterie_on')) {
-      svg += `<line class="wire" x1="${pvX + 70}" y1="${py + 2}" x2="${pvX + 70}" y2="${py + 14}" stroke="#854F0B"/>`;
-      svg += `<line class="wire" x1="${pvX + 70}" y1="${py + 14}" x2="${pvX + pvW - 80}" y2="${py + 14}" stroke="#854F0B"/>`;
-      svg += `<rect x="${pvX + pvW - 90}" y="${py + 8}" width="80" height="22" fill="#E8F5E9" stroke="#0F7A52" stroke-width="1.5" rx="2"/>`;
-      svg += `<text x="${pvX + pvW - 50}" y="${py + 18}" text-anchor="middle" font-weight="bold" font-size="9" fill="#0F7A52">BATERIE</text>`;
-      svg += `<text x="${pvX + pvW - 50}" y="${py + 28}" text-anchor="middle" font-size="8" data-id="pv_baterie">${escapeXml(truncate(val('f_pv_baterie'), 22))}</text>`;
-      py += 34;
+      svg += `<line class="wire" x1="${pvX + pvW/2}" y1="${py - 5}" x2="${pvX + pvW/2}" y2="${py + 6}" stroke="#854F0B"/>`;
+      svg += `<line class="wire" x1="${pvX + pvW/2}" y1="${py + 6}" x2="${pvX + pvW/2 + 60}" y2="${py + 6}" stroke="#854F0B"/>`;
+      svg += `<line class="wire" x1="${pvX + pvW/2 + 60}" y1="${py + 6}" x2="${pvX + pvW/2 + 60}" y2="${py + 14}" stroke="#854F0B"/>`;
+      svg += `<rect class="box-bat" x="${pvX + pvW/2 + 20}" y="${py + 14}" width="${pvW/2 - 30}" height="40"/>`;
+      svg += `<text x="${pvX + pvW * 0.75}" y="${py + 30}" text-anchor="middle" font-weight="bold" font-size="11" fill="#0F7A52">BATERIE</text>`;
+      svg += `<text x="${pvX + pvW * 0.75}" y="${py + 45}" text-anchor="middle" font-size="9">${esc(val('f_pv_baterie'))}</text>`;
+      // Eticheta BAT
+      svg += `<text x="${pvX + pvW/2 - 5}" y="${py + 5}" text-anchor="end" font-size="8" font-weight="bold" fill="#854F0B">BAT+/-</text>`;
+      py += 60;
+    } else {
+      py += 10;
     }
 
-    // Protectie DC (descarcator + sigurante fuzibile)
-    svg += `<line class="wire-dc-pos" x1="${pvX + 60}" y1="${py + 4}" x2="${pvX + 60}" y2="${py + 12}" stroke="#c0392b" stroke-width="1.5"/>`;
-    svg += `<line class="wire-dc-neg" x1="${pvX + pvW - 60}" y1="${py + 4}" x2="${pvX + pvW - 60}" y2="${py + 12}" stroke="#2471a3" stroke-width="1.5"/>`;
-    svg += `<rect x="${pvX + 14}" y="${py + 12}" width="${pvW - 28}" height="22" fill="#FFE082" stroke="#854F0B" stroke-width="1.2" rx="2"/>`;
-    svg += `<text x="${pvX + pvW/2}" y="${py + 26}" text-anchor="middle" font-size="9" font-weight="bold" data-id="pv_dc">${escapeXml(truncate(val('f_pv_dc'), 42))}</text>`;
-    py += 34;
+    // Linie DC catre protectie DC (continua jos)
+    svg += `<line class="wire-dc-pos" x1="${pvX + pvW/2 - 8}" y1="${py - 5}" x2="${pvX + pvW/2 - 8}" y2="${py + 6}"/>`;
+    svg += `<line class="wire-dc-neg" x1="${pvX + pvW/2 + 8}" y1="${py - 5}" x2="${pvX + pvW/2 + 8}" y2="${py + 6}"/>`;
+    svg += `<text x="${pvX + pvW/2 - 15}" y="${py + 2}" text-anchor="end" font-size="8" fill="#c0392b">DC+</text>`;
+    svg += `<text x="${pvX + pvW/2 + 15}" y="${py + 2}" font-size="8" fill="#2471a3">DC-</text>`;
 
-    // Strings PV (simbolic - 2 dreptunghiuri pentru panouri)
-    const stringW = 50;
-    svg += `<line class="wire-dc-pos" x1="${pvX + 60}" y1="${py + 4}" x2="${pvX + 60}" y2="${py + 14}" stroke="#c0392b" stroke-width="1.5"/>`;
-    svg += `<line class="wire-dc-neg" x1="${pvX + pvW - 60}" y1="${py + 4}" x2="${pvX + pvW - 60}" y2="${py + 14}" stroke="#2471a3" stroke-width="1.5"/>`;
-    svg += `<rect x="${pvX + 35}" y="${py + 14}" width="${stringW}" height="20" fill="#1B2A4A" stroke="#000" stroke-width="0.8"/>`;
-    svg += `<text x="${pvX + 35 + stringW/2}" y="${py + 26}" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">STRING PV</text>`;
-    svg += `<rect x="${pvX + pvW - 35 - stringW}" y="${py + 14}" width="${stringW}" height="20" fill="#1B2A4A" stroke="#000" stroke-width="0.8"/>`;
-    svg += `<text x="${pvX + pvW - 35 - stringW/2}" y="${py + 26}" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">PANOURI</text>`;
+    // Protecție DC
+    svg += `<rect class="dif" x="${pvX}" y="${py + 6}" width="${pvW}" height="30"/>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 18}" text-anchor="middle" font-size="9" font-weight="bold">PROTECTIE DC</text>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 30}" text-anchor="middle" font-size="9">${esc(val('f_pv_dc'))}</text>`;
+    py += 44;
+
+    // Cablu DC
+    svg += `<text x="${pvX + pvW/2}" y="${py + 8}" text-anchor="middle" font-size="9" font-style="italic" fill="#555">${esc(val('f_pv_cabluDC'))}</text>`;
+    py += 16;
+
+    // Stringuri PV (2 panouri vizuale)
+    svg += `<line class="wire-dc-pos" x1="${pvX + 60}" y1="${py - 6}" x2="${pvX + 60}" y2="${py + 4}"/>`;
+    svg += `<line class="wire-dc-neg" x1="${pvX + pvW - 60}" y1="${py - 6}" x2="${pvX + pvW - 60}" y2="${py + 4}"/>`;
+    const stringW = (pvW - 80) / 2 - 10;
+    svg += `<rect class="box-panel" x="${pvX + 30}" y="${py + 4}" width="${stringW}" height="50"/>`;
+    svg += `<text x="${pvX + 30 + stringW/2}" y="${py + 22}" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">STRING PV1</text>`;
+    svg += `<text x="${pvX + 30 + stringW/2}" y="${py + 38}" text-anchor="middle" font-size="8" fill="#fff">panouri serie</text>`;
+    svg += `<rect class="box-panel" x="${pvX + pvW - 30 - stringW}" y="${py + 4}" width="${stringW}" height="50"/>`;
+    svg += `<text x="${pvX + pvW - 30 - stringW/2}" y="${py + 22}" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">STRING PV2</text>`;
+    svg += `<text x="${pvX + pvW - 30 - stringW/2}" y="${py + 38}" text-anchor="middle" font-size="8" fill="#fff">panouri serie</text>`;
+
+    // PE conectat si la PV (mass)
+    svg += `<line class="wire wire-PE" x1="${pvX + pvW/2}" y1="${py + 54}" x2="${pvX + pvW/2}" y2="${peBarY}" stroke-width="1.5"/>`;
   }
+
+  // ── CARTOUCHE jos ──────────────────────────────────────────────────
+  const cartY = totalH - cartoucheH - margin;
+  const cartX = margin;
+  const cartW = drawingW - 2*margin;
+  svg += `<rect class="box" x="${cartX}" y="${cartY}" width="${cartW}" height="${cartoucheH - 10}"/>`;
+  svg += `<text x="${cartX + 10}" y="${cartY + 22}" font-weight="bold" font-size="13">SCHEMA ELECTRICA MONOFILARA</text>`;
+  svg += `<line x1="${cartX + 10}" y1="${cartY + 32}" x2="${cartX + cartW - 10}" y2="${cartY + 32}" stroke="black" stroke-width="0.5"/>`;
+  const cl = (lbl, val, dx, dy) => {
+    svg += `<text x="${cartX + dx}" y="${cartY + dy}" font-size="10" font-weight="bold">${esc(lbl)}:</text>`;
+    svg += `<text x="${cartX + dx + 100}" y="${cartY + dy}" font-size="10">${esc(val)}</text>`;
+  };
+  cl('Beneficiar', val('f_beneficiar'), 10, 50);
+  cl('Adresa', val('f_adresa'), 10, 65);
+  cl('POD', val('f_pod'), 10, 80);
+  cl('Putere', val('f_putere'), 10, 95);
+  cl('Proiectant', val('f_proiectant') + ' (' + val('f_anre') + ')', cartW - 480, 50);
+  cl('Firma', val('f_firma'), cartW - 480, 65);
+  cl('Data', val('f_data'), cartW - 480, 80);
 
   svg += `</svg>`;
   return svg;
 }
 
-function escapeXml(s) {
-  return String(s).replace(/[<>&'"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;' }[c]));
-}
-
-function truncate(s, n) { return s.length > n ? s.substring(0, n-1) + '…' : s; }
+function esc(s) { return String(s).replace(/[<>&'"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;' }[c])); }
+function truncate(s, n) { s = String(s); return s.length > n ? s.substring(0, n-1) + '…' : s; }
 
 function rebuild() {
-  const wrapper = document.getElementById('svg-wrapper');
-  wrapper.innerHTML = buildSVG();
+  document.getElementById('svg-wrapper').innerHTML = buildSVG();
 }
 
 function zoom(delta) {
@@ -553,14 +651,18 @@ function downloadPNG() {
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(content);
 }
 
-// Auto-rebuild on any input change
+// ── Init ───────────────────────────────────────────────────────────────
 document.addEventListener('input', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') rebuild();
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+    if (e.target.closest('.circ-card')) return; // circuitele se updateaza prin updCirc
+    rebuild();
+  }
 });
 document.querySelectorAll('input[name="branch"]').forEach(r => {
   r.addEventListener('change', e => {
     document.getElementById('lbl-mono').classList.toggle('active', e.target.value === 'mono');
     document.getElementById('lbl-tri').classList.toggle('active', e.target.value === 'tri');
+    renderCircuits();
     rebuild();
   });
 });
@@ -576,7 +678,12 @@ document.addEventListener('change', e => {
   if (e.target.id === 'f_pv_baterie_on') { toggleBaterieGroup(); rebuild(); }
 });
 
-window.addEventListener('load', () => { togglePVSection(); toggleBaterieGroup(); rebuild(); });
+window.addEventListener('load', () => {
+  renderCircuits();
+  togglePVSection();
+  toggleBaterieGroup();
+  rebuild();
+});
 </script>
 </body>
 </html>
