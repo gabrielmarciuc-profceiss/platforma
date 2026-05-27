@@ -99,6 +99,12 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
     <label id="lbl-tri" class="active"><input type="radio" name="branch" value="tri" checked> Trifazat</label>
   </div>
 
+  <div class="mode-toggle">
+    <span>Sistem PV:</span>
+    <label id="lbl-nopv" class="active"><input type="radio" name="pv" value="no" checked> Fără</label>
+    <label id="lbl-pv"><input type="radio" name="pv" value="yes"> Cu sistem fotovoltaic</label>
+  </div>
+
   <div class="zoom-controls">
     <button onclick="zoom(-0.1)">−</button>
     <span id="zoom-label">100%</span>
@@ -135,23 +141,39 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
 
     <div class="section-title">Circuite (din TGD)</div>
     <div class="field-group">
-      <label>Listă circuite (format: COD | Destinație | Siguranță | Cablu | Diferențial)</label>
-      <textarea id="f_circuite" rows="18">CL1 | Iluminat parter (L1) | C10-1P+N | 3x1,5 mmp CYY-F | 2A/30mA
-CL2 | Iluminat etaj (L2) | C10-1P+N | 3x1,5 mmp CYY-F | 2A/30mA
-P1 | Prize generale (L1) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P2 | Prize generale (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P3 | Mașină spălat (L3) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P4 | Mașină gătit/hota (L1) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P5 | Centrală termică (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P6 | Boiler (L3) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P7 | Cuptor electric (L1) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P8 | AC (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P9 | Pompă căldură (L3) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P10 | AC (L1) | C20-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-P11 | Prize baie (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
-CS1 | Curenți slabi | C6-1P+N | 3x1,5 mmp CYY-F | -
-R1 | Rezervă | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA</textarea>
-      <span class="hint">Câte o linie per circuit, cu „ | " ca separator între coloane. Click „Reconstruiește" pentru regenerare schemă.</span>
+      <label style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Listă circuite (COD | Destinație | Siguranță | Cablu | Diferențial)</span>
+        <button type="button" onclick="addCircuit()" style="background:#1a7a3a;color:#fff;border:none;padding:3px 10px;border-radius:3px;cursor:pointer;font-size:11px;font-weight:bold;">+ Adaugă</button>
+      </label>
+      <textarea id="f_circuite" rows="9">C1 | Iluminat (L1) | C10-1P+N | 3x1,5 mmp CYY-F | 2A/30mA
+C2 | Prize generale (L1) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
+C3 | Prize generale (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
+C4 | Mașină spălat (L3) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
+C5 | Centrală termică (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA
+C6 | Rezervă | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA</textarea>
+      <span class="hint">Default: 6 circuite. Click „+ Adaugă" pentru circuit nou (sau editezi direct textarea — câte o linie per circuit).</span>
+    </div>
+
+    <div class="section-title" id="pv-section-title" style="display:none;">⚡ Sistem fotovoltaic</div>
+    <div id="pv-section" style="display:none;">
+      <div class="field-group"><label>Model invertor</label><input type="text" id="f_pv_invertor" value="GoodWe GW10K-ET-20 (10 kW Hibrid)"></div>
+      <div class="field-group"><label>Putere PV (kWp)</label><input type="text" id="f_pv_putere" value="11,04 kWp"></div>
+      <div class="field-group" style="margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="f_pv_baterie_on" checked>
+          <span>Cu baterie</span>
+        </label>
+      </div>
+      <div class="field-group" id="pv_baterie_group">
+        <label>Model baterie</label>
+        <input type="text" id="f_pv_baterie" value="GoodWe LX A5.0-30 · 10,24 kWh">
+      </div>
+      <div class="field-group"><label>Protecție DC (descărcător + siguranțe fuzibile)</label>
+        <input type="text" id="f_pv_dc" value="DC SPD Tip 2 + Sep. fuzibili 2×16A (PV1) + 2×16A (PV2)">
+      </div>
+      <div class="field-group"><label>Protecție AC (descărcător + sig. + diferențial)</label>
+        <input type="text" id="f_pv_ac" value="AC SPD Tip 2 + Sig. 20A + Diferențial 30mA">
+      </div>
     </div>
 
     <div class="section-title">Cartouche (date proiect)</div>
@@ -170,7 +192,28 @@ R1 | Rezervă | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA</textarea>
 let currentScale = 1.0;
 
 function getBranch() { return document.querySelector('input[name="branch"]:checked').value; }
+function getPV() { return document.querySelector('input[name="pv"]:checked').value === 'yes'; }
 function val(id) { return document.getElementById(id).value || ''; }
+function isChecked(id) { const e = document.getElementById(id); return e && e.checked; }
+
+function addCircuit() {
+  const ta = document.getElementById('f_circuite');
+  const lines = ta.value.split('\n').filter(Boolean);
+  const next = `C${lines.length + 1} | Circuit nou | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA`;
+  ta.value = ta.value + (ta.value.endsWith('\n') ? '' : '\n') + next;
+  ta.rows = Math.max(parseInt(ta.rows||6), lines.length + 2);
+  rebuild();
+}
+
+function togglePVSection() {
+  const on = getPV();
+  document.getElementById('pv-section').style.display = on ? 'block' : 'none';
+  document.getElementById('pv-section-title').style.display = on ? 'block' : 'none';
+}
+
+function toggleBaterieGroup() {
+  document.getElementById('pv_baterie_group').style.display = isChecked('f_pv_baterie_on') ? 'block' : 'none';
+}
 
 function parseCircuits() {
   const text = val('f_circuite');
@@ -387,6 +430,60 @@ function buildSVG() {
   svg += `<text x="${rightX}" y="${cartY + 80}" font-size="10" font-weight="bold">Data:</text>`;
   svg += `<text x="${rightX + 90}" y="${cartY + 80}" font-size="10" data-id="cart_data">${escapeXml(val('f_data'))}</text>`;
 
+  // ── BLOC PV (când e activ toggle-ul) ──
+  if (getPV()) {
+    const pvX = drawingW - margin - 280;
+    const pvY = busY + 50;
+    const pvW = 280;
+    // Container PV
+    svg += `<rect x="${pvX}" y="${pvY}" width="${pvW}" height="${circH - 20}" fill="#FFF9E0" stroke="#F9A630" stroke-width="2" stroke-dasharray="6,3" rx="6"/>`;
+    svg += `<text x="${pvX + pvW/2}" y="${pvY + 18}" text-anchor="middle" font-weight="bold" font-size="12" fill="#854F0B">⚡ SISTEM FOTOVOLTAIC (anexat)</text>`;
+    svg += `<text x="${pvX + pvW/2}" y="${pvY + 32}" text-anchor="middle" font-size="9" fill="#666" data-id="pv_putere">${escapeXml(val('f_pv_putere'))}</text>`;
+
+    // Wire from busbar to PV section (intrarea AC din PV merge la busbar)
+    svg += `<line class="wire wire-L1" x1="${pvX + pvW/2}" y1="${busY + 2.5}" x2="${pvX + pvW/2}" y2="${pvY}" stroke-width="1.5"/>`;
+    svg += `<text x="${pvX + pvW/2 + 8}" y="${pvY - 4}" font-size="9" font-style="italic" fill="#666">AC → busbar</text>`;
+
+    let py = pvY + 42;
+    // Protectie AC (descărcător + sig + diferențial)
+    svg += `<rect class="dif" x="${pvX + 14}" y="${py}" width="${pvW - 28}" height="28" fill="#FFE082"/>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 17}" text-anchor="middle" font-size="9" font-weight="bold" data-id="pv_ac">${escapeXml(val('f_pv_ac'))}</text>`;
+    py += 36;
+    svg += `<line class="wire wire-L1" x1="${pvX + pvW/2}" y1="${py - 8}" x2="${pvX + pvW/2}" y2="${py + 4}"/>`;
+
+    // Invertor
+    svg += `<rect class="box-imp" x="${pvX + 14}" y="${py + 4}" width="${pvW - 28}" height="40" fill="#E3F2FD"/>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 22}" text-anchor="middle" font-weight="bold" font-size="11">INVERTOR</text>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 36}" text-anchor="middle" font-size="9" data-id="pv_invertor">${escapeXml(truncate(val('f_pv_invertor'), 38))}</text>`;
+    py += 48;
+
+    // Baterie (dacă e bifată)
+    if (isChecked('f_pv_baterie_on')) {
+      svg += `<line class="wire" x1="${pvX + 70}" y1="${py + 2}" x2="${pvX + 70}" y2="${py + 14}" stroke="#854F0B"/>`;
+      svg += `<line class="wire" x1="${pvX + 70}" y1="${py + 14}" x2="${pvX + pvW - 80}" y2="${py + 14}" stroke="#854F0B"/>`;
+      svg += `<rect x="${pvX + pvW - 90}" y="${py + 8}" width="80" height="22" fill="#E8F5E9" stroke="#0F7A52" stroke-width="1.5" rx="2"/>`;
+      svg += `<text x="${pvX + pvW - 50}" y="${py + 18}" text-anchor="middle" font-weight="bold" font-size="9" fill="#0F7A52">BATERIE</text>`;
+      svg += `<text x="${pvX + pvW - 50}" y="${py + 28}" text-anchor="middle" font-size="8" data-id="pv_baterie">${escapeXml(truncate(val('f_pv_baterie'), 22))}</text>`;
+      py += 34;
+    }
+
+    // Protectie DC (descarcator + sigurante fuzibile)
+    svg += `<line class="wire-dc-pos" x1="${pvX + 60}" y1="${py + 4}" x2="${pvX + 60}" y2="${py + 12}" stroke="#c0392b" stroke-width="1.5"/>`;
+    svg += `<line class="wire-dc-neg" x1="${pvX + pvW - 60}" y1="${py + 4}" x2="${pvX + pvW - 60}" y2="${py + 12}" stroke="#2471a3" stroke-width="1.5"/>`;
+    svg += `<rect x="${pvX + 14}" y="${py + 12}" width="${pvW - 28}" height="22" fill="#FFE082" stroke="#854F0B" stroke-width="1.2" rx="2"/>`;
+    svg += `<text x="${pvX + pvW/2}" y="${py + 26}" text-anchor="middle" font-size="9" font-weight="bold" data-id="pv_dc">${escapeXml(truncate(val('f_pv_dc'), 42))}</text>`;
+    py += 34;
+
+    // Strings PV (simbolic - 2 dreptunghiuri pentru panouri)
+    const stringW = 50;
+    svg += `<line class="wire-dc-pos" x1="${pvX + 60}" y1="${py + 4}" x2="${pvX + 60}" y2="${py + 14}" stroke="#c0392b" stroke-width="1.5"/>`;
+    svg += `<line class="wire-dc-neg" x1="${pvX + pvW - 60}" y1="${py + 4}" x2="${pvX + pvW - 60}" y2="${py + 14}" stroke="#2471a3" stroke-width="1.5"/>`;
+    svg += `<rect x="${pvX + 35}" y="${py + 14}" width="${stringW}" height="20" fill="#1B2A4A" stroke="#000" stroke-width="0.8"/>`;
+    svg += `<text x="${pvX + 35 + stringW/2}" y="${py + 26}" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">STRING PV</text>`;
+    svg += `<rect x="${pvX + pvW - 35 - stringW}" y="${py + 14}" width="${stringW}" height="20" fill="#1B2A4A" stroke="#000" stroke-width="0.8"/>`;
+    svg += `<text x="${pvX + pvW - 35 - stringW/2}" y="${py + 26}" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">PANOURI</text>`;
+  }
+
   svg += `</svg>`;
   return svg;
 }
@@ -467,8 +564,19 @@ document.querySelectorAll('input[name="branch"]').forEach(r => {
     rebuild();
   });
 });
+document.querySelectorAll('input[name="pv"]').forEach(r => {
+  r.addEventListener('change', e => {
+    document.getElementById('lbl-nopv').classList.toggle('active', e.target.value === 'no');
+    document.getElementById('lbl-pv').classList.toggle('active', e.target.value === 'yes');
+    togglePVSection();
+    rebuild();
+  });
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'f_pv_baterie_on') { toggleBaterieGroup(); rebuild(); }
+});
 
-window.addEventListener('load', rebuild);
+window.addEventListener('load', () => { togglePVSection(); toggleBaterieGroup(); rebuild(); });
 </script>
 </body>
 </html>
