@@ -353,11 +353,10 @@ const DOCS_DEF = [
     accept:'.pdf,.jpg,.jpeg,.png',
     desc:'Releveu arhitectural — diferit pentru fiecare client.' },
 
-  // 10 — GENERAT din alt tool (schema bloc)
-  { id:'d10', type:'generated_external', title:'Schema monofilară a instalației de utilizare',
-    sourceUrl:'../schema-bloc/', sourceLabel:'Deschide Editor Schema Bloc',
+  // 10 — BROWSE per client (schema monofilara desenata in alt tool)
+  { id:'d10', type:'browse', title:'Schema monofilară a instalației de utilizare',
     accept:'.pdf,.svg,.png,.jpg,.jpeg',
-    desc:'Schemă monofilară până la nivelul tablourilor principale. Generezi în Editor Schema Bloc, exporți PDF/PNG, atașezi aici.' },
+    desc:'Schema unifilară până la nivelul tablourilor principale (siguranțe, cabluri, diferențiale pe fiecare circuit). Atașezi PDF/imagine din AutoCAD, eDiagram sau ce instrument folosești.' },
 
   // 11 — AUTO TEMPLATE
   { id:'d11', type:'auto_template', title:'Declarația executantului',
@@ -627,18 +626,29 @@ function renderGeneratedInternal(d) {
 
 function renderGeneratedExternal(d) {
   return `
-    <div class="gen-link-block">
-      <div class="info">
-        <div class="title">Generează din alt instrument</div>
-        <div class="desc">Deschide editorul, completează schema, exportă PDF/PNG, apoi atașează aici.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <!-- Opțiunea 1: deschide editor -->
+      <div style="background:#fff;border:1.5px solid #185FA5;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:8px;">🎨</div>
+        <div style="font-size:13px;font-weight:600;color:#185FA5;margin-bottom:4px;">Opțiunea 1: Desenează schema</div>
+        <div style="font-size:11px;color:#666;margin-bottom:10px;line-height:1.4;">Deschide editorul, completează, exportă PDF/PNG.</div>
+        <a class="btn-link" href="${d.sourceUrl}" target="_blank" style="display:inline-block;background:#185FA5;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:500;">Deschide Editor ↗</a>
       </div>
-      <a class="btn-link" href="${d.sourceUrl}" target="_blank">${d.sourceLabel} ↗</a>
+      <!-- Opțiunea 2: browse fișier -->
+      <div style="background:#fff;border:1.5px solid #854F0B;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:8px;">📎</div>
+        <div style="font-size:13px;font-weight:600;color:#854F0B;margin-bottom:4px;">Opțiunea 2: Atașează existentă</div>
+        <div style="font-size:11px;color:#666;margin-bottom:10px;line-height:1.4;">Dacă ai deja PDF / poza schemei pe calculator.</div>
+        <button class="btn" type="button" onclick="document.getElementById('cli_file_${d.id}').click()" style="background:#854F0B;color:#fff;border-color:#854F0B;padding:8px 16px;font-size:12px;">📁 Browse din calculator</button>
+        <input type="file" id="cli_file_${d.id}" accept="${d.accept}" onchange="onClientFile('${d.id}',this.files[0])" style="display:none;">
+      </div>
     </div>
-    <div class="file-zone" id="zone_${d.id}" onclick="document.getElementById('cli_file_${d.id}').click()">
-      <div style="font-size:20px;">📎</div>
-      <div class="file-zone-label">După ce ai PDF-ul, click aici să-l atașezi</div>
-      <input type="file" id="cli_file_${d.id}" accept="${d.accept}" onchange="onClientFile('${d.id}',this.files[0])">
+    <div class="file-zone" id="zone_${d.id}" style="min-height:0;padding:10px;display:none;" onclick="document.getElementById('cli_file_${d.id}').click()">
       <div id="fileinfo_${d.id}"></div>
+    </div>
+    <div id="fileinfo_${d.id}_inline" style="font-size:12px;text-align:center;color:#0F6E56;margin-top:6px;"></div>
+    <div style="font-size:11px;color:#888;line-height:1.5;margin-top:8px;text-align:center;">
+      Acceptat: PDF, SVG, PNG, JPG. Editorul de schema bloc permite export direct în PDF.
     </div>
   `;
 }
@@ -694,6 +704,9 @@ function onClientFile(docId, file) {
     <span class="filename">✅ ${file.name} (${fmtSize(file.size)})</span>
     <button type="button" class="remove-btn" onclick="event.stopPropagation();removeClientFile('${docId}')">Elimină</button>
   `;
+  // Pentru d10 (schema bloc) — afișaj inline distinct
+  const inlineInfo = v('fileinfo_' + docId + '_inline');
+  if (inlineInfo) inlineInfo.innerHTML = `✅ Atașat: <strong>${file.name}</strong> (${fmtSize(file.size)}) — <a href="#" onclick="removeClientFile('${docId}');return false;" style="color:#A32D2D;">elimină</a>`;
   updateStatus(docId); updateSummary();
 }
 
@@ -703,6 +716,8 @@ function removeClientFile(docId) {
   if (zone) zone.classList.remove('has-file');
   const info = v('fileinfo_' + docId);
   if (info) info.innerHTML = '';
+  const inlineInfo = v('fileinfo_' + docId + '_inline');
+  if (inlineInfo) inlineInfo.innerHTML = '';
   const inp = v('cli_file_' + docId);
   if (inp) inp.value = '';
   updateStatus(docId); updateSummary();
