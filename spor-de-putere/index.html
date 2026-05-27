@@ -353,10 +353,11 @@ const DOCS_DEF = [
     accept:'.pdf,.jpg,.jpeg,.png',
     desc:'Releveu arhitectural — diferit pentru fiecare client.' },
 
-  // 10 — BROWSE per client (schema monofilara desenata in alt tool)
-  { id:'d10', type:'browse', title:'Schema monofilară a instalației de utilizare',
+  // 10 — GENERAT din alt tool (schema monofilara — editor dedicat)
+  { id:'d10', type:'generated_external', title:'Schema monofilară a instalației de utilizare',
+    sourceUrl:'../schema-monofilara/', sourceLabel:'Deschide Editor Schema Monofilară',
     accept:'.pdf,.svg,.png,.jpg,.jpeg',
-    desc:'Schema unifilară până la nivelul tablourilor principale (siguranțe, cabluri, diferențiale pe fiecare circuit). Atașezi PDF/imagine din AutoCAD, eDiagram sau ce instrument folosești.' },
+    desc:'Schema unifilară până la nivelul tablourilor principale. Generezi în editorul dedicat sau atașezi PDF/imagine existentă.' },
 
   // 11 — AUTO TEMPLATE
   { id:'d11', type:'auto_template', title:'Declarația executantului',
