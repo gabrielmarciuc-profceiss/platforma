@@ -742,7 +742,20 @@ function onFieldChange(docId, fieldId, value) {
 
 // ── Status ───────────────────────────────────────────────────────────────
 async function isDocReady(d) {
-  if (d.type === 'editable') return v('ben_nume').value.trim().length > 0;
+  // Reguli per-document — fiecare are propria condiție de „gata"
+  if (d.type === 'editable') {
+    // Adresa de inaintare (d1) — gata cand exista ben_nume + atr_nr
+    if (d.id === 'd1') return v('ben_nume').value.trim() && v('atr_nr').value.trim();
+    // Memoriu (d4) — gata cand exista ben_nume + ben_adr + atr_nr
+    if (d.id === 'd4') return v('ben_nume').value.trim() && v('ben_adr').value.trim() && v('atr_nr').value.trim();
+    // Tabel incaperi (d5) — gata cand exista ben_nume + ben_adr + atr_nr
+    if (d.id === 'd5') return v('ben_nume').value.trim() && v('ben_adr').value.trim() && v('atr_nr').value.trim();
+    // Buletin priza pamant (d6) — gata cand exista nr + data buletin + valori masurate
+    if (d.id === 'd6') return v('pram_priza_nr').value.trim() && v('pram_priza_data').value.trim() && v('pram_priza_masurata').value.trim();
+    // Buletin izolatie (d7) — gata cand exista nr + data buletin
+    if (d.id === 'd7') return v('pram_izolatie_nr').value.trim() && v('pram_izolatie_data').value.trim();
+    return v('ben_nume').value.trim().length > 0;
+  }
   if (d.type === 'generated_internal') return v('ben_nume').value.trim().length > 0;
   if (d.type === 'permanent') return !!(await getPermanentFile(d.id));
   if (d.type === 'auto_template') return true; // mereu considerat gata, fetch-ul se face la generare PDF
