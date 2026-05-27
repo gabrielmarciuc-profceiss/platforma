@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editor Schemă Bloc — Sistem Fotovoltaic</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f2f5; color: #111; }
+
+  #toolbar {
+    background: #1B2A4A; color: #fff;
+    padding: 10px 18px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 100;
+  }
+  #toolbar h1 { font-size: 13px; font-weight: bold; flex: 1; }
+  #toolbar button {
+    background: #2a4080; color: #fff; border: none;
+    padding: 6px 14px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; font-weight: bold;
+  }
+  #toolbar button:hover { background: #3a5090; }
+  #toolbar button.green { background: #1a7a3a; }
+  #toolbar button.green:hover { background: #229944; }
+
+  .mode-toggle {
+    background: #2a4080; padding: 4px 10px; border-radius: 4px;
+    display: flex; align-items: center; gap: 8px; font-size: 12px;
+  }
+  .mode-toggle label { cursor: pointer; padding: 4px 8px; border-radius: 3px; font-weight: bold; }
+  .mode-toggle label.active { background: #1a7a3a; }
+  .mode-toggle input[type="radio"] { display: none; }
+
+  .tip {
+    background: #fff3cd; color: #856404; font-size: 11px;
+    padding: 5px 12px; border-left: 3px solid #ffc107;
+    margin: 8px 16px;
+  }
+
+  #main { display: flex; gap: 0; }
+
+  #svg-panel {
+    flex: 1; padding: 16px; overflow: auto;
+    background: #e8ecf0;
+    min-height: calc(100vh - 48px);
+  }
+
+  #svg-wrapper {
+    background: white; display: inline-block;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    position: relative;
+  }
+  #svg-wrapper svg { display: block; }
+
+  #side-panel {
+    width: 320px; background: #fff;
+    border-left: 1px solid #ddd;
+    padding: 12px; overflow-y: auto;
+    max-height: calc(100vh - 48px);
+    position: sticky; top: 48px;
+    font-size: 12px;
+  }
+  #side-panel h2 {
+    font-size: 13px; margin-bottom: 10px;
+    color: #1B2A4A; border-bottom: 1px solid #ddd; padding-bottom: 6px;
+  }
+
+  .field-group { margin-bottom: 12px; }
+  .field-group label {
+    display: block; font-size: 11px; color: #555;
+    margin-bottom: 3px; font-weight: bold;
+  }
+  .field-group input {
+    width: 100%; padding: 5px 8px;
+    border: 1px solid #ccc; border-radius: 3px;
+    font-size: 12px; font-family: Arial, sans-serif;
+  }
+  .field-group input:focus { outline: none; border-color: #1B2A4A; }
+
+  .section-title {
+    font-size: 11px; font-weight: bold; color: #1B2A4A;
+    background: #e8eef8; padding: 4px 8px;
+    margin: 12px -12px 8px -12px;
+    border-left: 3px solid #1B2A4A;
+  }
+
+  #svg-wrapper svg text { cursor: pointer; }
+  #svg-wrapper svg text:hover { fill: #0055ff !important; text-decoration: underline; }
+  #svg-wrapper svg text.selected { fill: #cc0000 !important; }
+
+  #inline-editor {
+    position: absolute; display: none;
+    border: 2px solid #0055ff; border-radius: 2px;
+    background: rgba(255,255,240,0.97); padding: 2px 4px;
+    font-family: Arial, sans-serif; z-index: 200;
+    min-width: 60px;
+  }
+
+  .zoom-controls { display: flex; gap: 6px; align-items: center; }
+  .zoom-controls button { padding: 4px 10px; font-size: 13px; font-weight: bold; }
+  #zoom-label { font-size: 12px; min-width: 40px; text-align: center; }
+
+  /* Toggle visibility based on mode (body class) */
+  body.mode-mono .trifazat-only { display: none; }
+  body.mode-trifazat .mono-only { display: none; }
+  /* Independent toggle for number of PV strings (DC side, independent of AC branch type) */
+  body.mode-1string .s2-only { display: none; }
+
+  /* ── Print styles ──────────────────────────────────────────────────────
+     Ascund toolbar/side-panel/tip-uri; afișez doar SVG-ul centrat, A3 landscape. */
+  @media print {
+    @page { size: A3 landscape; margin: 10mm; }
+    body { background: white !important; }
+    #toolbar, #side-panel, .tip, #inline-editor { display: none !important; }
+    #main { display: block; }
+    #svg-panel { padding: 0 !important; background: white !important; }
+    #svg-wrapper { box-shadow: none !important; width: auto !important; height: auto !important; }
+    #svg-wrapper svg { transform: none !important; width: 100% !important; height: auto !important; max-width: 100%; }
+    #svg-wrapper svg text { cursor: default !important; }
+  }
+</style>
+</head>
+<body class="mode-trifazat mode-2string">
+
+<div id="toolbar">
+  <h1>⚡ Editor Schemă Bloc — Sistem Fotovoltaic</h1>
+
+  <div class="mode-toggle">
+    <span>Bransament:</span>
+    <label id="lbl-mono"><input type="radio" name="mode" value="mono"> Monofazat (1F+N)</label>
+    <label id="lbl-tri" class="active"><input type="radio" name="mode" value="trifazat" checked> Trifazat (3F+N)</label>
+  </div>
+
+  <div class="mode-toggle">
+    <span>Stringuri PV:</span>
+    <label id="lbl-s1"><input type="radio" name="strings" value="1string"> 1 string</label>
+    <label id="lbl-s2" class="active"><input type="radio" name="strings" value="2string" checked> 2 stringuri</label>
+  </div>
+
+  <div class="zoom-controls">
+    <button onclick="zoom(-0.1)">−</button>
+    <span id="zoom-label">100%</span>
+    <button onclick="zoom(0.1)">+</button>
+    <button onclick="resetZoom()">↺</button>
+  </div>
+  <button class="green" onclick="downloadSVG()">⬇ Descarcă SVG</button>
+  <button onclick="downloadPNG()">⬇ Export PNG</button>
+  <button onclick="window.print()" style="background:#854F0B;">🖨 Print</button>
+  <a href="../" style="background:#444;color:#fff;padding:6px 14px;border-radius:4px;font-size:12px;font-weight:bold;text-decoration:none;">← Înapoi la instrumente</a>
+</div>
+
+<div class="tip">
+  💡 <strong>Editare:</strong> Click pe orice text din schemă, sau folosește panoul lateral. Enter / click în afară pentru confirmare. Toggle <strong>Monofazat/Trifazat</strong> schimbă automat topologia.
+</div>
+
+<div id="main">
+  <div id="svg-panel">
+    <div id="svg-wrapper">
+      <input id="inline-editor" type="text" />
+    </div>
+  </div>
+
+  <div id="side-panel">
+    <h2>Câmpuri editabile</h2>
+
+    <div class="section-title">Beneficiar / Proiect</div>
+    <div class="field-group"><label>Beneficiar</label><input type="text" data-sel="beneficiar"/></div>
+    <div class="field-group"><label>Adresa</label><input type="text" data-sel="adresa"/></div>
+    <div class="field-group"><label>POD</label><input type="text" data-sel="pod"/></div>
+    <div class="field-group"><label>Prestator</label><input type="text" data-sel="prestator"/></div>
+    <div class="field-group"><label>ANRE</label><input type="text" data-sel="anre"/></div>
+    <div class="field-group"><label>Proiectat</label><input type="text" data-sel="proiectat"/></div>
+    <div class="field-group"><label>Desenat</label><input type="text" data-sel="desenat"/></div>
+    <div class="field-group"><label>Data</label><input type="text" data-sel="data-proj"/></div>
+    <div class="field-group"><label>Putere instalată</label><input type="text" data-sel="putere-instalata"/></div>
+
+    <div class="section-title">BMP existent</div>
+    <div class="field-group"><label>Titlu BMP</label><input type="text" data-sel="bmp-titlu"/></div>
+    <div class="field-group"><label>Detalii BMP</label><input type="text" data-sel="bmp-detalii"/></div>
+
+    <div class="section-title">TEG</div>
+    <div class="field-group"><label>Titlu TEG</label><input type="text" data-sel="teg-titlu"/></div>
+    <div class="field-group"><label>Siguranță generală TEG</label><input type="text" data-sel="teg-sig"/></div>
+
+    <div class="section-title">Siguranță 20A intrare PV</div>
+    <div class="field-group"><label>Tip / Putere</label><input type="text" data-sel="sig20-titlu"/></div>
+    <div class="field-group"><label>Configurație</label><input type="text" data-sel="sig20-config"/></div>
+
+    <div class="section-title">Smart Meter</div>
+    <div class="field-group"><label>Brand</label><input type="text" data-sel="sm-brand"/></div>
+    <div class="field-group"><label>Detalii</label><input type="text" data-sel="sm-detalii"/></div>
+
+    <div class="section-title">Componenta OD</div>
+    <div class="field-group"><label>Siguranță OD</label><input type="text" data-sel="od-sig"/></div>
+
+    <div class="section-title">Siguranță 20A (după OD)</div>
+    <div class="field-group"><label>Valoare</label><input type="text" data-sel="sig20b-titlu"/></div>
+
+    <div class="section-title">AC SPD</div>
+    <div class="field-group"><label>Brand / Model</label><input type="text" data-sel="acspd-model"/></div>
+
+    <div class="section-title">Diferențial</div>
+    <div class="field-group"><label>Valoare</label><input type="text" data-sel="dif-titlu"/></div>
+
+    <div class="section-title">Invertor</div>
+    <div class="field-group"><label>Tip invertor</label><input type="text" data-sel="inv-tip"/></div>
+    <div class="field-group"><label>Model invertor</label><input type="text" data-sel="inv-model"/></div>
+    <div class="field-group"><label>Specificații</label><input type="text" data-sel="inv-spec"/></div>
+    <div class="field-group"><label>Serial Number</label><input type="text" data-sel="inv-sn"/></div>
+
+    <div class="section-title">Baterie</div>
+    <div class="field-group"><label>Model</label><input type="text" data-sel="bat-model"/></div>
+    <div class="field-group"><label>Capacitate</label><input type="text" data-sel="bat-cap"/></div>
+
+    <div class="section-title">Panouri PV — String 1</div>
+    <div class="field-group"><label>Titlu String 1</label><input type="text" data-sel="s1-titlu"/></div>
+    <div class="field-group"><label>Descriere String 1</label><input type="text" data-sel="s1-desc"/></div>
+
+    <div class="section-title s2-only">Panouri PV — String 2</div>
+    <div class="field-group s2-only"><label>Titlu String 2</label><input type="text" data-sel="s2-titlu"/></div>
+    <div class="field-group s2-only"><label>Descriere String 2</label><input type="text" data-sel="s2-desc"/></div>
+
+    <div class="section-title">DC</div>
+    <div class="field-group"><label>Separator fuzibili (PV1)</label><input type="text" data-sel="sep-pv1"/></div>
+    <div class="field-group s2-only"><label>Separator fuzibili (PV2)</label><input type="text" data-sel="sep-pv2"/></div>
+    <div class="field-group"><label>Cablu DC</label><input type="text" data-sel="cablu-dc"/></div>
+
+    <div class="section-title">Cabluri AC</div>
+    <div class="field-group"><label>Cablu BMP→TEG</label><input type="text" data-sel="cablu-bmp"/></div>
+    <div class="field-group"><label>Cablu către invertor</label><input type="text" data-sel="cablu-inv"/></div>
+  </div>
+</div>
+
+<script>
+const svgNS = "http://www.w3.org/2000/svg";
+
+// ============ SVG TEMPLATE (works for both mono and trifazat via CSS hiding) ============
+const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="1900" viewBox="0 0 1300 1900" font-family="Arial, sans-serif" font-size="12">
+  <style>
+    .box { fill: white; stroke: black; stroke-width: 1.5; }
+    .box-meter { fill: #f8fbff; stroke: black; stroke-width: 1.8; }
+    .box-inv { fill: #f0f8ff; stroke: black; stroke-width: 2; }
+    .box-bat { fill: #f5fff5; stroke: #2e7d32; stroke-width: 1.6; }
+    .encl { fill: none; stroke: black; stroke-width: 1; stroke-dasharray: 6,4; }
+    .encl-od { fill: #fff7e6; stroke: #c0392b; stroke-width: 2; stroke-dasharray: 6,4; }
+    .wire { fill: none; stroke: black; stroke-width: 1.5; }
+    .wire-dc-pos { fill: none; stroke: #c0392b; stroke-width: 1.4; }
+    .wire-dc-neg { fill: none; stroke: #2471a3; stroke-width: 1.4; }
+    .sig-ct { fill: none; stroke: #c0392b; stroke-width: 1.3; stroke-dasharray: 5,3; }
+    .sig-comm { fill: none; stroke: #2e7d32; stroke-width: 1.3; stroke-dasharray: 5,3; }
+    .brk { fill: white; stroke: black; stroke-width: 1.2; }
+    .pn { fill: #f5f5f5; stroke: #333; stroke-width: 0.8; }
+  </style>
+
+  <text x="650" y="32" text-anchor="middle" font-size="20" font-weight="bold">SCHEMA BLOC PANOURI FOTOVOLTAICE</text>
+  <line x1="40" y1="44" x2="1260" y2="44" stroke="#999" stroke-width="0.8"/>
+  <text x="20" y="65" font-size="11" font-weight="bold" class="trifazat-only">REȚEA TRIFAZATĂ 400 V</text>
+  <text x="20" y="79" font-size="10" class="trifazat-only">L1 / L2 / L3 / N</text>
+  <text x="20" y="65" font-size="11" font-weight="bold" class="mono-only">REȚEA MONOFAZATĂ 230 V</text>
+  <text x="20" y="79" font-size="10" class="mono-only">L / N</text>
+
+  <!-- BMP -->
+  <rect class="box" x="80" y="95" width="260" height="115"/>
+  <text x="210" y="118" text-anchor="middle" font-weight="bold" font-size="13" data-id="bmp-titlu">BMP 25A EXISTENT</text>
+  <circle cx="140" cy="160" r="22" fill="none" stroke="black" stroke-width="1.5"/>
+  <text x="140" y="166" text-anchor="middle" font-size="14" font-weight="bold">kWh</text>
+  <text x="190" y="150" font-size="11" font-weight="bold" data-id="bmp-detalii">Contor trifazat</text>
+  <text x="190" y="165" font-size="10" class="trifazat-only">3P+N · 25A</text>
+  <text x="190" y="165" font-size="10" class="mono-only">1P+N · 32A</text>
+
+  <!-- BMP wires going down -->
+  <line class="wire" x1="140" y1="210" x2="140" y2="385"/>
+  <line class="wire trifazat-only" x1="180" y1="210" x2="180" y2="385"/>
+  <line class="wire trifazat-only" x1="230" y1="210" x2="230" y2="385"/>
+  <line class="wire" x1="270" y1="210" x2="270" y2="385"/>
+
+  <!-- CTs -->
+  <ellipse cx="140" cy="265" rx="15" ry="22" fill="white" stroke="#c0392b" stroke-width="2.2"/>
+  <text x="118" y="270" text-anchor="end" font-weight="bold" font-size="11" fill="#c0392b">CT1</text>
+  <ellipse class="trifazat-only" cx="180" cy="265" rx="15" ry="22" fill="white" stroke="#c0392b" stroke-width="2.2"/>
+  <text class="trifazat-only" x="180" y="233" text-anchor="middle" font-weight="bold" font-size="11" fill="#c0392b">CT2</text>
+  <ellipse class="trifazat-only" cx="230" cy="265" rx="15" ry="22" fill="white" stroke="#c0392b" stroke-width="2.2"/>
+  <text class="trifazat-only" x="230" y="303" text-anchor="middle" font-weight="bold" font-size="11" fill="#c0392b">CT3</text>
+  <line class="wire" x1="140" y1="245" x2="140" y2="287"/>
+  <line class="wire trifazat-only" x1="180" y1="245" x2="180" y2="287"/>
+  <line class="wire trifazat-only" x1="230" y1="245" x2="230" y2="287"/>
+  <text x="305" y="260" font-size="11" font-weight="bold" fill="#c0392b">Bobine CT (TC)</text>
+  <text x="305" y="275" font-size="10" font-style="italic" fill="#555">pe linia BMP → TEG</text>
+
+  <!-- T-junctions staggered (TRIFAZAT) -->
+  <circle class="trifazat-only" cx="140" cy="320" r="3.5" fill="black"/>
+  <circle class="trifazat-only" cx="180" cy="335" r="3.5" fill="black"/>
+  <circle class="trifazat-only" cx="230" cy="350" r="3.5" fill="black"/>
+  <circle class="trifazat-only" cx="270" cy="365" r="3.5" fill="black"/>
+  <line class="wire trifazat-only" x1="140" y1="320" x2="510" y2="320"/>
+  <line class="wire trifazat-only" x1="180" y1="335" x2="510" y2="335"/>
+  <line class="wire trifazat-only" x1="230" y1="350" x2="510" y2="350"/>
+  <line class="wire trifazat-only" x1="270" y1="365" x2="510" y2="365"/>
+  <text class="trifazat-only" x="305" y="316" font-size="9" font-weight="bold" fill="#444">L1</text>
+  <text class="trifazat-only" x="305" y="331" font-size="9" font-weight="bold" fill="#444">L2</text>
+  <text class="trifazat-only" x="305" y="346" font-size="9" font-weight="bold" fill="#444">L3</text>
+  <text class="trifazat-only" x="305" y="361" font-size="9" font-weight="bold" fill="#444">N</text>
+
+  <!-- T-junctions (MONO) -->
+  <circle class="mono-only" cx="140" cy="335" r="3.5" fill="black"/>
+  <circle class="mono-only" cx="270" cy="350" r="3.5" fill="black"/>
+  <line class="wire mono-only" x1="140" y1="335" x2="510" y2="335"/>
+  <line class="wire mono-only" x1="270" y1="350" x2="510" y2="350"/>
+  <text class="mono-only" x="305" y="331" font-size="9" font-weight="bold" fill="#444">L</text>
+  <text class="mono-only" x="305" y="346" font-size="9" font-weight="bold" fill="#444">N</text>
+
+  <!-- Siguranță 20A intrare PV -->
+  <rect class="box" x="510" y="300" width="170" height="100"/>
+  <text x="595" y="322" text-anchor="middle" font-weight="bold" font-size="13" data-id="sig20-titlu">SIGURANȚĂ 20A</text>
+  <text x="595" y="342" text-anchor="middle" font-weight="bold" font-size="12" data-id="sig20-config">3P+N · TRIFAZAT</text>
+  <!-- Mini simboluri poli (sub text, fără să acopere informația) -->
+  <g class="trifazat-only">
+    <rect class="brk" x="538" y="362" width="12" height="12"/>
+    <rect class="brk" x="568" y="362" width="12" height="12"/>
+    <rect class="brk" x="598" y="362" width="12" height="12"/>
+    <rect class="brk" x="628" y="362" width="12" height="12"/>
+  </g>
+  <g class="mono-only">
+    <rect class="brk" x="568" y="362" width="12" height="12"/>
+    <rect class="brk" x="608" y="362" width="12" height="12"/>
+  </g>
+  <text x="595" y="390" text-anchor="middle" font-size="9" font-style="italic" fill="#555" class="trifazat-only">(4 poli)</text>
+  <text x="595" y="390" text-anchor="middle" font-size="9" font-style="italic" fill="#555" class="mono-only">(2 poli)</text>
+
+  <!-- Wires 20A → SM -->
+  <line class="wire trifazat-only" x1="540" y1="400" x2="540" y2="445"/>
+  <line class="wire trifazat-only" x1="560" y1="400" x2="560" y2="445"/>
+  <line class="wire trifazat-only" x1="620" y1="400" x2="620" y2="445"/>
+  <line class="wire" x1="640" y1="400" x2="640" y2="445"/>
+  <line class="wire mono-only" x1="560" y1="400" x2="560" y2="445"/>
+
+  <!-- TEG enclosure -->
+  <rect class="encl" x="110" y="385" width="200" height="75"/>
+  <text x="210" y="378" text-anchor="middle" font-size="12" font-weight="bold" data-id="teg-titlu">TEG 25A</text>
+  <rect class="brk" x="128" y="395" width="24" height="22"/>
+  <line class="wire" x1="140" y1="395" x2="150" y2="385"/>
+  <rect class="brk trifazat-only" x="168" y="395" width="24" height="22"/>
+  <line class="wire trifazat-only" x1="180" y1="395" x2="190" y2="385"/>
+  <rect class="brk trifazat-only" x="218" y="395" width="24" height="22"/>
+  <line class="wire trifazat-only" x1="230" y1="395" x2="240" y2="385"/>
+  <rect class="brk" x="258" y="395" width="24" height="22"/>
+  <line class="wire" x1="270" y1="395" x2="280" y2="385"/>
+  <text x="210" y="450" text-anchor="middle" font-size="10" font-weight="bold" data-id="teg-sig">Siguranță 3P+N / 25A</text>
+
+  <!-- TEG → consumer -->
+  <line class="wire" x1="140" y1="417" x2="140" y2="525"/>
+  <line class="wire trifazat-only" x1="180" y1="417" x2="180" y2="525"/>
+  <line class="wire trifazat-only" x1="230" y1="417" x2="230" y2="525"/>
+  <line class="wire" x1="270" y1="417" x2="270" y2="525"/>
+
+  <!-- Consumer enclosure (compact, single column) -->
+  <rect class="encl" x="50" y="530" width="280" height="240"/>
+  <text x="190" y="550" text-anchor="middle" font-weight="bold" font-size="12">CIRCUITE CONSUMATOR (din TEG)</text>
+  <!-- Wires from TEG into enclosure -->
+  <line class="wire" x1="140" y1="525" x2="140" y2="565"/>
+  <line class="wire trifazat-only" x1="180" y1="525" x2="180" y2="565"/>
+  <line class="wire trifazat-only" x1="230" y1="525" x2="230" y2="565"/>
+  <line class="wire" x1="270" y1="525" x2="270" y2="565"/>
+  <!-- Bus bar -->
+  <line class="wire" x1="140" y1="565" x2="270" y2="565"/>
+  <!-- Vertical feeder through breakers -->
+  <line class="wire" x1="125" y1="565" x2="140" y2="565"/>
+  <line class="wire" x1="125" y1="565" x2="125" y2="743"/>
+  <g font-size="10">
+    <!-- C1 -->
+    <rect class="brk" x="113" y="578" width="24" height="18"/>
+    <text x="148" y="588" font-weight="bold">C1</text>
+    <text x="148" y="600" font-size="9">C16-1P+N · 30mA → Iluminat</text>
+    <!-- C2 -->
+    <rect class="brk" x="113" y="605" width="24" height="18"/>
+    <text x="148" y="615" font-weight="bold">C2</text>
+    <text x="148" y="627" font-size="9">C16-1P+N · 30mA → Iluminat</text>
+    <!-- C3 -->
+    <rect class="brk" x="113" y="632" width="24" height="18"/>
+    <text x="148" y="642" font-weight="bold">C3</text>
+    <text x="148" y="654" font-size="9">C20-1P+N · 30mA → Prize</text>
+    <!-- C4 -->
+    <rect class="brk" x="113" y="659" width="24" height="18"/>
+    <text x="148" y="669" font-weight="bold">C4</text>
+    <text x="148" y="681" font-size="9">C20-1P+N · 30mA → Prize</text>
+    <!-- C5 (always) -->
+    <rect class="brk" x="113" y="686" width="24" height="18"/>
+    <text x="148" y="696" font-weight="bold">C5</text>
+    <text x="148" y="708" font-size="9">C20-1P+N · 30mA → Prize</text>
+    <!-- C6 (only trifazat — prize 3F, ultimul ca să nu ramaie gol la mono) -->
+    <rect class="brk trifazat-only" x="113" y="713" width="24" height="18"/>
+    <text x="148" y="723" font-weight="bold" class="trifazat-only">C6</text>
+    <text x="148" y="735" font-size="9" class="trifazat-only">C20-3P+N · 30mA → Prize 3F</text>
+  </g>
+  <text x="190" y="760" text-anchor="middle" font-size="11" font-weight="bold">IPS · Rd ≤ 4 Ω</text>
+
+  <!-- Smart Meter -->
+  <rect class="box-meter" x="510" y="445" width="170" height="115"/>
+  <text x="595" y="470" text-anchor="middle" font-weight="bold" font-size="13">SMART METER</text>
+  <text x="595" y="488" text-anchor="middle" font-weight="bold" font-size="13" data-id="sm-brand">GOODWE</text>
+  <text x="595" y="508" text-anchor="middle" font-size="10" data-id="sm-detalii">3-fazat · 400 V</text>
+  <text x="595" y="524" text-anchor="middle" font-size="9" font-style="italic" fill="#555">monitorizare prosumator</text>
+  <text x="595" y="541" text-anchor="middle" font-size="9" font-style="italic" fill="#c0392b">(intrări CT ←)</text>
+
+  <!-- CT signal cables -->
+  <polyline class="sig-ct" points="155,265 470,265 470,480 510,480"/>
+  <polyline class="sig-ct trifazat-only" points="195,265 485,265 485,500 510,500"/>
+  <polyline class="sig-ct trifazat-only" points="245,265 500,265 500,520 510,520"/>
+
+  <!-- Wires SM → OD -->
+  <line class="wire trifazat-only" x1="540" y1="560" x2="540" y2="605"/>
+  <line class="wire trifazat-only" x1="560" y1="560" x2="560" y2="605"/>
+  <line class="wire trifazat-only" x1="620" y1="560" x2="620" y2="605"/>
+  <line class="wire" x1="640" y1="560" x2="640" y2="605"/>
+  <line class="wire mono-only" x1="560" y1="560" x2="560" y2="605"/>
+  <text x="700" y="585" font-size="10" font-weight="bold" data-id="cablu-bmp">CYYF 5x6</text>
+
+  <!-- Componenta OD -->
+  <rect class="encl-od" x="490" y="605" width="200" height="115"/>
+  <text x="590" y="628" text-anchor="middle" font-weight="bold" font-size="14" fill="#c0392b">COMPONENTA OD</text>
+  <rect class="brk" x="565" y="650" width="50" height="32"/>
+  <line stroke="black" stroke-width="2" x1="573" y1="660" x2="608" y2="678"/>
+  <text x="590" y="708" text-anchor="middle" font-weight="bold" font-size="14" data-id="od-sig">25A</text>
+
+  <line class="wire trifazat-only" x1="540" y1="720" x2="540" y2="755"/>
+  <line class="wire trifazat-only" x1="560" y1="720" x2="560" y2="755"/>
+  <line class="wire trifazat-only" x1="620" y1="720" x2="620" y2="755"/>
+  <line class="wire" x1="640" y1="720" x2="640" y2="755"/>
+  <line class="wire mono-only" x1="560" y1="720" x2="560" y2="755"/>
+
+  <!-- Sig 20A după OD -->
+  <rect class="box" x="490" y="755" width="200" height="50"/>
+  <text x="590" y="778" text-anchor="middle" font-weight="bold" font-size="13" data-id="sig20b-titlu">SIGURANȚĂ 20A</text>
+  <text x="590" y="795" text-anchor="middle" font-size="10" class="trifazat-only">3P+N</text>
+  <text x="590" y="795" text-anchor="middle" font-size="10" class="mono-only">1P+N</text>
+
+  <line class="wire trifazat-only" x1="540" y1="805" x2="540" y2="835"/>
+  <line class="wire trifazat-only" x1="560" y1="805" x2="560" y2="835"/>
+  <line class="wire trifazat-only" x1="620" y1="805" x2="620" y2="835"/>
+  <line class="wire" x1="640" y1="805" x2="640" y2="835"/>
+  <line class="wire mono-only" x1="560" y1="805" x2="560" y2="835"/>
+
+  <!-- AC SPD -->
+  <rect class="box" x="490" y="835" width="200" height="55"/>
+  <text x="590" y="855" text-anchor="middle" font-weight="bold" font-size="11">AC SPD</text>
+  <text x="590" y="872" text-anchor="middle" font-weight="bold" font-size="11" data-id="acspd-model">Leader Solar LD-SPD2P-40 kA</text>
+
+  <line class="wire trifazat-only" x1="540" y1="890" x2="540" y2="920"/>
+  <line class="wire trifazat-only" x1="560" y1="890" x2="560" y2="920"/>
+  <line class="wire trifazat-only" x1="620" y1="890" x2="620" y2="920"/>
+  <line class="wire" x1="640" y1="890" x2="640" y2="920"/>
+  <line class="wire mono-only" x1="560" y1="890" x2="560" y2="920"/>
+
+  <!-- Diferential -->
+  <rect class="box" x="490" y="920" width="200" height="60"/>
+  <text x="590" y="940" text-anchor="middle" font-weight="bold" font-size="11">ÎNTRERUPĂTOR DIFERENȚIAL</text>
+  <text x="590" y="958" text-anchor="middle" font-weight="bold" font-size="13" data-id="dif-titlu">20 A · Id = 30 mA</text>
+
+  <line class="wire trifazat-only" x1="540" y1="980" x2="540" y2="1130"/>
+  <line class="wire trifazat-only" x1="560" y1="980" x2="560" y2="1130"/>
+  <line class="wire trifazat-only" x1="620" y1="980" x2="620" y2="1130"/>
+  <line class="wire" x1="640" y1="980" x2="640" y2="1130"/>
+  <line class="wire mono-only" x1="560" y1="980" x2="560" y2="1130"/>
+
+  <text x="710" y="1050" font-size="11" font-weight="bold" data-id="cablu-inv">CYYF-K 5x6 mmp</text>
+  <line class="wire trifazat-only" x1="540" y1="1130" x2="640" y2="1130"/>
+  <line class="wire mono-only" x1="560" y1="1130" x2="640" y2="1130"/>
+
+  <!-- PV STRING 1 (vertical) -->
+  <text x="830" y="90" text-anchor="middle" font-size="12" font-weight="bold" data-id="s1-titlu">STRING PV1</text>
+  <text x="830" y="105" text-anchor="middle" font-size="10" data-id="s1-desc">12 × Jinko Neo 460W</text>
+  <text x="785" y="138" font-size="9" fill="#c0392b" font-weight="bold">A+</text>
+  <rect class="pn" x="790" y="148" width="80" height="26"/>
+  <rect class="pn" x="790" y="178" width="80" height="26"/>
+  <rect class="pn" x="790" y="208" width="80" height="26"/>
+  <rect class="pn" x="790" y="238" width="80" height="26"/>
+  <rect class="pn" x="790" y="268" width="80" height="26"/>
+  <rect class="pn" x="790" y="298" width="80" height="26"/>
+  <rect class="pn" x="790" y="328" width="80" height="26"/>
+  <rect class="pn" x="790" y="358" width="80" height="26"/>
+  <rect class="pn" x="790" y="388" width="80" height="26"/>
+  <rect class="pn" x="790" y="418" width="80" height="26"/>
+  <rect class="pn" x="790" y="448" width="80" height="26"/>
+  <rect class="pn" x="790" y="478" width="80" height="26"/>
+  <text x="785" y="520" font-size="9" fill="#2471a3" font-weight="bold">B−</text>
+  <line class="wire-dc-pos" x1="770" y1="148" x2="770" y2="540"/>
+  <line class="wire-dc-pos" x1="770" y1="148" x2="790" y2="148"/>
+  <line class="wire-dc-neg" x1="890" y1="504" x2="890" y2="540"/>
+  <line class="wire-dc-neg" x1="890" y1="504" x2="870" y2="504"/>
+
+  <!-- PV STRING 2 (independent of mono/trifazat — controlled by stringuri toggle) -->
+  <g class="s2-only">
+    <text x="1000" y="90" text-anchor="middle" font-size="12" font-weight="bold" data-id="s2-titlu">STRING PV2</text>
+    <text x="1000" y="105" text-anchor="middle" font-size="10" data-id="s2-desc">12 × Jinko Neo 460W</text>
+    <text x="955" y="138" font-size="9" fill="#c0392b" font-weight="bold">A+</text>
+    <rect class="pn" x="960" y="148" width="80" height="26"/>
+    <rect class="pn" x="960" y="178" width="80" height="26"/>
+    <rect class="pn" x="960" y="208" width="80" height="26"/>
+    <rect class="pn" x="960" y="238" width="80" height="26"/>
+    <rect class="pn" x="960" y="268" width="80" height="26"/>
+    <rect class="pn" x="960" y="298" width="80" height="26"/>
+    <rect class="pn" x="960" y="328" width="80" height="26"/>
+    <rect class="pn" x="960" y="358" width="80" height="26"/>
+    <rect class="pn" x="960" y="388" width="80" height="26"/>
+    <rect class="pn" x="960" y="418" width="80" height="26"/>
+    <rect class="pn" x="960" y="448" width="80" height="26"/>
+    <rect class="pn" x="960" y="478" width="80" height="26"/>
+    <text x="955" y="520" font-size="9" fill="#2471a3" font-weight="bold">B−</text>
+    <line class="wire-dc-pos" x1="940" y1="148" x2="940" y2="540"/>
+    <line class="wire-dc-pos" x1="940" y1="148" x2="960" y2="148"/>
+    <line class="wire-dc-neg" x1="1060" y1="504" x2="1060" y2="540"/>
+    <line class="wire-dc-neg" x1="1060" y1="504" x2="1040" y2="504"/>
+  </g>
+
+  <!-- Sep fuzibili PV1 -->
+  <rect class="box" x="740" y="540" width="170" height="50"/>
+  <text x="825" y="560" text-anchor="middle" font-weight="bold" font-size="11">Separator fuzibili</text>
+  <text x="825" y="577" text-anchor="middle" font-weight="bold" font-size="11" data-id="sep-pv1">2 × 16A (PV1)</text>
+  <line class="wire-dc-pos" x1="770" y1="590" x2="770" y2="615"/>
+  <line class="wire-dc-neg" x1="890" y1="590" x2="890" y2="615"/>
+
+  <!-- DC SPD PV1 -->
+  <rect class="box" x="740" y="615" width="170" height="50"/>
+  <text x="825" y="635" text-anchor="middle" font-weight="bold" font-size="11">DC SPD (PV1)</text>
+  <text x="825" y="652" text-anchor="middle" font-size="9">Descărcător supratensiune</text>
+  <line class="wire-dc-pos" x1="770" y1="665" x2="770" y2="1130"/>
+  <line class="wire-dc-neg" x1="890" y1="665" x2="890" y2="1130"/>
+
+  <!-- Sep + DC SPD PV2 (independent of mono/trifazat — controlled by stringuri toggle) -->
+  <g class="s2-only">
+    <rect class="box" x="930" y="540" width="170" height="50"/>
+    <text x="1015" y="560" text-anchor="middle" font-weight="bold" font-size="11">Separator fuzibili</text>
+    <text x="1015" y="577" text-anchor="middle" font-weight="bold" font-size="11" data-id="sep-pv2">2 × 16A (PV2)</text>
+    <line class="wire-dc-pos" x1="940" y1="590" x2="940" y2="615"/>
+    <line class="wire-dc-neg" x1="1060" y1="590" x2="1060" y2="615"/>
+    <rect class="box" x="930" y="615" width="170" height="50"/>
+    <text x="1015" y="635" text-anchor="middle" font-weight="bold" font-size="11">DC SPD (PV2)</text>
+    <text x="1015" y="652" text-anchor="middle" font-size="9">Descărcător supratensiune</text>
+    <line class="wire-dc-pos" x1="940" y1="665" x2="940" y2="1130"/>
+    <line class="wire-dc-neg" x1="1060" y1="665" x2="1060" y2="1130"/>
+  </g>
+
+  <!-- Comm cable -->
+  <polyline class="sig-comm" points="680,510 720,510 720,1130"/>
+  <text x="725" y="700" font-size="10" font-weight="bold" fill="#2e7d32">Cablu comunicație</text>
+  <text x="725" y="714" font-size="9" font-style="italic" fill="#555">Smart Meter ↔ Invertor</text>
+
+  <!-- Invertor -->
+  <rect class="box-inv" x="430" y="1130" width="780" height="170"/>
+  <text x="820" y="1160" text-anchor="middle" font-weight="bold" font-size="14" data-id="inv-tip">INVERTOR HIBRID</text>
+  <text x="820" y="1190" text-anchor="middle" font-weight="bold" font-size="18" data-id="inv-model">GoodWe GW10K-ET-20</text>
+  <text x="820" y="1214" text-anchor="middle" font-size="12" data-id="inv-spec">10 kW · Trifazat · Hibrid</text>
+  <text x="820" y="1234" text-anchor="middle" font-size="10" font-style="italic" data-id="inv-sn">SN: 5010KETU253S0064</text>
+
+  <line class="wire-dc-pos" x1="780" y1="1300" x2="780" y2="1335"/>
+  <line class="wire-dc-neg" x1="830" y1="1300" x2="830" y2="1335"/>
+  <text x="760" y="1320" font-size="10" fill="#c0392b" text-anchor="end">BAT+</text>
+  <text x="850" y="1320" font-size="10" fill="#2471a3">BAT−</text>
+
+  <!-- Baterie -->
+  <rect class="box-bat" x="540" y="1335" width="560" height="115"/>
+  <text x="820" y="1363" text-anchor="middle" font-weight="bold" font-size="15" data-id="bat-model">BATERIE GoodWe LX A5.0-30</text>
+  <text x="820" y="1392" text-anchor="middle" font-weight="bold" font-size="15" data-id="bat-cap">10,24 kWh · 100 Ah</text>
+  <text x="820" y="1415" text-anchor="middle" font-size="11" font-style="italic">Sistem stocare energie (LFP)</text>
+
+  <!-- DC cable label -->
+  <text x="1100" y="850" font-size="10" font-weight="bold" data-id="cablu-dc">Cablu DC: 6 mmp H1Z2Z2-K</text>
+
+  <!-- Cartouche -->
+  <rect class="box" x="50" y="1500" width="1160" height="200"/>
+  <text x="630" y="1525" text-anchor="middle" font-weight="bold" font-size="15">EXECUTARE SISTEM FOTOVOLTAIC — SCHEMA BLOC</text>
+  <line x1="60" y1="1535" x2="1200" y2="1535" stroke="black" stroke-width="0.5"/>
+  <text x="65" y="1555" font-size="11" font-weight="bold">Beneficiar:</text>
+  <text x="170" y="1555" font-size="11" data-id="beneficiar">POPESCU DANIELA-ȘTEFANIA</text>
+  <text x="65" y="1575" font-size="10" font-weight="bold">Adresa:</text>
+  <text x="170" y="1575" font-size="10" data-id="adresa">str. Povernei nr. 11A, Mogoșoaia, jud. Ilfov, 077135</text>
+  <text x="65" y="1595" font-size="10" font-weight="bold">POD:</text>
+  <text x="170" y="1595" font-size="10" font-weight="bold" data-id="pod">RO001E401026205</text>
+  <text x="65" y="1615" font-size="10" font-weight="bold">Prestator:</text>
+  <text x="170" y="1615" font-size="10" data-id="prestator">PROFCEISS ELECTRIC SRL</text>
+  <text x="65" y="1635" font-size="10" font-weight="bold">ANRE:</text>
+  <text x="170" y="1635" font-size="10" data-id="anre">21840/12.06.2024, 21841/12.06.2024</text>
+  <text x="65" y="1655" font-size="10" font-weight="bold">Putere instalată:</text>
+  <text x="200" y="1655" font-size="10" font-weight="bold" data-id="putere-instalata">11,04 kWp</text>
+  <text x="780" y="1555" font-size="11" font-weight="bold">Proiectat:</text>
+  <text x="880" y="1555" font-size="11" data-id="proiectat">Sorin Profir</text>
+  <text x="780" y="1575" font-size="10" font-weight="bold">Desenat:</text>
+  <text x="880" y="1575" font-size="10" data-id="desenat">Sorin Profir</text>
+  <text x="780" y="1595" font-size="10" font-weight="bold">Data:</text>
+  <text x="880" y="1595" font-size="10" data-id="data-proj">28.04.2026</text>
+</svg>`;
+
+let currentScale = 1.0;
+let inlineEditor = null;
+let selectedText = null;
+
+function initEditor() {
+  const wrapper = document.getElementById('svg-wrapper');
+
+  // Use insertAdjacentHTML (more reliable than DOMParser for inline SVG)
+  wrapper.insertAdjacentHTML('afterbegin', svgSource);
+
+  const svgEl = wrapper.querySelector('svg');
+  if (!svgEl) {
+    console.error('SVG failed to render. Check console for errors.');
+    wrapper.innerHTML = '<div style="padding:20px;color:red;">Eroare la randarea SVG. Deschideți consola browserului (F12) pentru detalii.</div>';
+    return;
+  }
+  svgEl.style.display = 'block';
+
+  inlineEditor = document.getElementById('inline-editor');
+
+  svgEl.querySelectorAll('text').forEach(t => {
+    t.style.cursor = 'pointer';
+    t.addEventListener('click', onTextClick);
+  });
+
+  document.querySelectorAll('#side-panel input[data-sel]').forEach(input => {
+    const sel = input.getAttribute('data-sel');
+    const textEl = svgEl.querySelector(`text[data-id="${sel}"]`);
+    if (textEl) {
+      input.value = textEl.textContent.trim();
+      input.addEventListener('input', () => { textEl.textContent = input.value; });
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#svg-wrapper') || e.target === wrapper) closeInlineEditor();
+  });
+  inlineEditor.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === 'Escape') closeInlineEditor();
+  });
+  inlineEditor.addEventListener('blur', closeInlineEditor);
+
+  // Helper: keep both toggles (mono/tri AND 1string/2string) in body className
+  function setBodyMode(branch, strings) {
+    document.body.className = 'mode-' + branch + ' mode-' + strings;
+  }
+  function currentBranch() {
+    return document.querySelector('input[name="mode"]:checked').value;
+  }
+  function currentStrings() {
+    return document.querySelector('input[name="strings"]:checked').value;
+  }
+
+  // Strings toggle (DC side — independent of branch type)
+  document.querySelectorAll('input[name="strings"]').forEach(r => {
+    r.addEventListener('change', e => {
+      setBodyMode(currentBranch(), e.target.value);
+      document.getElementById('lbl-s1').classList.toggle('active', e.target.value === '1string');
+      document.getElementById('lbl-s2').classList.toggle('active', e.target.value === '2string');
+    });
+  });
+
+  // Branch (mono/trifazat) toggle — only AC-side topology + AC labels
+  document.querySelectorAll('input[name="mode"]').forEach(r => {
+    r.addEventListener('change', e => {
+      setBodyMode(e.target.value, currentStrings());
+      document.getElementById('lbl-mono').classList.toggle('active', e.target.value === 'mono');
+      document.getElementById('lbl-tri').classList.toggle('active', e.target.value === 'trifazat');
+      // Update default values based on mode
+      if (e.target.value === 'mono') {
+        applyDefaults({
+          'bmp-titlu': 'BMP 32A EXISTENT',
+          'bmp-detalii': 'Contor monofazat',
+          'sig20-titlu': 'SIGURANȚĂ 20A',
+          'sig20-config': '1P+N · MONOFAZAT',
+          'sm-detalii': 'monofazat · 230 V',
+          'teg-titlu': 'TEG 32A',
+          'teg-sig': 'Siguranță 1P+N / 32A',
+          'inv-tip': 'INVERTOR HIBRID',
+          'inv-model': 'GoodWe GW5K-DT',
+          'inv-spec': '5 kW · Monofazat · Hibrid'
+        });
+      } else {
+        applyDefaults({
+          'bmp-titlu': 'BMP 25A EXISTENT',
+          'bmp-detalii': 'Contor trifazat',
+          'sig20-titlu': 'SIGURANȚĂ 20A',
+          'sig20-config': '3P+N · TRIFAZAT',
+          'sm-detalii': '3-fazat · 400 V',
+          'teg-titlu': 'TEG 25A',
+          'teg-sig': 'Siguranță 3P+N / 25A',
+          'inv-tip': 'INVERTOR HIBRID',
+          'inv-model': 'GoodWe GW10K-ET-20',
+          'inv-spec': '10 kW · Trifazat · Hibrid'
+        });
+      }
+    });
+  });
+}
+
+function applyDefaults(map) {
+  const svgEl = document.querySelector('#svg-wrapper svg');
+  Object.keys(map).forEach(id => {
+    const t = svgEl.querySelector(`text[data-id="${id}"]`);
+    const inp = document.querySelector(`input[data-sel="${id}"]`);
+    if (t) t.textContent = map[id];
+    if (inp) inp.value = map[id];
+  });
+}
+
+function onTextClick(e) {
+  e.stopPropagation();
+  openInlineEditor(e.target);
+}
+
+function openInlineEditor(textEl) {
+  if (selectedText) selectedText.classList.remove('selected');
+  selectedText = textEl;
+  textEl.classList.add('selected');
+  const wrapper = document.getElementById('svg-wrapper');
+  const bbox = textEl.getBoundingClientRect();
+  const wrapperRect = wrapper.getBoundingClientRect();
+  const left = bbox.left - wrapperRect.left;
+  const top = bbox.top - wrapperRect.top;
+  inlineEditor.style.display = 'block';
+  inlineEditor.style.left = Math.max(0, left) + 'px';
+  inlineEditor.style.top = Math.max(0, top - 4) + 'px';
+  inlineEditor.style.width = Math.max(120, bbox.width + 40) + 'px';
+  inlineEditor.style.fontSize = Math.max(10, parseFloat(textEl.getAttribute('font-size') || '10') * currentScale) + 'px';
+  inlineEditor.value = textEl.textContent;
+  inlineEditor.focus();
+  inlineEditor.select();
+  inlineEditor.oninput = () => {
+    textEl.textContent = inlineEditor.value;
+    syncSidePanel(textEl);
+  };
+}
+
+function closeInlineEditor() {
+  if (!inlineEditor) return;
+  inlineEditor.style.display = 'none';
+  if (selectedText) { selectedText.classList.remove('selected'); selectedText = null; }
+}
+
+function syncSidePanel(textEl) {
+  const dataId = textEl.getAttribute('data-id');
+  if (!dataId) return;
+  const input = document.querySelector(`input[data-sel="${dataId}"]`);
+  if (input) input.value = textEl.textContent;
+}
+
+function zoom(delta) {
+  currentScale = Math.max(0.3, Math.min(3.0, currentScale + delta));
+  const svgEl = document.querySelector('#svg-wrapper svg');
+  if (svgEl) {
+    svgEl.style.transform = `scale(${currentScale})`;
+    svgEl.style.transformOrigin = 'top left';
+    const w = 1300 * currentScale;
+    const h = 1900 * currentScale;
+    document.getElementById('svg-wrapper').style.width = w + 'px';
+    document.getElementById('svg-wrapper').style.height = h + 'px';
+  }
+  document.getElementById('zoom-label').textContent = Math.round(currentScale * 100) + '%';
+}
+
+function resetZoom() { currentScale = 1.0; zoom(0); }
+
+function getSVGContent() {
+  const svgEl = document.querySelector('#svg-wrapper svg');
+  if (!svgEl) return '';
+  const clone = svgEl.cloneNode(true);
+  clone.removeAttribute('style');
+  clone.querySelectorAll('text').forEach(t => { t.style.cursor = ''; t.classList.remove('selected'); });
+  // Apply current mode CSS by removing hidden elements
+  const cls = document.body.className;
+  if (cls.includes('mode-mono')) {
+    clone.querySelectorAll('.trifazat-only').forEach(e => e.remove());
+  } else {
+    clone.querySelectorAll('.mono-only').forEach(e => e.remove());
+  }
+  if (cls.includes('mode-1string')) {
+    clone.querySelectorAll('.s2-only').forEach(e => e.remove());
+  }
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + clone.outerHTML;
+}
+
+function downloadSVG() {
+  const content = getSVGContent();
+  const blob = new Blob([content], { type: 'image/svg+xml;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Schema_Bloc_PV.svg';
+  a.click();
+}
+
+function downloadPNG() {
+  const content = getSVGContent();
+  const img = new Image();
+  const scale = 2;
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1300 * scale;
+    canvas.height = 1900 * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, 1300, 1900);
+    ctx.drawImage(img, 0, 0);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'Schema_Bloc_PV.png';
+    a.click();
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(content);
+}
+
+window.addEventListener('load', initEditor);
+</script>
+</body>
+</html>
