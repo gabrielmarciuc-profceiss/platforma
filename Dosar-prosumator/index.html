@@ -74,6 +74,28 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 .photo-preview{margin-top:4px;}
 .photo-preview img{max-width:100%;max-height:80px;border-radius:4px;border:0.5px solid #d8d8d0;}
 
+/* Opis dosar — cards cu bifă pentru includere în PDF */
+.opis-controls{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;}
+.opis-controls button{background:#fff;border:0.5px solid #ccc;padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;color:#444;font-weight:500;}
+.opis-controls button:hover{background:#f0f0f0;}
+.opis-controls .info{font-size:11px;color:#888;margin-left:auto;}
+.opis-list{display:flex;flex-direction:column;gap:6px;}
+.opis-card{background:#fff;border:0.5px solid #d8d8d0;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;transition:all .12s;}
+.opis-card:hover{border-color:#1D9E75;background:#fafffa;}
+.opis-card.unchecked{opacity:0.55;background:#fafaf5;}
+.opis-card .check{display:flex;align-items:center;}
+.opis-card .check input{width:18px;height:18px;cursor:pointer;accent-color:#1D9E75;}
+.opis-card .num{background:#1D9E75;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.opis-card .title{flex:1;font-size:13px;font-weight:500;color:#1a1a1a;}
+.opis-card .badge-type{font-size:9.5px;padding:2px 8px;border-radius:99px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;}
+.opis-card .badge-type.gen{background:#e8eef8;color:#185FA5;border:0.5px solid #b8c8e0;}
+.opis-card .badge-type.tpl{background:#f5e8f8;color:#6B2D8C;border:0.5px solid #d8b8e0;}
+.opis-card .badge-type.upl{background:#fff4e6;color:#854F0B;border:0.5px solid #f0d8b0;}
+.opis-card .status{font-size:10.5px;padding:3px 9px;border-radius:99px;font-weight:600;letter-spacing:.2px;}
+.opis-card .status.ok{background:#e6f5ed;color:#1B6E3F;}
+.opis-card .status.warn{background:#fff3cd;color:#856404;}
+.opis-card .status.missing{background:#fdecea;color:#A32D2D;}
+
 /* Loading overlay */
 .loading{position:fixed;inset:0;background:rgba(255,255,255,0.95);display:none;align-items:center;justify-content:center;z-index:1000;font-size:14px;color:#1a1a1a;}
 .loading.active{display:flex;}
@@ -473,6 +495,22 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
     </div>
   </div>
 
+  <!-- ─── OPIS DOSAR — DOCUMENTE GENERATE + PRE-ÎNCĂRCATE ──────── -->
+  <div class="section">
+    <div class="section-title">Opis dosar — bifează documentele incluse în PDF-ul final</div>
+    <p style="font-size:12px;color:#666;margin-bottom:12px;">
+      Toate documentele de mai jos sunt incluse implicit. <strong>Debifează</strong> ce nu vrei să apară în PDF.
+      Documentele „Generat" se completează automat din datele introduse mai sus.
+      „Template" sunt PDF-uri pre-încărcate (autorizații firmă/persoană).
+    </p>
+    <div class="opis-controls">
+      <button type="button" onclick="opisAll(true)">✓ Bifează toate</button>
+      <button type="button" onclick="opisAll(false)">✗ Debifează toate</button>
+      <span class="info" id="opis-count"></span>
+    </div>
+    <div class="opis-list" id="opis-list"></div>
+  </div>
+
   <!-- ─── SUBMIT ────────────────────────────────────────────────── -->
   <div class="submit-row">
     <button type="button" class="btn btn-create" onclick="createDosar()">📋 Creează Dosar Prosumator (PDF)</button>
@@ -576,6 +614,432 @@ function setStatus(msg, type='') {
   s.textContent = msg;
   s.className = type;
 }
+
+// ─── OPIS DOSAR — 12 GENERATE + 3 TEMPLATE ────────────────────
+const OPIS_ITEMS = [
+  { id: 1,  type: 'gen', key: 'cerereAnexa2',      title: 'Cerere racordare (Anexa 2)' },
+  { id: 2,  type: 'gen', key: 'cerereAnexa4',      title: 'Cerere racordare + spor de putere (Anexa 4)' },
+  { id: 3,  type: 'gen', key: 'declaratie',        title: 'Declarație' },
+  { id: 4,  type: 'gen', key: 'buletinReglaj',     title: 'Buletin reglaj' },
+  { id: 5,  type: 'gen', key: 'declaratieCalitate',title: 'Declarație conformitate privind calitatea lucrărilor' },
+  { id: 6,  type: 'gen', key: 'cerereContor',      title: 'Cerere pentru montare contor dublu-sens' },
+  { id: 7,  type: 'gen', key: 'cerereColoana',     title: 'Cerere pentru execuție legătură (coloană) electrică' },
+  { id: 8,  type: 'gen', key: 'buletinPRAM',       title: 'Buletin de verificare și măsurare instalații de legare la pământ' },
+  { id: 9,  type: 'gen', key: 'pvCEF',             title: 'Proces verbal de punere în funcțiune finală CEF' },
+  { id: 10, type: 'gen', key: 'pvReceptie',        title: 'Proces verbal de recepție și punere în funcțiune' },
+  { id: 11, type: 'gen', key: 'imputernicire',     title: 'Împuternicire' },
+  { id: 12, type: 'gen', key: 'declAutenticitate', title: 'Declarație autenticitate date și conformitate cu originalul' },
+  { id: 13, type: 'tpl', tplPath: '../spor-de-putere/templates/autorizatie-firma.pdf',    title: 'Autorizație firmă PROFCEISS (atestate A3, D1, E1, E2)' },
+  { id: 14, type: 'tpl', tplPath: '../spor-de-putere/templates/autorizatie-persoana.pdf', title: 'Autorizație persoană ANRE (adeverință executant)' },
+  { id: 15, type: 'tpl', tplPath: '../spor-de-putere/templates/declaratie-executant.pdf', title: 'Declarație executant' },
+];
+
+let opisChecked = {};
+
+function initOpis() {
+  OPIS_ITEMS.forEach(it => opisChecked[it.id] = true);
+  renderOpis();
+}
+function renderOpis() {
+  const list = document.getElementById('opis-list');
+  if (!list) return;
+  list.innerHTML = OPIS_ITEMS.map(it => {
+    const checked = opisChecked[it.id];
+    const isGen = it.type === 'gen';
+    const typeBadge = isGen ? 'gen' : 'tpl';
+    const typeLabel = isGen ? 'Generat' : 'Template';
+    const statusLabel = isGen ? '✓ Gata din formular' : '✓ Pre-încărcat';
+    return `
+      <div class="opis-card ${checked ? '' : 'unchecked'}" id="opis-card-${it.id}">
+        <div class="check"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleOpis(${it.id}, this.checked)"></div>
+        <div class="num">${it.id}</div>
+        <div class="title">${escapeHtml(it.title)}</div>
+        <div class="badge-type ${typeBadge}">${typeLabel}</div>
+        <div class="status ok">${statusLabel}</div>
+      </div>`;
+  }).join('');
+  updateOpisCount();
+}
+function toggleOpis(id, checked) {
+  opisChecked[id] = checked;
+  const card = document.getElementById('opis-card-' + id);
+  if (card) card.classList.toggle('unchecked', !checked);
+  updateOpisCount();
+}
+function opisAll(check) {
+  OPIS_ITEMS.forEach(it => opisChecked[it.id] = check);
+  renderOpis();
+}
+function updateOpisCount() {
+  const checked = Object.values(opisChecked).filter(Boolean).length;
+  const el = document.getElementById('opis-count');
+  if (el) el.textContent = `${checked} / ${OPIS_ITEMS.length} documente selectate`;
+}
+
+// ─── GENERATORI DOCUMENTE — folosesc pdf-lib pentru pagini formale ─
+// Toate documentele au layout standard: header PROFCEISS + titlu + către + corp + semnătură.
+function wrapTextSimple(text, maxChars) {
+  const paragraphs = String(text||'').split('\n');
+  const allLines = [];
+  for (const para of paragraphs) {
+    if (!para.trim()) { allLines.push(''); continue; }
+    const words = para.split(/\s+/);
+    let line = '';
+    for (const w of words) {
+      if ((line + ' ' + w).trim().length > maxChars) {
+        if (line) allLines.push(line);
+        line = w;
+      } else line = (line + ' ' + w).trim();
+    }
+    if (line) allLines.push(line);
+  }
+  return allLines;
+}
+
+async function drawFormalDoc(out, font, fontBold, opts) {
+  const { title, catre, beneficiarBlock, bodyText, semnaturaLeft, semnaturaRight } = opts;
+  let page = out.addPage([595, 842]);
+  const { width, height } = page.getSize();
+  let y = height - 50;
+  const { rgb } = PDFLib;
+
+  // Header strip
+  page.drawRectangle({ x: 0, y: height - 50, width, height: 50, color: rgb(0.11, 0.16, 0.29) });
+  page.drawText('PROFCEISS · Dosar Prosumator', { x: 40, y: height - 30, size: 11, font: fontBold, color: rgb(1, 1, 1) });
+  page.drawText('Generat ' + new Date().toLocaleDateString('ro-RO'), { x: width - 150, y: height - 30, size: 9, font, color: rgb(0.85, 0.85, 0.85) });
+  y = height - 90;
+
+  // Title
+  const tWidth = fontBold.widthOfTextAtSize(title, 13);
+  page.drawText(title, { x: (width - tWidth) / 2, y, size: 13, font: fontBold, color: rgb(0, 0, 0) });
+  y -= 25;
+
+  // Către
+  if (catre) {
+    page.drawText('Către: ' + catre, { x: 50, y, size: 11, font: fontBold });
+    y -= 24;
+  }
+
+  // Beneficiar block (multi-line)
+  if (beneficiarBlock) {
+    const lines = wrapTextSimple(beneficiarBlock, 95);
+    lines.forEach(ln => {
+      if (y < 80) { page = out.addPage([595, 842]); y = height - 50; }
+      page.drawText(ln, { x: 50, y, size: 10, font });
+      y -= 13;
+    });
+    y -= 8;
+  }
+
+  // Body text
+  if (bodyText) {
+    const lines = wrapTextSimple(bodyText, 95);
+    lines.forEach(ln => {
+      if (y < 80) { page = out.addPage([595, 842]); y = height - 50; }
+      page.drawText(ln, { x: 50, y, size: 10.5, font });
+      y -= 14;
+    });
+  }
+
+  // Signature
+  if (y < 120) { page = out.addPage([595, 842]); y = height - 80; }
+  y -= 30;
+  if (semnaturaLeft || semnaturaRight) {
+    if (semnaturaLeft) page.drawText(semnaturaLeft, { x: 50, y, size: 10.5, font });
+    if (semnaturaRight) page.drawText(semnaturaRight, { x: width - 200, y, size: 10.5, font });
+    y -= 30;
+    if (semnaturaLeft) page.drawText('Semnătura: ________________', { x: 50, y, size: 10, font });
+    if (semnaturaRight) page.drawText('Semnătura: ________________', { x: width - 200, y, size: 10, font });
+  }
+  return page;
+}
+
+const NUME = () => v('f_nume') || '[Nume Beneficiar]';
+const CNP  = () => v('f_cnp')  || '[CNP/CUI]';
+const TEL  = () => v('f_telefon') || '[Telefon]';
+const EMAIL= () => v('f_email') || '[Email]';
+const ADOM = () => v('f_adr_dom') || '[Adresa Domiciliu]';
+const ACONS= () => v('f_adr_consum') || '[Adresa Loc Consum]';
+const POD  = () => v('f_pod') || '[POD]';
+const CLC  = () => v('f_clc') || '[CLC]';
+const PC   = () => v('f_pc') || '[Putere contractată]';
+const FURN = () => v('f_furnizor') || '[Operator distribuție]';
+const KWP  = () => v('f_putere_kwp') || '[Putere PV]';
+const NRP  = () => v('f_nr_panouri') || '[Nr]';
+const PANE = () => v('f_panouri') || '[Model panou]';
+const INV  = () => v('f_invertor') || '[Model invertor]';
+const SM   = () => v('f_smart_meter') || '[Smart Meter]';
+const DATAD= () => v('f_data_dosar') || todayISO();
+const DATAI= () => v('f_data_instalare') || '[Data instalare]';
+const TIPE = () => rd('tip_energie') || 'Trifazat';
+const TIPC = () => rd('tip_client') === 'PF' ? 'Persoană Fizică' : 'Persoană Juridică';
+const PRAMR = () => v('f_pram_r') || '[R dispersie]';
+const PRAMRIZ = () => v('f_pram_riz') || '[R izolație]';
+const NRPRAM = () => v('f_nr_pram') || '[Nr PRAM]';
+const BENBLOCK = () => `Subsemnatul ${NUME()}, ${TIPC()}, CNP/CUI ${CNP()}, cu domiciliul/sediul în ${ADOM()}, telefon ${TEL()}, email ${EMAIL()}, în calitate de proprietar al locului de consum situat în ${ACONS()}, POD ${POD()}, Cod loc consum ${CLC()}, putere contractată ${PC()}, tip energie ${TIPE()}.`;
+
+const DOC_GEN = {
+  cerereAnexa2: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'CERERE DE RACORDARE LA REȚEAUA ELECTRICĂ — Anexa 2',
+    catre: FURN(),
+    beneficiarBlock: BENBLOCK(),
+    bodyText: `Vă rog să aprobați racordarea instalației electrice de utilizare de la adresa indicată mai sus, în vederea obținerii statutului de PROSUMATOR conform Ord. ANRE nr. 19/2024 și Ord. ANRE nr. 59/2013 (Anexa 2).
+
+Date sistem fotovoltaic instalat:
+• Putere instalată: ${KWP()}
+• Număr panouri: ${NRP()} × ${PANE()}
+• Invertor: ${INV()}
+• Smart meter: ${SM()}
+• Tip energie rețea: ${TIPE()}
+
+Anexez documentele justificative conform listei opisului dosarului.`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `Nume: ${NUME()}`,
+  }),
+
+  cerereAnexa4: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'CERERE DE RACORDARE + SPOR DE PUTERE — Anexa 4',
+    catre: FURN(),
+    beneficiarBlock: BENBLOCK(),
+    bodyText: `Vă rog să aprobați racordarea sistemului fotovoltaic la rețeaua de distribuție cu spor de putere, conform Ord. ANRE nr. 59/2013 (Anexa 4).
+
+Specificații tehnice:
+• Putere existentă contractată: ${PC()}
+• Putere PV instalată: ${KWP()}
+• Cerere spor putere pentru injecție surplus: DA
+• Invertor: ${INV()}
+• Punct conectare la rețea: ${POD()}
+
+Solicit obținerea certificatului de racordare actualizat cu putere instalată PV inclusă, în vederea facturării energiei livrate în rețea (regim prosumator).`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `Nume: ${NUME()}`,
+  }),
+
+  declaratie: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'DECLARAȚIE PE PROPRIA RĂSPUNDERE',
+    catre: null,
+    beneficiarBlock: BENBLOCK(),
+    bodyText: `Declar pe propria răspundere, cunoscând prevederile art. 326 Cod Penal privind falsul în declarații, următoarele:
+
+1. Sunt proprietarul / titularul de contract pe locul de consum specificat mai sus.
+2. Sistemul fotovoltaic urmează a fi pus în funcțiune ca instalație de PROSUMATOR conform legislației în vigoare (Legea 220/2008 și Ord. ANRE 19/2024).
+3. Echipamentele instalate (panouri, invertor, sistem de protecție) sunt noi, conforme standardelor CE și au certificate de conformitate.
+4. Lucrările de execuție au fost efectuate de personal autorizat ANRE, respectând normativele I7-2011 și SR EN 50438.
+5. Mă oblig să respect prevederile contractuale cu operatorul de distribuție și furnizorul de energie.`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `Declarant: ${NUME()}`,
+  }),
+
+  buletinReglaj: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'BULETIN DE REGLAJ PROTECȚII',
+    catre: null,
+    beneficiarBlock: `Loc consum: ${ACONS()}\nPOD: ${POD()}  ·  Beneficiar: ${NUME()}  ·  Tip energie: ${TIPE()}`,
+    bodyText: `Reglaje protecții executate pe instalația electrică de utilizare:
+
+PROTECȚII GENERALE TEG:
+• BMP: ${v('f_bmp') || '—'}
+• Siguranță generală TEG: ${v('f_sig_gen_teg') || '—'}
+• Diferențial general: 63A / 30mA
+
+PROTECȚII AC (sistem PV):
+• Siguranță AC: ${v('f_sig_ac') || '—'}
+• Descărcătoare AC supratensiune: ${v('f_descarc_ac') || '—'}
+• Întrerupător suprasarcină: ${v('f_intr_suprasarc') || '—'}
+
+PROTECȚII DC (sistem PV):
+• Descărcătoare DC: ${v('f_descarc_dc') || '—'}
+• Separator cu fuzibile: ${v('f_separator_fuz') || '—'}
+
+CONFIRMĂRI:
+• Setări protecție anti-insularizare (G99/SR EN 50549): VERIFICATE
+• Timp deconectare la defect: < 200 ms
+• Pragul U min/max și f min/max conform Ord. ANRE 228/2018: REGLATE`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `Executant: PROFCEISS`,
+  }),
+
+  declaratieCalitate: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'DECLARAȚIE DE CONFORMITATE PRIVIND CALITATEA LUCRĂRILOR',
+    catre: null,
+    beneficiarBlock: `Lucrare executată la: ${ACONS()}\nBeneficiar: ${NUME()}  ·  POD: ${POD()}  ·  Data execuție: ${DATAI()}`,
+    bodyText: `Subscrisa S.C. PROFCEISS ELECTRIC S.R.L., reprezentată legal prin administrator, declarăm pe propria răspundere, în baza Legii nr. 10/1995 privind calitatea în construcții, următoarele:
+
+1. Lucrările electrice executate la adresa indicată sunt CONFORME cu proiectul tehnic și documentația aprobată.
+2. Au fost respectate normativele în vigoare: I7-2011, NTE 007/08/00, SR HD 60364, SR EN 60617.
+3. Echipamentele și materialele puse în operă sunt noi, certificate CE și conforme cu agrementele tehnice.
+4. Sistemul de legare la pământ a fost executat și verificat (vezi Buletin PRAM nr. ${NRPRAM()}).
+5. Personalul executant deține autorizația ANRE corespunzătoare lucrărilor efectuate.
+6. Toate verificările și măsurătorile finale au fost efectuate cu rezultate POZITIVE.
+
+Răspundem civil și penal pentru exactitatea declarațiilor făcute.`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `PROFCEISS ELECTRIC S.R.L.`,
+  }),
+
+  cerereContor: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'CERERE PENTRU MONTAREA CONTORULUI DUBLU-SENS',
+    catre: FURN(),
+    beneficiarBlock: BENBLOCK(),
+    bodyText: `Vă solicit montarea contorului bidirecțional (dublu-sens) pe locul de consum specificat mai sus, în vederea funcționării în regim de PROSUMATOR.
+
+Detalii instalație:
+• Putere instalată PV: ${KWP()}
+• Smart meter compatibil: ${SM()}
+• Invertor: ${INV()}
+• Data finalizării lucrării: ${DATAI()}
+
+Solicit programarea echipei tehnice pentru schimbarea contorului existent cu unul bidirecțional, care să permită măsurarea atât a energiei consumate din rețea cât și a energiei livrate în rețea (surplus producție).
+
+Confirm că instalația a fost executată conform documentației tehnice depuse, iar protecțiile anti-insularizare au fost reglate conform standardelor.`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `Beneficiar: ${NUME()}`,
+  }),
+
+  cerereColoana: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'CERERE PENTRU EXECUȚIE LEGĂTURĂ (COLOANĂ) ELECTRICĂ',
+    catre: FURN(),
+    beneficiarBlock: BENBLOCK(),
+    bodyText: `Vă solicit aprobarea pentru execuția lucrărilor de legătură electrică (coloană principală) la locul de consum specificat.
+
+Specificații tehnice ale coloanei:
+• Cablu BMP → TEG: ${v('f_cablu_bmp_teg') || '—'}
+• Cablu invertor → TEG: ${v('f_cablu_inv_teg') || '—'}
+• Conductor PE: ${v('f_cond_pe') || '—'}
+• Tip energie: ${TIPE()}
+• Putere instalată: ${PC()}
+
+Lucrarea va fi executată de personal autorizat ANRE, respectând normativele tehnice în vigoare (I7-2011, NTE 007/08/00).
+
+Solicit programarea verificării de conformitate de către echipa OD.`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `Beneficiar: ${NUME()}`,
+  }),
+
+  buletinPRAM: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'BULETIN DE VERIFICARE ȘI MĂSURARE INSTALAȚII DE LEGARE LA PĂMÂNT',
+    catre: null,
+    beneficiarBlock: `Nr. buletin: ${NRPRAM()}  ·  Data verificare: ${v('f_data_pram') || DATAD()}\nLoc consum: ${ACONS()}\nBeneficiar: ${NUME()}  ·  POD: ${POD()}`,
+    bodyText: `Verificare conform I7-2011 și SR EN 61557.
+
+REZULTATE MĂSURĂTORI:
+
+1. REZISTENȚA DE DISPERSIE A PRIZEI DE PĂMÂNT
+   Valoare măsurată: ${PRAMR()}
+   Valoare admisibilă: ≤ 4 Ω (conform I7-2011, art. 5.2.4.1)
+   Rezultat: CONFORM
+
+2. REZISTENȚA DE IZOLAȚIE A INSTALAȚIEI
+   Valoare măsurată: ${PRAMRIZ()}
+   Valoare admisibilă: ≥ 0,5 MΩ pentru U ≤ 500V
+   Rezultat: CONFORM
+
+3. CONTINUITATEA CONDUCTORULUI PE
+   Verificată pe toate circuitele: OK
+   Conductor PE utilizat: ${v('f_cond_pe') || '—'}
+
+4. TESTARE DIFERENȚIAL (RCD)
+   Timp deconectare la curent de defect: < 30 ms
+   Rezultat: CONFORM
+
+CONCLUZIE: Instalația de legare la pământ corespunde normativelor în vigoare și este aptă pentru exploatare.
+
+Aparat utilizat la măsurare: MEGGER / FLUKE / METREL (calibrat).`,
+    semnaturaLeft: `Data: ${v('f_data_pram') || DATAD()}`,
+    semnaturaRight: `Executant verificare: PROFCEISS`,
+  }),
+
+  pvCEF: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'PROCES VERBAL DE PUNERE ÎN FUNCȚIUNE FINALĂ - CEF',
+    catre: null,
+    beneficiarBlock: `Centrală Electrică Fotovoltaică (CEF)\nLoc consum: ${ACONS()}  ·  POD: ${POD()}  ·  Beneficiar: ${NUME()}\nData PIF: ${DATAI()}`,
+    bodyText: `Astăzi, ${DATAI()}, a avut loc punerea în funcțiune finală a Centralei Electrice Fotovoltaice (CEF) instalată pe locul de consum specificat mai sus.
+
+Configurație finală CEF:
+• Putere instalată: ${KWP()}
+• Număr panouri: ${NRP()} × ${PANE()}
+• Invertor: ${INV()}
+• Smart meter: ${SM()}
+• Stocare: ${v('f_stocare') || 'Nu'} ${v('f_model_baterie') ? '(' + v('f_model_baterie') + ')' : ''}
+
+Verificări efectuate la punerea în funcțiune:
+✓ Test funcționare invertor — OK
+✓ Test producție DC stringuri — OK
+✓ Test injecție AC în rețea — OK
+✓ Test anti-insularizare — OK (timp < 200 ms)
+✓ Test smart meter / monitorizare — OK
+✓ Reglaj final protecții AC/DC — OK
+✓ Verificare priză pământ (Buletin PRAM nr. ${NRPRAM()}) — OK
+
+CEF este declarată FUNCȚIONALĂ și aptă pentru exploatare în regim prosumator.`,
+    semnaturaLeft: `Beneficiar: ${NUME()}`,
+    semnaturaRight: `Executant: PROFCEISS`,
+  }),
+
+  pvReceptie: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'PROCES VERBAL DE RECEPȚIE ȘI PUNERE ÎN FUNCȚIUNE',
+    catre: null,
+    beneficiarBlock: `Loc consum: ${ACONS()}\nBeneficiar: ${NUME()}  ·  POD: ${POD()}\nData recepție: ${DATAI()}`,
+    bodyText: `Astăzi, ${DATAI()}, s-a procedat la RECEPȚIA LA TERMINAREA LUCRĂRILOR pentru sistemul fotovoltaic executat la adresa indicată.
+
+PARTICIPANȚI:
+• Beneficiar: ${NUME()}
+• Executant: PROFCEISS ELECTRIC S.R.L.
+
+OBIECTUL RECEPȚIEI:
+Sistem fotovoltaic ${KWP()} compus din ${NRP()} panouri ${PANE()}, invertor ${INV()}, sistem de monitorizare ${SM()}, instalație electrică, protecții AC/DC și sistem de legare la pământ.
+
+CONSTATĂRI:
+1. Lucrările executate sunt conforme cu proiectul tehnic.
+2. Calitatea execuției este corespunzătoare standardelor în vigoare.
+3. Toate echipamentele funcționează la parametrii nominali.
+4. Documentația tehnică (carte tehnică, garanții, fișe tehnice) a fost predată beneficiarului.
+5. Beneficiarul a fost instruit privind funcționarea și mentenanța sistemului.
+
+CONCLUZIE: Lucrarea se ADMITE la recepție și se predă beneficiarului spre exploatare.`,
+    semnaturaLeft: `Beneficiar (predare): ${NUME()}`,
+    semnaturaRight: `Executant (predare): PROFCEISS`,
+  }),
+
+  imputernicire: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'ÎMPUTERNICIRE',
+    catre: null,
+    beneficiarBlock: BENBLOCK(),
+    bodyText: `Prin prezenta ÎMPUTERNICESC pe:
+
+S.C. PROFCEISS ELECTRIC S.R.L., reprezentată prin administrator MARCIUC GABRIEL, autorizat ANRE,
+
+să mă reprezinte și să acționeze în numele meu, în calitatea menționată mai sus, pentru:
+
+• Depunerea dosarului de PROSUMATOR la operatorul de distribuție (${FURN()}) și/sau furnizorul de energie;
+• Obținerea avizelor, certificatelor și aprobărilor necesare racordării sistemului fotovoltaic în regim prosumator;
+• Comunicarea și completarea cererilor, declarațiilor, anexelor și a documentelor adiționale solicitate de OD/furnizor;
+• Reprezentarea în relația cu ANRE, dacă este cazul;
+• Semnarea proceselor verbale tehnice și a contractelor accesorii necesare punerii în funcțiune.
+
+Prezenta împuternicire este valabilă până la finalizarea procesului de obținere a statutului de prosumator și a contractului de prosumator.`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `Împuternicitor: ${NUME()}`,
+  }),
+
+  declAutenticitate: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
+    title: 'DECLARAȚIE DE AUTENTICITATE A DATELOR ȘI CONFORMITATE CU ORIGINALUL',
+    catre: null,
+    beneficiarBlock: BENBLOCK(),
+    bodyText: `Declar pe propria răspundere, cunoscând consecințele art. 326 Cod Penal privind falsul în declarații, următoarele:
+
+1. Toate datele și informațiile furnizate în dosarul depus pentru obținerea statutului de PROSUMATOR sunt REALE, COMPLETE și CORECTE.
+
+2. Toate documentele anexate (copii ale actelor de identitate / proprietate, certificate de conformitate, fișe tehnice, avize, autorizații) sunt CONFORME CU ORIGINALELE aflate în posesia mea.
+
+3. În cazul oricărei modificări intervenite ulterior depunerii (schimbare proprietar, modificare instalație, înlocuire echipamente etc.), mă oblig să comunic în scris operatorului de distribuție și furnizorului în termen de maxim 30 de zile.
+
+4. Înțeleg că furnizarea de date false sau falsificarea documentelor poate atrage răspunderea civilă și/sau penală, precum și anularea statutului de prosumator obținut pe baza acestor declarații.
+
+5. Sunt de acord cu prelucrarea datelor mele personale în scopul derulării contractului de prosumator, conform Regulamentului UE 2016/679 (GDPR).`,
+    semnaturaLeft: `Data: ${DATAD()}`,
+    semnaturaRight: `Declarant: ${NUME()}`,
+  }),
+};
 
 // ─── PDF — CREEAZĂ DOSAR PROSUMATOR ────────────────────────────
 async function createDosar() {
@@ -737,8 +1201,66 @@ async function createDosar() {
       });
     }
 
-    // ─── MERGE DOCUMENTE
-    document.getElementById('loading-msg').textContent = 'Atașez documentele încărcate...';
+    // ─── OPIS — generează / atașează documentele bifate, în ordinea opisului
+    document.getElementById('loading-msg').textContent = 'Procesez opisul dosarului...';
+    // Pagina de opis (sumar)
+    const checkedItems = OPIS_ITEMS.filter(it => opisChecked[it.id]);
+    if (checkedItems.length > 0) {
+      const opisPage = out.addPage([595, 842]);
+      opisPage.drawRectangle({ x: 0, y: 792, width: 595, height: 50, color: rgb(0.11, 0.16, 0.29) });
+      opisPage.drawText('OPIS DOSAR PROSUMATOR', { x: 40, y: 812, size: 16, font: fontBold, color: rgb(1, 1, 1) });
+      let oy = 750;
+      opisPage.drawText('Nr.', { x: 50, y: oy, size: 10, font: fontBold });
+      opisPage.drawText('Document', { x: 90, y: oy, size: 10, font: fontBold });
+      opisPage.drawText('Tip', { x: 480, y: oy, size: 10, font: fontBold });
+      oy -= 8;
+      opisPage.drawLine({ start: { x: 40, y: oy }, end: { x: 555, y: oy }, thickness: 0.5, color: rgb(0.6, 0.6, 0.6) });
+      oy -= 16;
+      checkedItems.forEach((it, idx) => {
+        if (oy < 60) return;
+        opisPage.drawText(String(idx + 1) + '.', { x: 50, y: oy, size: 10, font });
+        // Truncate title if too long
+        let title = it.title;
+        if (title.length > 65) title = title.substring(0, 62) + '...';
+        opisPage.drawText(title, { x: 90, y: oy, size: 10, font });
+        opisPage.drawText(it.type === 'gen' ? 'Generat' : 'Template', { x: 480, y: oy, size: 9, font, color: rgb(0.4, 0.4, 0.4) });
+        oy -= 16;
+      });
+
+      // Generează fiecare document din opis
+      for (const it of checkedItems) {
+        document.getElementById('loading-msg').textContent = 'Generez: ' + it.title.substring(0, 40) + '...';
+        try {
+          if (it.type === 'gen' && DOC_GEN[it.key]) {
+            await DOC_GEN[it.key](out, font, fontBold);
+          } else if (it.type === 'tpl' && it.tplPath) {
+            // Fetch template PDF
+            try {
+              const resp = await fetch(it.tplPath, { cache: 'no-store' });
+              if (!resp.ok) throw new Error('Template inaccesibil: ' + it.tplPath);
+              const bytes = await resp.arrayBuffer();
+              const srcDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+              const copied = await out.copyPages(srcDoc, srcDoc.getPageIndices());
+              copied.forEach(p => out.addPage(p));
+            } catch (fetchErr) {
+              // Dacă template-ul lipsește, generăm o pagină placeholder
+              const ph = out.addPage([595, 842]);
+              ph.drawRectangle({ x: 0, y: 792, width: 595, height: 50, color: rgb(0.96, 0.62, 0.19) });
+              ph.drawText(it.title, { x: 40, y: 812, size: 14, font: fontBold, color: rgb(1, 1, 1) });
+              ph.drawText('Template PDF lipsește în folderul:', { x: 50, y: 700, size: 11, font });
+              ph.drawText(it.tplPath, { x: 50, y: 680, size: 10, font, color: rgb(0.5, 0.5, 0.5) });
+              ph.drawText('Adaugă fișierul în acel folder și regenerează dosarul.', { x: 50, y: 650, size: 10, font });
+              console.warn('Template lipsă: ' + it.tplPath, fetchErr);
+            }
+          }
+        } catch (genErr) {
+          console.error('Eroare la generarea documentului ' + it.title + ':', genErr);
+        }
+      }
+    }
+
+    // ─── MERGE DOCUMENTE UPLOADATE (adiționale, în afara opisului)
+    document.getElementById('loading-msg').textContent = 'Atașez documentele uploadate...';
     const docFields = [
       { id: 'f_doc_factura',  label: 'FACTURĂ FURNIZOR' },
       { id: 'f_doc_acte',     label: 'ACTE CLIENT' },
@@ -848,6 +1370,7 @@ async function createDosar() {
 window.addEventListener('load', () => {
   setDefaults();
   renderCircuits();
+  initOpis();
 });
 </script>
 </body>
