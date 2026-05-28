@@ -617,7 +617,7 @@ function setStatus(msg, type='') {
 
 // ─── OPIS DOSAR — 12 GENERATE + 3 TEMPLATE ────────────────────
 const OPIS_ITEMS = [
-  { id: 1,  type: 'gen', key: 'cerereAnexa2',      title: 'Cerere racordare (Anexa 2)' },
+  { id: 1,  type: 'gen', key: 'cerereAnexa2',      title: 'Cerere racordare (Anexa 2)', condition: () => v('f_tip_dosar') === 'Dosar prosumator' },
   { id: 2,  type: 'gen', key: 'cerereAnexa4',      title: 'Cerere racordare + spor de putere (Anexa 4)' },
   { id: 3,  type: 'gen', key: 'declaratie',        title: 'Declarație' },
   { id: 4,  type: 'gen', key: 'buletinReglaj',     title: 'Buletin reglaj' },
@@ -640,10 +640,14 @@ function initOpis() {
   OPIS_ITEMS.forEach(it => opisChecked[it.id] = true);
   renderOpis();
 }
+function visibleOpisItems() {
+  return OPIS_ITEMS.filter(it => !it.condition || it.condition());
+}
 function renderOpis() {
   const list = document.getElementById('opis-list');
   if (!list) return;
-  list.innerHTML = OPIS_ITEMS.map(it => {
+  const items = visibleOpisItems();
+  list.innerHTML = items.map((it, idx) => {
     const checked = opisChecked[it.id];
     const isGen = it.type === 'gen';
     const typeBadge = isGen ? 'gen' : 'tpl';
@@ -652,7 +656,7 @@ function renderOpis() {
     return `
       <div class="opis-card ${checked ? '' : 'unchecked'}" id="opis-card-${it.id}">
         <div class="check"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleOpis(${it.id}, this.checked)"></div>
-        <div class="num">${it.id}</div>
+        <div class="num">${idx + 1}</div>
         <div class="title">${escapeHtml(it.title)}</div>
         <div class="badge-type ${typeBadge}">${typeLabel}</div>
         <div class="status ok">${statusLabel}</div>
@@ -671,9 +675,10 @@ function opisAll(check) {
   renderOpis();
 }
 function updateOpisCount() {
-  const checked = Object.values(opisChecked).filter(Boolean).length;
+  const items = visibleOpisItems();
+  const checkedVisible = items.filter(it => opisChecked[it.id]).length;
   const el = document.getElementById('opis-count');
-  if (el) el.textContent = `${checked} / ${OPIS_ITEMS.length} documente selectate`;
+  if (el) el.textContent = `${checkedVisible} / ${items.length} documente selectate`;
 }
 
 // ─── GENERATORI DOCUMENTE — folosesc pdf-lib pentru pagini formale ─
@@ -779,23 +784,116 @@ const NRPRAM = () => v('f_nr_pram') || '[Nr PRAM]';
 const BENBLOCK = () => `Subsemnatul ${NUME()}, ${TIPC()}, CNP/CUI ${CNP()}, cu domiciliul/sediul în ${ADOM()}, telefon ${TEL()}, email ${EMAIL()}, în calitate de proprietar al locului de consum situat în ${ACONS()}, POD ${POD()}, Cod loc consum ${CLC()}, putere contractată ${PC()}, tip energie ${TIPE()}.`;
 
 const DOC_GEN = {
-  cerereAnexa2: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
-    title: 'CERERE DE RACORDARE LA REȚEAUA ELECTRICĂ — Anexa 2',
-    catre: FURN(),
-    beneficiarBlock: BENBLOCK(),
-    bodyText: `Vă rog să aprobați racordarea instalației electrice de utilizare de la adresa indicată mai sus, în vederea obținerii statutului de PROSUMATOR conform Ord. ANRE nr. 19/2024 și Ord. ANRE nr. 59/2013 (Anexa 2).
+  // ANEXA 2 — folosește template-ul PDF oficial și suprapune datele utilizatorului peste spațiile punctate.
+  // Template-ul oficial trebuie copiat în Dosar-prosumator/templates/cerere-anexa-2.pdf (vezi AUTOMATIZEAZA-TOT.bat).
+  cerereAnexa2: async (out, font, fontBold) => {
+    if (v('f_tip_dosar') !== 'Dosar prosumator') return;
+    const { rgb } = PDFLib;
+    const blue = rgb(0.05, 0.25, 0.65); // culoare albastră pentru text auto-completat (se vede clar pe template)
+    try {
+      const resp = await fetch('templates/cerere-anexa-2.pdf', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('Template inaccesibil (HTTP ' + resp.status + ')');
+      const bytes = await resp.arrayBuffer();
+      const srcDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+      const copied = await out.copyPages(srcDoc, srcDoc.getPageIndices());
+      copied.forEach(p => out.addPage(p));
 
-Date sistem fotovoltaic instalat:
-• Putere instalată: ${KWP()}
-• Număr panouri: ${NRP()} × ${PANE()}
-• Invertor: ${INV()}
-• Smart meter: ${SM()}
-• Tip energie rețea: ${TIPE()}
+      // Suprapunem text peste paginile template-ului
+      const pages = out.getPages();
+      const tot = pages.length;
+      const tplCount = copied.length;
+      const p1 = pages[tot - tplCount];
+      const p2 = tplCount >= 2 ? pages[tot - tplCount + 1] : null;
+      const p3 = tplCount >= 3 ? pages[tot - tplCount + 2] : null;
+      const p4 = tplCount >= 4 ? pages[tot - tplCount + 3] : null;
 
-Anexez documentele justificative conform listei opisului dosarului.`,
-    semnaturaLeft: `Data: ${DATAD()}`,
-    semnaturaRight: `Nume: ${NUME()}`,
-  }),
+      const nume = NUME(), cnp = CNP(), tel = TEL(), email = EMAIL();
+      const adom = ADOM(), acons = ACONS(), pod = POD();
+      const kwpRaw = v('f_putere_kwp') || '';
+      const kwpNum = parseFloat(String(kwpRaw).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+      const nrPan = parseInt(v('f_nr_panouri')) || 0;
+      const tipPan = v('f_panouri') || '';
+      const inv = v('f_invertor') || '';
+      const nrInv = parseInt(v('f_nr_invertoare')) || 1;
+      const dataD = DATAD();
+      const isPJ = rd('tip_client') === 'PJ';
+      const isTri = rd('tip_energie') === 'Trifazat';
+      const hasBat = (v('f_stocare') || 'Nu') !== 'Nu';
+      const FS = 9.5;
+      const draw = (page, txt, x, y, sz = FS, f = font) => {
+        if (page && txt) page.drawText(String(txt), { x, y, size: sz, font: f, color: blue });
+      };
+
+      // ─── PAGINA 1: Date utilizator + adresa + POD + putere
+      // Coordonatele sunt aproximate pe baza layout-ului template-ului ANRE Anexa 2
+      draw(p1, nume, 110, 695);                                  // Utilizatorul
+      draw(p1, adom, 92, 666, 9);                                // Bloc adresă (suprapus pe rândul "judetul...")
+      draw(p1, tel, 215, 640);                                   // telefon
+      draw(p1, email, 92, 627);                                  // e-mail
+      if (isPJ) draw(p1, cnp, 230, 614);                         // CUI (PJ)
+      else      draw(p1, cnp, 350, 614);                         // CNP (PF)
+      draw(p1, 'PROFCEISS ELECTRIC S.R.L.', 330, 535);           // Executant
+      draw(p1, 'ANRE', 230, 467);                                // Emis de
+      draw(p1, acons, 215, 420, 9);                              // Adresa loc consum
+      draw(p1, pod, 92, 379);                                    // POD (cod unic identificare)
+      if (kwpNum > 0) draw(p1, kwpNum.toFixed(2), 410, 366);     // Putere kW
+
+      // ─── PAGINA 2: Tabel module fotovoltaice + tabel invertoare
+      if (p2) {
+        draw(p2, 'X', 95, 712, 10, fontBold);                    // Bifa NU compensare reactivă
+        if (nrPan > 0 && kwpNum > 0) {
+          draw(p2, '1', 75, 545, 8.5);                           // Nr crt panouri
+          draw(p2, String(nrPan), 130, 545, 8.5);                // Nr panouri
+          draw(p2, tipPan.substring(0, 22), 175, 545, 8);        // Tip panou
+          const piP = (kwpNum / nrPan).toFixed(3);
+          draw(p2, piP, 285, 545, 8.5);                          // Pi panou
+          draw(p2, kwpNum.toFixed(2), 340, 545, 8.5);            // Pi total panouri
+          draw(p2, kwpNum.toFixed(2), 390, 545, 8.5);            // Pmax debitat
+          draw(p2, (kwpNum / nrInv).toFixed(2), 445, 545, 8.5);  // Pi/invertor
+          draw(p2, kwpNum.toFixed(2), 340, 480, 8.5, fontBold);  // TOTAL
+        }
+        if (inv) {
+          draw(p2, '1', 75, 380, 8.5);                           // Nr crt invertoare
+          draw(p2, String(nrInv), 130, 380, 8.5);                // Nr invertoare
+          draw(p2, inv.substring(0, 28), 185, 380, 8);           // Tip invertor
+          draw(p2, isTri ? '400' : '230', 310, 380, 8.5);        // Un (V)
+          draw(p2, kwpNum.toFixed(2), 355, 380, 8.5);            // Pi invertor
+          draw(p2, kwpNum.toFixed(2), 400, 380, 8.5);            // Pmax evacuat
+          draw(p2, kwpNum.toFixed(2), 455, 380, 8.5);            // Pmax centrală
+          draw(p2, kwpNum.toFixed(2), 355, 320, 8.5, fontBold);  // TOTAL invertoare
+        }
+      }
+
+      // ─── PAGINA 3: Bife NU DETIN baterii + NU echipamente măsurare
+      if (p3) {
+        if (hasBat) {
+          draw(p3, 'X', 95, 597, 10, fontBold);                  // DETIN baterii
+          draw(p3, v('f_model_baterie') || '—', 230, 538, 9);    // Detalii baterii
+        } else {
+          draw(p3, 'X', 95, 614, 10, fontBold);                  // NU DETIN
+        }
+        draw(p3, 'X', 95, 372, 10, fontBold);                    // NU echipamente măsurare în instalație
+      }
+
+      // ─── PAGINA 4: Data + Solicitant
+      if (p4) {
+        draw(p4, dataD, 110, 510);                               // Data
+        draw(p4, nume, 50, 478);                                 // Solicitant
+      }
+    } catch (err) {
+      console.warn('Template Anexa 2 lipsește, generez varianta simplificată:', err);
+      return drawFormalDoc(out, font, fontBold, {
+        title: 'CERERE DE RACORDARE — Anexa 2 (template PDF lipsește)',
+        catre: FURN(),
+        beneficiarBlock: BENBLOCK(),
+        bodyText: `Notific racordarea la locul de consum existent ${ACONS()}, POD ${POD()}, a unei instalații de producere energie electrică cu putere maximă simultană ${KWP()}.
+
+NOTĂ: Template-ul oficial PDF nu a fost găsit la calea Dosar-prosumator/templates/cerere-anexa-2.pdf. Rulează AUTOMATIZEAZA-TOT.bat pentru a-l copia automat.`,
+        semnaturaLeft: `Data: ${DATAD()}`,
+        semnaturaRight: `Solicitant: ${NUME()}`,
+      });
+    }
+  },
 
   cerereAnexa4: (out, font, fontBold) => drawFormalDoc(out, font, fontBold, {
     title: 'CERERE DE RACORDARE + SPOR DE PUTERE — Anexa 4',
@@ -1203,8 +1301,8 @@ async function createDosar() {
 
     // ─── OPIS — generează / atașează documentele bifate, în ordinea opisului
     document.getElementById('loading-msg').textContent = 'Procesez opisul dosarului...';
-    // Pagina de opis (sumar)
-    const checkedItems = OPIS_ITEMS.filter(it => opisChecked[it.id]);
+    // Filtrăm: doar items vizibile (cu condiția îndeplinită) și bifate
+    const checkedItems = visibleOpisItems().filter(it => opisChecked[it.id]);
     if (checkedItems.length > 0) {
       const opisPage = out.addPage([595, 842]);
       opisPage.drawRectangle({ x: 0, y: 792, width: 595, height: 50, color: rgb(0.11, 0.16, 0.29) });
@@ -1371,6 +1469,8 @@ window.addEventListener('load', () => {
   setDefaults();
   renderCircuits();
   initOpis();
+  // Re-render opis când se schimbă Tip Dosar (Anexa 2 apare doar pentru "Dosar prosumator")
+  document.getElementById('f_tip_dosar').addEventListener('change', renderOpis);
 });
 </script>
 </body>
