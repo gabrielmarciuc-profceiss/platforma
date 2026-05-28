@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buletin Priză de Pământ · PROFCEISS</title>
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<meta name="theme-color" content="#1D9E75">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;padding:20px;line-height:1.5;}
+.app{max-width:900px;margin:0 auto;background:#fff;border-radius:12px;padding:2rem;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.brand-bar{display:flex;align-items:center;gap:14px;padding-bottom:14px;margin-bottom:18px;border-bottom:0.5px solid #e0e0e0;}
+.brand-bar img{height:44px;width:auto;max-width:180px;object-fit:contain;}
+.brand-bar .meta{line-height:1.4;flex:1;}
+.brand-bar .meta .name{font-size:14px;font-weight:600;color:#1a1a1a;}
+.brand-bar .meta .sub{font-size:11px;color:#888;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#444;color:#fff;text-decoration:none;border-radius:6px;font-size:12px;font-weight:500;}
+.back-btn:hover{background:#222;}
+h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
+.subtitle{font-size:13px;color:#888;margin-bottom:1.8rem;}
+.section{background:#f5f5f0;border-radius:10px;padding:18px;margin-bottom:18px;border:0.5px solid #e0e0e0;}
+.section-title{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:14px;padding-bottom:8px;border-bottom:0.5px solid #d8d8d0;}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px 28px;margin-bottom:10px;}
+@media(max-width:760px){.row{grid-template-columns:1fr;}}
+.field{display:grid;grid-template-columns:170px 1fr;align-items:center;gap:10px;}
+.field.full{grid-column:1/-1;grid-template-columns:170px 1fr;}
+.field label{font-size:13px;font-weight:600;color:#1a1a1a;}
+.field input,.field select,.field textarea{width:100%;padding:6px 10px;border:0.5px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit;background:#fff;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#1D9E75;box-shadow:0 0 0 2px rgba(29,158,117,0.12);}
+.field textarea{min-height:70px;resize:vertical;}
+.submit-row{margin-top:24px;padding-top:18px;border-top:0.5px solid #e0e0e0;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;}
+.btn-reset{background:#f0efe8;color:#666;border:0.5px solid #ccc;}
+.btn-create{background:#1D9E75;color:#fff;font-size:14px;padding:12px 26px;}
+.btn-create:hover{background:#188760;}
+#status{font-size:12px;color:#666;margin-left:auto;}
+#status.ok{color:#0F6E56;font-weight:600;}
+#status.err{color:#A32D2D;font-weight:600;}
+.loading{position:fixed;inset:0;background:rgba(255,255,255,0.95);display:none;align-items:center;justify-content:center;z-index:1000;}
+.loading.active{display:flex;}
+.loading .box{background:#fff;border:0.5px solid #d8d8d0;border-radius:10px;padding:20px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.12);text-align:center;}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand-bar">
+    <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
+    <div class="meta">
+      <div class="name">PROFCEISS</div>
+      <div class="sub">Buletin priză de pământ · generare rapidă</div>
+    </div>
+    <a class="back-btn" href="../">← Înapoi</a>
+  </div>
+  <h1>Buletin verificare priză de pământ (PRAM)</h1>
+  <p class="subtitle">Completează datele, apoi apasă „Generează PDF". Documentul respectă cerințele I7-2011 / SR EN 61557.</p>
+
+  <div class="section">
+    <div class="section-title">Identificare buletin</div>
+    <div class="row">
+      <div class="field"><label>Număr buletin</label><input type="text" id="f_nr" placeholder="ex: 1234 / 2026"></div>
+      <div class="field"><label>Data verificării</label><input type="date" id="f_data"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Beneficiar & loc consum</div>
+    <div class="row">
+      <div class="field"><label>Nume Beneficiar</label><input type="text" id="f_nume" placeholder="Ionescu Popescu"></div>
+      <div class="field"><label>POD</label><input type="text" id="f_pod" placeholder="RO001E12345678"></div>
+      <div class="field full"><label>Adresa instalației</label><input type="text" id="f_adresa" placeholder="Strada ..., nr. ..., loc. ..., jud. ..."></div>
+      <div class="field"><label>Telefon</label><input type="text" id="f_telefon" placeholder="0722 222 222"></div>
+      <div class="field"><label>Tip instalație</label>
+        <select id="f_tip_instalatie">
+          <option>Locuință individuală</option>
+          <option>Bloc / scară</option>
+          <option>Cladire comercială</option>
+          <option>Hală industrială</option>
+          <option>Sistem fotovoltaic prosumator</option>
+          <option>Altul</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Caracteristici priză de pământ</div>
+    <div class="row">
+      <div class="field"><label>Tip priză</label>
+        <select id="f_tip_priza">
+          <option>Artificială</option>
+          <option>Naturală</option>
+          <option>Mixtă (artificială + naturală)</option>
+        </select>
+      </div>
+      <div class="field"><label>Material electrod</label>
+        <select id="f_material">
+          <option>Țeavă oțel zincat</option>
+          <option>Bandă oțel zincat</option>
+          <option>Cupru masiv</option>
+          <option>Oțel cuprat (Copperbond)</option>
+        </select>
+      </div>
+      <div class="field"><label>Număr electrozi</label><input type="number" id="f_nr_electrozi" min="1" value="3"></div>
+      <div class="field"><label>Lungime electrod (m)</label><input type="text" id="f_lung_electrod" value="1.5"></div>
+      <div class="field"><label>Adâncime îngropare (m)</label><input type="text" id="f_adancime" value="0.8"></div>
+      <div class="field"><label>Conductor PE / BEP</label><input type="text" id="f_conductor_pe" value="Cu 16 mmp"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Măsurători efectuate</div>
+    <div class="row">
+      <div class="field"><label>Rezistența dispersie (Ω)</label><input type="text" id="f_rezistenta" placeholder="ex: 3.2" value="3.2"></div>
+      <div class="field"><label>Valoare admisibilă (Ω)</label><input type="text" id="f_admisibil" value="≤ 4 Ω (I7-2011 art. 5.2.4.1)"></div>
+      <div class="field"><label>Continuitate PE</label>
+        <select id="f_continuitate">
+          <option>Conform — verificată pe toate circuitele</option>
+          <option>Neconform</option>
+          <option>Parțial conform</option>
+        </select>
+      </div>
+      <div class="field"><label>Test diferențial (RCD)</label>
+        <select id="f_test_rcd">
+          <option>Conform — deconectare < 30 ms</option>
+          <option>Neconform</option>
+          <option>Nu este cazul</option>
+        </select>
+      </div>
+      <div class="field"><label>Aparat folosit</label>
+        <select id="f_aparat">
+          <option>MEGGER DET3TC</option>
+          <option>MEGGER DET2/3</option>
+          <option>FLUKE 1625-2</option>
+          <option>FLUKE 1623-2</option>
+          <option>METREL MI 3252 EarthAnalyzer</option>
+          <option>HT Italia COMBI G3</option>
+        </select>
+      </div>
+      <div class="field"><label>Nr. certificat etalonare</label><input type="text" id="f_etalonare" placeholder="ex: 12345/2025"></div>
+      <div class="field full"><label>Condiții meteo</label><input type="text" id="f_meteo" value="Sol uscat, T = +18°C, fără precipitații în ultimele 48h"></div>
+      <div class="field full"><label>Observații / Concluzie</label>
+        <textarea id="f_obs" placeholder="Concluzie verificare...">Instalația de legare la pământ corespunde normativelor în vigoare și este aptă pentru exploatare în siguranță.</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Executant verificare</div>
+    <div class="row">
+      <div class="field"><label>Firma executantă</label><input type="text" id="f_firma" value="PROFCEISS ELECTRIC S.R.L."></div>
+      <div class="field"><label>ANRE firmă</label><input type="text" id="f_anre_firma" value="Atestat A3, D1, E1, E2"></div>
+      <div class="field"><label>Verificator (nume)</label><input type="text" id="f_verificator" placeholder="Numele persoanei autorizate"></div>
+      <div class="field"><label>ANRE verificator</label><input type="text" id="f_anre_pers" placeholder="ex: IIB nr. 12345/2025"></div>
+    </div>
+  </div>
+
+  <div class="submit-row">
+    <button type="button" class="btn btn-create" onclick="generatePDF()">📋 Generează PDF</button>
+    <button type="button" class="btn btn-reset" onclick="if(confirm('Resetezi formularul?')) location.reload()">Reset</button>
+    <span id="status">Completează datele, apoi apasă „Generează PDF".</span>
+  </div>
+</div>
+
+<div class="loading" id="loading"><div class="box"><div class="spinner"></div><div>Generez PDF-ul...</div></div></div>
+
+<script>
+function noDiac(s){return String(s==null?'':s).replace(/[ăâ]/g,'a').replace(/[ĂÂ]/g,'A').replace(/î/g,'i').replace(/Î/g,'I').replace(/[șş]/g,'s').replace(/[ȘŞ]/g,'S').replace(/[țţ]/g,'t').replace(/[ȚŢ]/g,'T').replace(/[‐-―]/g,'-').replace(/[‘’‚‛]/g,"'").replace(/[“”„‟]/g,'"').replace(/…/g,'...').replace(/•/g,'·').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/Ω/g,'Ohm').replace(/²/g,'2').replace(/³/g,'3').replace(/×/g,'x').replace(/°/g,'deg ').replace(/[\u{1F300}-\u{1F9FF}]/gu,'').replace(/[^\x00-\xFF]/g,'?');}
+if(typeof PDFLib!=='undefined'){if(PDFLib.PDFPage&&PDFLib.PDFPage.prototype.drawText){const o=PDFLib.PDFPage.prototype.drawText;PDFLib.PDFPage.prototype.drawText=function(t,p){return o.call(this,noDiac(t),p);};}[PDFLib.PDFFont,PDFLib.PDFStandardFont,PDFLib.PDFCustomFont].forEach(c=>{if(!c||!c.prototype)return;['widthOfTextAtSize','encodeText','embedText'].forEach(m=>{if(typeof c.prototype[m]==='function'){const o=c.prototype[m];c.prototype[m]=function(t,...r){return o.call(this,noDiac(t),...r);};}});});}
+
+const v=id=>document.getElementById(id)?.value||'';
+const todayISO=()=>new Date().toISOString().slice(0,10);
+window.addEventListener('load',()=>{
+  document.getElementById('f_data').value=todayISO();
+  const d=new Date(); const yr=d.getFullYear();
+  if(!v('f_nr')) document.getElementById('f_nr').value='_____ / '+yr;
+});
+
+async function generatePDF(){
+  const status=document.getElementById('status');
+  status.textContent='Generez...'; status.className='';
+  document.getElementById('loading').classList.add('active');
+  try{
+    const {PDFDocument,StandardFonts,rgb}=PDFLib;
+    const out=await PDFDocument.create();
+    const font=await out.embedFont(StandardFonts.Helvetica);
+    const fontBold=await out.embedFont(StandardFonts.HelveticaBold);
+    const fontItalic=await out.embedFont(StandardFonts.HelveticaOblique);
+
+    const page=out.addPage([595,842]); // A4
+    const {width,height}=page.getSize();
+
+    // Header bandă
+    page.drawRectangle({x:0,y:height-70,width,height:70,color:rgb(0.11,0.16,0.29)});
+    page.drawText('PROFCEISS ELECTRIC S.R.L.',{x:40,y:height-30,size:14,font:fontBold,color:rgb(1,1,1)});
+    page.drawText(v('f_anre_firma'),{x:40,y:height-50,size:9,font,color:rgb(0.85,0.85,0.85)});
+    page.drawText('Buletin PRAM',{x:width-130,y:height-30,size:9,font:fontItalic,color:rgb(0.85,0.85,0.85)});
+    page.drawText('Generat: '+new Date().toLocaleDateString('ro-RO'),{x:width-180,y:height-50,size:8,font,color:rgb(0.85,0.85,0.85)});
+
+    let y=height-110;
+
+    // Titlu mare centrat
+    const title='BULETIN DE VERIFICARE SI MASURARE INSTALATII DE LEGARE LA PAMANT';
+    const titleW=fontBold.widthOfTextAtSize(title,12);
+    page.drawText(title,{x:(width-titleW)/2,y,size:12,font:fontBold,color:rgb(0,0,0)});
+    y-=18;
+    const sub='(conform I7-2011 si SR EN 61557)';
+    const subW=fontItalic.widthOfTextAtSize(sub,10);
+    page.drawText(sub,{x:(width-subW)/2,y,size:10,font:fontItalic,color:rgb(0.3,0.3,0.3)});
+    y-=30;
+
+    // Nr buletin + data (în antet)
+    page.drawText('Nr. '+v('f_nr')+'   ·   Data verificarii: '+v('f_data'),{x:40,y,size:10,font:fontBold});
+    y-=22;
+
+    // Helper pentru titluri secțiuni
+    const drawSection=t=>{
+      page.drawRectangle({x:40,y:y-4,width:515,height:18,color:rgb(0.96,0.62,0.19)});
+      page.drawText(t,{x:48,y:y+1,size:10,font:fontBold,color:rgb(1,1,1)});
+      y-=24;
+    };
+    const drawField=(l,val)=>{
+      page.drawText(l+':',{x:50,y,size:9.5,font:fontBold,color:rgb(0.15,0.15,0.15)});
+      page.drawText(String(val||'-'),{x:230,y,size:9.5,font});
+      y-=15;
+    };
+
+    // 1. Beneficiar
+    drawSection('1. BENEFICIAR & LOC CONSUM');
+    drawField('Beneficiar',v('f_nume'));
+    drawField('Adresa instalatiei',v('f_adresa'));
+    drawField('POD',v('f_pod'));
+    drawField('Telefon',v('f_telefon'));
+    drawField('Tip instalatie',v('f_tip_instalatie'));
+    y-=4;
+
+    // 2. Caracteristici priza
+    drawSection('2. CARACTERISTICI PRIZA DE PAMANT');
+    drawField('Tip priza',v('f_tip_priza'));
+    drawField('Material electrod',v('f_material'));
+    drawField('Numar electrozi',v('f_nr_electrozi'));
+    drawField('Lungime electrod (m)',v('f_lung_electrod'));
+    drawField('Adancime ingropare (m)',v('f_adancime'));
+    drawField('Conductor PE / BEP',v('f_conductor_pe'));
+    y-=4;
+
+    // 3. Masuratori
+    drawSection('3. MASURATORI EFECTUATE');
+    drawField('Rezistenta de dispersie',v('f_rezistenta')+' Ohm');
+    drawField('Valoare admisibila',v('f_admisibil'));
+    drawField('Continuitate conductor PE',v('f_continuitate'));
+    drawField('Test diferential (RCD)',v('f_test_rcd'));
+    drawField('Aparat de masura',v('f_aparat'));
+    drawField('Nr. certificat etalonare',v('f_etalonare'));
+    drawField('Conditii meteo',v('f_meteo'));
+    y-=4;
+
+    // Rezultat verificare — banda mare cu CONFORM/NECONFORM
+    const rezVal=parseFloat(String(v('f_rezistenta')).replace(',','.'))||999;
+    const conform=rezVal<=4;
+    page.drawRectangle({x:40,y:y-8,width:515,height:26,color:conform?rgb(0.9,0.97,0.92):rgb(0.99,0.92,0.92),borderColor:conform?rgb(0.1,0.5,0.25):rgb(0.7,0.15,0.15),borderWidth:1});
+    page.drawText('REZULTAT VERIFICARE: '+(conform?'CONFORM — instalatia corespunde normativelor in vigoare':'NECONFORM — necesita interventie'),{x:48,y:y,size:10,font:fontBold,color:conform?rgb(0.05,0.4,0.2):rgb(0.6,0.1,0.1)});
+    y-=36;
+
+    // 4. Observatii
+    drawSection('4. OBSERVATII / CONCLUZIE');
+    const obsLines=String(v('f_obs')||'').split(/\s+/);
+    let line='',obsArr=[];
+    for(const w of obsLines){
+      if((line+' '+w).trim().length>90){obsArr.push(line);line=w;}
+      else line=(line+' '+w).trim();
+    }
+    if(line) obsArr.push(line);
+    obsArr.forEach(ln=>{ page.drawText(ln,{x:50,y,size:10,font}); y-=13; });
+    y-=10;
+
+    // 5. Executant
+    drawSection('5. EXECUTANT VERIFICARE');
+    drawField('Firma executanta',v('f_firma'));
+    drawField('ANRE firma',v('f_anre_firma'));
+    drawField('Verificator (nume)',v('f_verificator'));
+    drawField('ANRE verificator',v('f_anre_pers'));
+    y-=20;
+
+    // Semnatura
+    page.drawText('Semnatura verificator:',{x:50,y,size:10,font:fontBold});
+    page.drawText('L.S. firma:',{x:380,y,size:10,font:fontBold});
+    y-=30;
+    page.drawLine({start:{x:50,y},end:{x:240,y},thickness:0.5,color:rgb(0,0,0)});
+    page.drawLine({start:{x:380,y},end:{x:540,y},thickness:0.5,color:rgb(0,0,0)});
+
+    // Footer
+    page.drawText('PROFCEISS ELECTRIC S.R.L. · Buletin priza de pamant',{x:40,y:30,size:8,font:fontItalic,color:rgb(0.45,0.45,0.45)});
+    page.drawText('Pag. 1 / 1',{x:width-60,y:30,size:8,font,color:rgb(0.45,0.45,0.45)});
+
+    const bytes=await out.save();
+    const blob=new Blob([bytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const nume=(v('f_nume')||'Beneficiar').replace(/[^a-zA-Z0-9_-]/g,'_');
+    const dt=v('f_data')||todayISO();
+    const filename='Buletin_PRAM_'+nume+'_'+dt+'.pdf';
+    const a=document.createElement('a');
+    a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+
+    document.getElementById('loading').classList.remove('active');
+    status.textContent='✓ Generat: '+filename; status.className='ok';
+  }catch(err){
+    console.error(err);
+    document.getElementById('loading').classList.remove('active');
+    status.textContent='✗ Eroare: '+err.message; status.className='err';
+    alert('Eroare: '+err.message);
+  }
+}
+</script>
+</body>
+</html>

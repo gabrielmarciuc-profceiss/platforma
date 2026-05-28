@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buletin Rezistență Izolație · PROFCEISS</title>
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+<meta name="theme-color" content="#1D9E75">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;padding:20px;line-height:1.5;}
+.app{max-width:960px;margin:0 auto;background:#fff;border-radius:12px;padding:2rem;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.brand-bar{display:flex;align-items:center;gap:14px;padding-bottom:14px;margin-bottom:18px;border-bottom:0.5px solid #e0e0e0;}
+.brand-bar img{height:44px;width:auto;max-width:180px;object-fit:contain;}
+.brand-bar .meta{line-height:1.4;flex:1;}
+.brand-bar .meta .name{font-size:14px;font-weight:600;color:#1a1a1a;}
+.brand-bar .meta .sub{font-size:11px;color:#888;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#444;color:#fff;text-decoration:none;border-radius:6px;font-size:12px;font-weight:500;}
+.back-btn:hover{background:#222;}
+h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
+.subtitle{font-size:13px;color:#888;margin-bottom:1.8rem;}
+.section{background:#f5f5f0;border-radius:10px;padding:18px;margin-bottom:18px;border:0.5px solid #e0e0e0;}
+.section-title{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:14px;padding-bottom:8px;border-bottom:0.5px solid #d8d8d0;display:flex;justify-content:space-between;align-items:center;}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px 28px;margin-bottom:10px;}
+@media(max-width:760px){.row{grid-template-columns:1fr;}}
+.field{display:grid;grid-template-columns:170px 1fr;align-items:center;gap:10px;}
+.field.full{grid-column:1/-1;grid-template-columns:170px 1fr;}
+.field label{font-size:13px;font-weight:600;color:#1a1a1a;}
+.field input,.field select,.field textarea{width:100%;padding:6px 10px;border:0.5px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit;background:#fff;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#1D9E75;box-shadow:0 0 0 2px rgba(29,158,117,0.12);}
+.field textarea{min-height:70px;resize:vertical;}
+
+/* Circuit rows */
+.circ-table{width:100%;border-collapse:collapse;background:#fff;border-radius:6px;overflow:hidden;border:0.5px solid #d8d8d0;}
+.circ-table th{background:#1a1a1a;color:#fff;padding:8px;font-size:11px;font-weight:600;text-align:left;letter-spacing:.3px;text-transform:uppercase;}
+.circ-table td{padding:6px;border-top:0.5px solid #e8e8e0;}
+.circ-table td input,.circ-table td select{width:100%;padding:5px 8px;border:0.5px solid #ccc;border-radius:4px;font-size:12px;font-family:inherit;background:#fff;}
+.circ-table .del{background:#A32D2D;color:#fff;border:none;width:24px;height:24px;border-radius:4px;cursor:pointer;font-weight:bold;}
+.circ-table tr.conform input.val{background:#e6f5ed;color:#0F6E56;font-weight:600;}
+.circ-table tr.neconform input.val{background:#fdecea;color:#A32D2D;font-weight:600;}
+
+.add-btn{background:#1a7a3a;color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;}
+.add-btn:hover{background:#229944;}
+
+.submit-row{margin-top:24px;padding-top:18px;border-top:0.5px solid #e0e0e0;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;}
+.btn-reset{background:#f0efe8;color:#666;border:0.5px solid #ccc;}
+.btn-create{background:#1D9E75;color:#fff;font-size:14px;padding:12px 26px;}
+.btn-create:hover{background:#188760;}
+#status{font-size:12px;color:#666;margin-left:auto;}
+#status.ok{color:#0F6E56;font-weight:600;}
+#status.err{color:#A32D2D;font-weight:600;}
+.loading{position:fixed;inset:0;background:rgba(255,255,255,0.95);display:none;align-items:center;justify-content:center;z-index:1000;}
+.loading.active{display:flex;}
+.loading .box{background:#fff;border:0.5px solid #d8d8d0;border-radius:10px;padding:20px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.12);text-align:center;}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.hint-box{background:#fff8e1;border:0.5px solid #f0d878;padding:8px 12px;border-radius:6px;font-size:11.5px;color:#7a5b00;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand-bar">
+    <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
+    <div class="meta">
+      <div class="name">PROFCEISS</div>
+      <div class="sub">Buletin rezistență izolație · generare rapidă</div>
+    </div>
+    <a class="back-btn" href="../">← Înapoi</a>
+  </div>
+  <h1>Buletin verificare rezistență de izolație a circuitelor</h1>
+  <p class="subtitle">Listă circuite cu valori măsurate. Documentul respectă cerințele I7-2011 și SR EN 61557-2.</p>
+
+  <div class="section">
+    <div class="section-title">Identificare buletin</div>
+    <div class="row">
+      <div class="field"><label>Număr buletin</label><input type="text" id="f_nr" placeholder="ex: 1235 / 2026"></div>
+      <div class="field"><label>Data verificării</label><input type="date" id="f_data"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Beneficiar & loc consum</div>
+    <div class="row">
+      <div class="field"><label>Nume Beneficiar</label><input type="text" id="f_nume" placeholder="Ionescu Popescu"></div>
+      <div class="field"><label>POD</label><input type="text" id="f_pod" placeholder="RO001E12345678"></div>
+      <div class="field full"><label>Adresa instalației</label><input type="text" id="f_adresa" placeholder="Strada ..., nr. ..., loc. ..., jud. ..."></div>
+      <div class="field"><label>Telefon</label><input type="text" id="f_telefon" placeholder="0722 222 222"></div>
+      <div class="field"><label>Tip instalație</label>
+        <select id="f_tip_instalatie">
+          <option>Locuință individuală</option>
+          <option>Bloc / scară</option>
+          <option>Clădire comercială</option>
+          <option>Hală industrială</option>
+          <option>Sistem fotovoltaic prosumator</option>
+          <option>Altul</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">
+      <span>Circuite verificate</span>
+      <button type="button" class="add-btn" onclick="addCircuit()">+ Adaugă circuit</button>
+    </div>
+    <div class="hint-box">
+      💡 <strong>Valori admisibile</strong> conform I7-2011: R izolație ≥ 0,5 MΩ pentru U ≤ 500V; ≥ 1 MΩ pentru U între 500-1000V. Tensiunea de test: 500 Vcc pentru instalații standard.
+    </div>
+    <table class="circ-table">
+      <thead>
+        <tr>
+          <th style="width:50px;">Nr.</th>
+          <th>Denumire circuit</th>
+          <th style="width:120px;">Tip protecție</th>
+          <th style="width:90px;">U test (V)</th>
+          <th style="width:110px;">R măsurat (MΩ)</th>
+          <th style="width:90px;">Rezultat</th>
+          <th style="width:40px;"></th>
+        </tr>
+      </thead>
+      <tbody id="circ-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Condiții măsurare & aparat</div>
+    <div class="row">
+      <div class="field"><label>Aparat folosit</label>
+        <select id="f_aparat">
+          <option>MEGGER MIT400/2 (1000V)</option>
+          <option>MEGGER MIT430/2</option>
+          <option>FLUKE 1507 Insulation Tester</option>
+          <option>FLUKE 1577 Insulation Multimeter</option>
+          <option>METREL MI 3242 MultiServicer</option>
+          <option>HT Italia COMBI G3</option>
+        </select>
+      </div>
+      <div class="field"><label>Nr. certificat etalonare</label><input type="text" id="f_etalonare" placeholder="ex: 12346/2025"></div>
+      <div class="field full"><label>Condiții măsurare</label><input type="text" id="f_conditii" value="Tensiunea de alimentare deconectată, temperatura ambientală +20°C, umiditate relativă 55%"></div>
+      <div class="field full"><label>Observații / Concluzie</label>
+        <textarea id="f_obs">Toate circuitele verificate au valori de rezistență de izolație peste limita minimă admisibilă (≥ 0,5 MΩ). Instalația corespunde normativelor în vigoare.</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Executant verificare</div>
+    <div class="row">
+      <div class="field"><label>Firma executantă</label><input type="text" id="f_firma" value="PROFCEISS ELECTRIC S.R.L."></div>
+      <div class="field"><label>ANRE firmă</label><input type="text" id="f_anre_firma" value="Atestat A3, D1, E1, E2"></div>
+      <div class="field"><label>Verificator (nume)</label><input type="text" id="f_verificator" placeholder="Numele persoanei autorizate"></div>
+      <div class="field"><label>ANRE verificator</label><input type="text" id="f_anre_pers" placeholder="ex: IIB nr. 12345/2025"></div>
+    </div>
+  </div>
+
+  <div class="submit-row">
+    <button type="button" class="btn btn-create" onclick="generatePDF()">📋 Generează PDF</button>
+    <button type="button" class="btn btn-reset" onclick="if(confirm('Resetezi formularul?')) location.reload()">Reset</button>
+    <span id="status">Completează datele, apoi apasă „Generează PDF".</span>
+  </div>
+</div>
+
+<div class="loading" id="loading"><div class="box"><div class="spinner"></div><div>Generez PDF-ul...</div></div></div>
+
+<script>
+function noDiac(s){return String(s==null?'':s).replace(/[ăâ]/g,'a').replace(/[ĂÂ]/g,'A').replace(/î/g,'i').replace(/Î/g,'I').replace(/[șş]/g,'s').replace(/[ȘŞ]/g,'S').replace(/[țţ]/g,'t').replace(/[ȚŢ]/g,'T').replace(/[‐-―]/g,'-').replace(/[‘’‚‛]/g,"'").replace(/[“”„‟]/g,'"').replace(/…/g,'...').replace(/•/g,'·').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/Ω/g,'Ohm').replace(/²/g,'2').replace(/³/g,'3').replace(/×/g,'x').replace(/°/g,'deg ').replace(/[\u{1F300}-\u{1F9FF}]/gu,'').replace(/[^\x00-\xFF]/g,'?');}
+if(typeof PDFLib!=='undefined'){if(PDFLib.PDFPage&&PDFLib.PDFPage.prototype.drawText){const o=PDFLib.PDFPage.prototype.drawText;PDFLib.PDFPage.prototype.drawText=function(t,p){return o.call(this,noDiac(t),p);};}[PDFLib.PDFFont,PDFLib.PDFStandardFont,PDFLib.PDFCustomFont].forEach(c=>{if(!c||!c.prototype)return;['widthOfTextAtSize','encodeText','embedText'].forEach(m=>{if(typeof c.prototype[m]==='function'){const o=c.prototype[m];c.prototype[m]=function(t,...r){return o.call(this,noDiac(t),...r);};}});});}
+
+const v=id=>document.getElementById(id)?.value||'';
+const todayISO=()=>new Date().toISOString().slice(0,10);
+
+// ─── Circuite — state și render
+const PROT_OPTIONS=['C10-1P+N','C10-1P+N Id=30mA','C16-1P+N','C16-1P+N Id=30mA','C20-1P+N','C20-1P+N Id=30mA','C25-1P+N Id=30mA','C32-1P+N Id=30mA','C16-3P+N Id=30mA','C20-3P+N Id=30mA','C25-3P+N Id=30mA','C32-3P+N Id=30mA'];
+
+let circuits=[
+  {nume:'Iluminat 1',prot:'C10-1P+N',u:'500',r:'120'},
+  {nume:'Iluminat 2',prot:'C10-1P+N',u:'500',r:'95'},
+  {nume:'Priza 1 - bucatarie',prot:'C16-1P+N Id=30mA',u:'500',r:'85'},
+  {nume:'Priza 2 - living',prot:'C16-1P+N Id=30mA',u:'500',r:'78'},
+  {nume:'Cuptor electric',prot:'C16-1P+N Id=30mA',u:'500',r:'62'},
+  {nume:'Centrala termica',prot:'C20-1P+N Id=30mA',u:'500',r:'55'},
+];
+
+function renderCircuits(){
+  const tbody=document.getElementById('circ-tbody');
+  tbody.innerHTML=circuits.map((c,i)=>{
+    const rNum=parseFloat(String(c.r).replace(',','.'))||0;
+    const conform=rNum>=0.5;
+    const cls=rNum>0?(conform?'conform':'neconform'):'';
+    const rezText=rNum>0?(conform?'✓ CONFORM':'✗ NECONFORM'):'—';
+    const rezColor=rNum>0?(conform?'#0F6E56':'#A32D2D'):'#888';
+    return `<tr class="${cls}">
+      <td style="text-align:center;font-weight:600;color:#444;">${i+1}</td>
+      <td><input type="text" value="${escAttr(c.nume)}" oninput="updC(${i},'nume',this.value)"></td>
+      <td><select onchange="updC(${i},'prot',this.value)">${PROT_OPTIONS.map(o=>`<option ${o===c.prot?'selected':''}>${o}</option>`).join('')}</select></td>
+      <td><input type="text" value="${escAttr(c.u)}" oninput="updC(${i},'u',this.value)"></td>
+      <td><input class="val" type="text" value="${escAttr(c.r)}" oninput="updC(${i},'r',this.value);renderCircuits();" placeholder="ex: 120"></td>
+      <td style="font-size:11px;font-weight:700;color:${rezColor};text-align:center;">${rezText}</td>
+      <td><button class="del" type="button" onclick="delC(${i})" title="Sterge">×</button></td>
+    </tr>`;
+  }).join('');
+}
+function escAttr(s){return String(s||'').replace(/"/g,'&quot;');}
+function updC(i,f,val){circuits[i][f]=val;}
+function addCircuit(){circuits.push({nume:'Circuit nou',prot:'C16-1P+N Id=30mA',u:'500',r:''});renderCircuits();}
+function delC(i){if(confirm('Stergi circuitul '+(i+1)+'?')){circuits.splice(i,1);renderCircuits();}}
+
+window.addEventListener('load',()=>{
+  document.getElementById('f_data').value=todayISO();
+  const yr=new Date().getFullYear();
+  if(!v('f_nr')) document.getElementById('f_nr').value='_____ / '+yr;
+  renderCircuits();
+});
+
+// ─── PDF
+async function generatePDF(){
+  const status=document.getElementById('status');
+  status.textContent='Generez...'; status.className='';
+  document.getElementById('loading').classList.add('active');
+  try{
+    const {PDFDocument,StandardFonts,rgb}=PDFLib;
+    const out=await PDFDocument.create();
+    const font=await out.embedFont(StandardFonts.Helvetica);
+    const fontBold=await out.embedFont(StandardFonts.HelveticaBold);
+    const fontItalic=await out.embedFont(StandardFonts.HelveticaOblique);
+
+    let page=out.addPage([595,842]);
+    const {width,height}=page.getSize();
+
+    // Header band
+    page.drawRectangle({x:0,y:height-70,width,height:70,color:rgb(0.11,0.16,0.29)});
+    page.drawText('PROFCEISS ELECTRIC S.R.L.',{x:40,y:height-30,size:14,font:fontBold,color:rgb(1,1,1)});
+    page.drawText(v('f_anre_firma'),{x:40,y:height-50,size:9,font,color:rgb(0.85,0.85,0.85)});
+    page.drawText('Buletin Izolatie',{x:width-130,y:height-30,size:9,font:fontItalic,color:rgb(0.85,0.85,0.85)});
+    page.drawText('Generat: '+new Date().toLocaleDateString('ro-RO'),{x:width-180,y:height-50,size:8,font,color:rgb(0.85,0.85,0.85)});
+
+    let y=height-110;
+
+    const title='BULETIN DE VERIFICARE A REZISTENTEI DE IZOLATIE A CIRCUITELOR';
+    const tW=fontBold.widthOfTextAtSize(title,12);
+    page.drawText(title,{x:(width-tW)/2,y,size:12,font:fontBold});
+    y-=18;
+    const sub='(conform I7-2011 si SR EN 61557-2)';
+    const sW=fontItalic.widthOfTextAtSize(sub,10);
+    page.drawText(sub,{x:(width-sW)/2,y,size:10,font:fontItalic,color:rgb(0.3,0.3,0.3)});
+    y-=28;
+
+    page.drawText('Nr. '+v('f_nr')+'   ·   Data verificarii: '+v('f_data'),{x:40,y,size:10,font:fontBold});
+    y-=22;
+
+    const newPage=()=>{page=out.addPage([595,842]);y=height-50;};
+    const drawSection=t=>{
+      if(y<70) newPage();
+      page.drawRectangle({x:40,y:y-4,width:515,height:18,color:rgb(0.96,0.62,0.19)});
+      page.drawText(t,{x:48,y:y+1,size:10,font:fontBold,color:rgb(1,1,1)});
+      y-=24;
+    };
+    const drawField=(l,val)=>{
+      if(y<50) newPage();
+      page.drawText(l+':',{x:50,y,size:9.5,font:fontBold,color:rgb(0.15,0.15,0.15)});
+      page.drawText(String(val||'-'),{x:230,y,size:9.5,font});
+      y-=15;
+    };
+
+    // 1. Beneficiar
+    drawSection('1. BENEFICIAR & LOC CONSUM');
+    drawField('Beneficiar',v('f_nume'));
+    drawField('Adresa instalatiei',v('f_adresa'));
+    drawField('POD',v('f_pod'));
+    drawField('Telefon',v('f_telefon'));
+    drawField('Tip instalatie',v('f_tip_instalatie'));
+    y-=4;
+
+    // 2. Tabel masuratori
+    drawSection('2. MASURATORI REZISTENTA IZOLATIE');
+    // Header tabel
+    const cols=[
+      {h:'Nr.',x:50,w:30},
+      {h:'Denumire circuit',x:80,w:170},
+      {h:'Protectie',x:250,w:115},
+      {h:'U test (V)',x:365,w:55},
+      {h:'R masurat (MOhm)',x:420,w:80},
+      {h:'Rezultat',x:500,w:55},
+    ];
+    page.drawRectangle({x:50,y:y-4,width:505,height:18,color:rgb(0.15,0.15,0.25)});
+    cols.forEach(c=>{ page.drawText(c.h,{x:c.x+3,y:y+1,size:9,font:fontBold,color:rgb(1,1,1)}); });
+    y-=20;
+
+    // Rows
+    let allConform=true;
+    circuits.forEach((c,i)=>{
+      if(y<60) newPage();
+      const r=parseFloat(String(c.r).replace(',','.'))||0;
+      const ok=r>=0.5;
+      if(!ok) allConform=false;
+      const bgColor=ok?rgb(0.95,0.99,0.96):rgb(0.99,0.94,0.94);
+      page.drawRectangle({x:50,y:y-3,width:505,height:16,color:bgColor});
+      page.drawText(String(i+1),{x:53,y:y,size:8.5,font});
+      page.drawText(String(c.nume||'-').substring(0,35),{x:83,y:y,size:8.5,font});
+      page.drawText(String(c.prot||'-').substring(0,22),{x:253,y:y,size:8.5,font});
+      page.drawText(String(c.u||'-'),{x:368,y:y,size:8.5,font});
+      page.drawText(String(c.r||'-')+' MOhm',{x:423,y:y,size:8.5,font:fontBold,color:ok?rgb(0.05,0.4,0.2):rgb(0.6,0.1,0.1)});
+      page.drawText(ok?'CONFORM':'NECONFORM',{x:503,y:y,size:8,font:fontBold,color:ok?rgb(0.05,0.4,0.2):rgb(0.6,0.1,0.1)});
+      // border line
+      page.drawLine({start:{x:50,y:y-3},end:{x:555,y:y-3},thickness:0.3,color:rgb(0.85,0.85,0.85)});
+      y-=16;
+    });
+    y-=8;
+
+    // Rezultat global
+    if(y<80) newPage();
+    page.drawRectangle({x:40,y:y-8,width:515,height:26,color:allConform?rgb(0.9,0.97,0.92):rgb(0.99,0.92,0.92),borderColor:allConform?rgb(0.1,0.5,0.25):rgb(0.7,0.15,0.15),borderWidth:1});
+    page.drawText('REZULTAT VERIFICARE: '+(allConform?'CONFORM — toate circuitele au R izolatie >= 0,5 MOhm':'NECONFORM — exista circuite cu R izolatie sub limita'),{x:48,y:y,size:10,font:fontBold,color:allConform?rgb(0.05,0.4,0.2):rgb(0.6,0.1,0.1)});
+    y-=36;
+
+    // 3. Conditii & aparat
+    if(y<120) newPage();
+    drawSection('3. CONDITII MASURARE & APARAT');
+    drawField('Aparat de masura',v('f_aparat'));
+    drawField('Nr. certificat etalonare',v('f_etalonare'));
+    drawField('Conditii masurare',v('f_conditii'));
+    drawField('Valori admisibile',v('f_conditii').includes('500V')?'>= 0,5 MOhm (U <= 500V) conform I7-2011':'>= 0,5 MOhm conform I7-2011');
+    y-=4;
+
+    // 4. Observatii
+    if(y<100) newPage();
+    drawSection('4. OBSERVATII / CONCLUZIE');
+    const obs=String(v('f_obs')||'').split(/\s+/);
+    let line='',obsArr=[];
+    for(const w of obs){
+      if((line+' '+w).trim().length>95){obsArr.push(line);line=w;}
+      else line=(line+' '+w).trim();
+    }
+    if(line) obsArr.push(line);
+    obsArr.forEach(ln=>{
+      if(y<60) newPage();
+      page.drawText(ln,{x:50,y,size:10,font});
+      y-=13;
+    });
+    y-=10;
+
+    // 5. Executant
+    if(y<140) newPage();
+    drawSection('5. EXECUTANT VERIFICARE');
+    drawField('Firma executanta',v('f_firma'));
+    drawField('ANRE firma',v('f_anre_firma'));
+    drawField('Verificator (nume)',v('f_verificator'));
+    drawField('ANRE verificator',v('f_anre_pers'));
+    y-=20;
+
+    // Semnatura
+    if(y<60) newPage();
+    page.drawText('Semnatura verificator:',{x:50,y,size:10,font:fontBold});
+    page.drawText('L.S. firma:',{x:380,y,size:10,font:fontBold});
+    y-=30;
+    page.drawLine({start:{x:50,y},end:{x:240,y},thickness:0.5,color:rgb(0,0,0)});
+    page.drawLine({start:{x:380,y},end:{x:540,y},thickness:0.5,color:rgb(0,0,0)});
+
+    // Footer pe toate paginile
+    const total=out.getPageCount();
+    out.getPages().forEach((p,i)=>{
+      p.drawText('PROFCEISS ELECTRIC S.R.L. · Buletin rezistenta izolatie',{x:40,y:30,size:8,font:fontItalic,color:rgb(0.45,0.45,0.45)});
+      p.drawText('Pag. '+(i+1)+' / '+total,{x:width-60,y:30,size:8,font,color:rgb(0.45,0.45,0.45)});
+    });
+
+    const bytes=await out.save();
+    const blob=new Blob([bytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const nume=(v('f_nume')||'Beneficiar').replace(/[^a-zA-Z0-9_-]/g,'_');
+    const dt=v('f_data')||todayISO();
+    const filename='Buletin_Izolatie_'+nume+'_'+dt+'.pdf';
+    const a=document.createElement('a');
+    a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+
+    document.getElementById('loading').classList.remove('active');
+    status.textContent='✓ Generat: '+filename; status.className='ok';
+  }catch(err){
+    console.error(err);
+    document.getElementById('loading').classList.remove('active');
+    status.textContent='✗ Eroare: '+err.message; status.className='err';
+    alert('Eroare: '+err.message);
+  }
+}
+</script>
+</body>
+</html>
