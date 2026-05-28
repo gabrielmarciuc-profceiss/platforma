@@ -555,11 +555,28 @@ function noDiac(s) {
     // FALLBACK: orice alt caracter ne-Latin1 devine '?'
     .replace(/[^\x00-\xFF]/g, '?');
 }
-if (typeof PDFLib !== 'undefined' && PDFLib.PDFPage) {
-  const _origDrawText = PDFLib.PDFPage.prototype.drawText;
-  PDFLib.PDFPage.prototype.drawText = function(text, opts) {
-    return _origDrawText.call(this, noDiac(text), opts);
-  };
+if (typeof PDFLib !== 'undefined') {
+  // 1. drawText pe PDFPage
+  if (PDFLib.PDFPage && PDFLib.PDFPage.prototype.drawText) {
+    const _origDrawText = PDFLib.PDFPage.prototype.drawText;
+    PDFLib.PDFPage.prototype.drawText = function(text, opts) {
+      return _origDrawText.call(this, noDiac(text), opts);
+    };
+  }
+  // 2. widthOfTextAtSize, heightAtSize, encodeText pe TOATE clasele de Font
+  // (PDFFont e clasa de bază, dar StandardFonts / CustomFonts sunt subclase ce-și au propria implementare)
+  const fontClasses = [PDFLib.PDFFont, PDFLib.PDFStandardFont, PDFLib.PDFCustomFont, PDFLib.StandardFontEmbedder, PDFLib.CustomFontEmbedder];
+  fontClasses.forEach(cls => {
+    if (!cls || !cls.prototype) return;
+    ['widthOfTextAtSize', 'encodeText', 'embedText'].forEach(method => {
+      if (typeof cls.prototype[method] === 'function') {
+        const orig = cls.prototype[method];
+        cls.prototype[method] = function(text, ...rest) {
+          return orig.call(this, noDiac(text), ...rest);
+        };
+      }
+    });
+  });
 }
 
 // ─── INIT ──────────────────────────────────────────────────────
@@ -737,7 +754,14 @@ function wrapTextSimple(text, maxChars) {
 }
 
 async function drawFormalDoc(out, font, fontBold, opts) {
-  const { title, catre, beneficiarBlock, bodyText, semnaturaLeft, semnaturaRight } = opts;
+  // Curățăm preventiv toate stringurile de diacritice (safety net peste monkey-patch)
+  const title = noDiac(opts.title);
+  const catre = opts.catre != null ? noDiac(opts.catre) : null;
+  const beneficiarBlock = opts.beneficiarBlock != null ? noDiac(opts.beneficiarBlock) : null;
+  const bodyText = opts.bodyText != null ? noDiac(opts.bodyText) : null;
+  const semnaturaLeft = opts.semnaturaLeft != null ? noDiac(opts.semnaturaLeft) : null;
+  const semnaturaRight = opts.semnaturaRight != null ? noDiac(opts.semnaturaRight) : null;
+
   let page = out.addPage([595, 842]);
   const { width, height } = page.getSize();
   let y = height - 50;
@@ -788,8 +812,8 @@ async function drawFormalDoc(out, font, fontBold, opts) {
     if (semnaturaLeft) page.drawText(semnaturaLeft, { x: 50, y, size: 10.5, font });
     if (semnaturaRight) page.drawText(semnaturaRight, { x: width - 200, y, size: 10.5, font });
     y -= 30;
-    if (semnaturaLeft) page.drawText('Semnătura: ________________', { x: 50, y, size: 10, font });
-    if (semnaturaRight) page.drawText('Semnătura: ________________', { x: width - 200, y, size: 10, font });
+    if (semnaturaLeft) page.drawText(noDiac('Semnătura: ________________'), { x: 50, y, size: 10, font });
+    if (semnaturaRight) page.drawText(noDiac('Semnătura: ________________'), { x: width - 200, y, size: 10, font });
   }
   return page;
 }
@@ -1216,14 +1240,15 @@ async function createDosar() {
     const drawSection = (title) => {
       if (y < 80) newPage();
       page.drawRectangle({ x: 40, y: y - 4, width: 515, height: 20, color: rgb(0.96, 0.62, 0.19) });
-      page.drawText(title, { x: 48, y: y + 2, size: 11, font: fontBold, color: rgb(1, 1, 1) });
+      page.drawText(noDiac(title), { x: 48, y: y + 2, size: 11, font: fontBold, color: rgb(1, 1, 1) });
       y -= 30;
     };
     const drawField = (label, value) => {
       if (y < 60) newPage();
-      const val = String(value || '—');
+      const val = noDiac(String(value || '—'));
+      const lbl = noDiac(label);
       const lines = wrapText(val, 50);
-      page.drawText(label + ':', { x: 50, y, size: 9.5, font: fontBold, color: rgb(0.15, 0.15, 0.15) });
+      page.drawText(lbl + ':', { x: 50, y, size: 9.5, font: fontBold, color: rgb(0.15, 0.15, 0.15) });
       lines.forEach((ln, i) => {
         page.drawText(ln, { x: 210, y: y - i * 12, size: 9.5, font, color: rgb(0.2, 0.2, 0.2) });
       });
@@ -1270,7 +1295,7 @@ async function createDosar() {
       drawField('Serii Panouri', '(listate mai jos)');
       wrapText(serii, 75).forEach(ln => {
         if (y < 60) newPage();
-        page.drawText('  ' + ln, { x: 60, y, size: 8.5, font, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(noDiac('  ' + ln), { x: 60, y, size: 8.5, font, color: rgb(0.3, 0.3, 0.3) });
         y -= 11;
       });
       y -= 6;
@@ -1317,7 +1342,7 @@ async function createDosar() {
       drawField('Serii Baterii', '(listate mai jos)');
       wrapText(seriiBat, 75).forEach(ln => {
         if (y < 60) newPage();
-        page.drawText('  ' + ln, { x: 60, y, size: 8.5, font, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(noDiac('  ' + ln), { x: 60, y, size: 8.5, font, color: rgb(0.3, 0.3, 0.3) });
         y -= 11;
       });
       y -= 6;
@@ -1329,7 +1354,7 @@ async function createDosar() {
       drawSection('9. COMENTARII INTERNE');
       wrapText(com, 80).forEach(ln => {
         if (y < 60) newPage();
-        page.drawText(ln, { x: 50, y, size: 9.5, font, color: rgb(0.2, 0.2, 0.2) });
+        page.drawText(noDiac(ln), { x: 50, y, size: 9.5, font, color: rgb(0.2, 0.2, 0.2) });
         y -= 12;
       });
     }
@@ -1353,7 +1378,7 @@ async function createDosar() {
         if (oy < 60) return;
         opisPage.drawText(String(idx + 1) + '.', { x: 50, y: oy, size: 10, font });
         // Truncate title if too long
-        let title = it.title;
+        let title = noDiac(it.title);
         if (title.length > 65) title = title.substring(0, 62) + '...';
         opisPage.drawText(title, { x: 90, y: oy, size: 10, font });
         opisPage.drawText(it.type === 'gen' ? 'Generat' : 'Template', { x: 480, y: oy, size: 9, font, color: rgb(0.4, 0.4, 0.4) });
@@ -1379,10 +1404,10 @@ async function createDosar() {
               // Dacă template-ul lipsește, generăm o pagină placeholder
               const ph = out.addPage([595, 842]);
               ph.drawRectangle({ x: 0, y: 792, width: 595, height: 50, color: rgb(0.96, 0.62, 0.19) });
-              ph.drawText(it.title, { x: 40, y: 812, size: 14, font: fontBold, color: rgb(1, 1, 1) });
-              ph.drawText('Template PDF lipsește în folderul:', { x: 50, y: 700, size: 11, font });
+              ph.drawText(noDiac(it.title), { x: 40, y: 812, size: 14, font: fontBold, color: rgb(1, 1, 1) });
+              ph.drawText(noDiac('Template PDF lipsește în folderul:'), { x: 50, y: 700, size: 11, font });
               ph.drawText(it.tplPath, { x: 50, y: 680, size: 10, font, color: rgb(0.5, 0.5, 0.5) });
-              ph.drawText('Adaugă fișierul în acel folder și regenerează dosarul.', { x: 50, y: 650, size: 10, font });
+              ph.drawText(noDiac('Adaugă fișierul în acel folder și regenerează dosarul.'), { x: 50, y: 650, size: 10, font });
               console.warn('Template lipsă: ' + it.tplPath, fetchErr);
             }
           }
@@ -1411,7 +1436,7 @@ async function createDosar() {
       try {
         const sep = out.addPage([595, 842]);
         sep.drawRectangle({ x: 0, y: 380, width: 595, height: 80, color: rgb(0.96, 0.62, 0.19) });
-        sep.drawText(df.label, { x: 80, y: 410, size: 22, font: fontBold, color: rgb(1, 1, 1) });
+        sep.drawText(noDiac(df.label), { x: 80, y: 410, size: 22, font: fontBold, color: rgb(1, 1, 1) });
 
         if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
           const bytes = await f.arrayBuffer();
