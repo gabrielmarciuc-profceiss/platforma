@@ -3,81 +3,852 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dosar prosumator — În curând</title>
+<title>Dosar Prosumator · PROFCEISS</title>
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <meta name="theme-color" content="#1D9E75">
+
+<!-- pdf-lib pentru generare + merge PDF în browser -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  background:#f5f5f0;
-  color:#1a1a1a;
-  padding:20px;
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;padding:20px;line-height:1.5;}
+.app{max-width:1100px;margin:0 auto;background:#fff;border-radius:12px;padding:2rem;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+
+/* Brand */
+.brand-bar{display:flex;align-items:center;gap:14px;padding-bottom:14px;margin-bottom:18px;border-bottom:0.5px solid #e0e0e0;}
+.brand-bar img{height:44px;width:auto;max-width:180px;object-fit:contain;}
+.brand-bar .meta{line-height:1.4;flex:1;}
+.brand-bar .meta .name{font-size:14px;font-weight:600;color:#1a1a1a;}
+.brand-bar .meta .sub{font-size:11px;color:#888;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#444;color:#fff;text-decoration:none;border-radius:6px;font-size:12px;font-weight:500;}
+.back-btn:hover{background:#222;}
+h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
+.subtitle{font-size:13px;color:#888;margin-bottom:1.8rem;}
+
+/* Sections */
+.section{background:#f5f5f0;border-radius:10px;padding:18px;margin-bottom:18px;border:0.5px solid #e0e0e0;}
+.section-title{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:14px;padding-bottom:8px;border-bottom:0.5px solid #d8d8d0;letter-spacing:.2px;}
+
+/* Form grid - 2 coloane (replică Salesforce-style) */
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px 28px;margin-bottom:10px;}
+@media(max-width:760px){.row{grid-template-columns:1fr;}}
+
+.field{display:grid;grid-template-columns:160px 1fr;align-items:center;gap:10px;}
+.field.full{grid-column:1/-1;grid-template-columns:160px 1fr;align-items:start;}
+.field.full.tall{align-items:start;}
+.field label{font-size:13px;font-weight:600;color:#1a1a1a;}
+.field input[type=text],.field input[type=date],.field input[type=number],.field select,.field textarea{
+  width:100%;padding:6px 10px;border:0.5px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit;background:#fff;
 }
-.box{
-  width:100%;
-  max-width:520px;
-  background:#fff;
-  border-radius:12px;
-  padding:2.5rem 2rem;
-  box-shadow:0 1px 4px rgba(0,0,0,0.08);
-  text-align:center;
-}
-.box img{height:48px;width:auto;margin-bottom:1.5rem;}
-.icon-big{font-size:60px;line-height:1;margin-bottom:1rem;}
-h1{font-size:22px;font-weight:500;margin-bottom:8px;color:#1a1a1a;}
-.subtitle{font-size:13px;color:#888;margin-bottom:1.5rem;}
-.badge{
-  display:inline-block;
-  padding:5px 14px;
-  background:#f0efe8;
-  color:#888;
-  border:0.5px solid #ccc;
-  border-radius:99px;
-  font-size:11px;
-  font-weight:600;
-  letter-spacing:.5px;
-  text-transform:uppercase;
-  margin-bottom:1.5rem;
-}
-.desc{
-  font-size:14px;
-  color:#555;
-  line-height:1.7;
-  margin-bottom:2rem;
-}
-.btn{
-  display:inline-block;
-  padding:10px 22px;
-  background:#1D9E75;
-  color:#fff;
-  text-decoration:none;
-  border-radius:8px;
-  font-size:13px;
-  font-weight:500;
-  transition:all .15s;
-}
-.btn:hover{background:#188760;transform:translateY(-1px);}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#1D9E75;box-shadow:0 0 0 2px rgba(29,158,117,0.12);}
+.field textarea{min-height:90px;resize:vertical;}
+.field .check-grp{display:flex;flex-direction:column;gap:4px;}
+.field .check-grp label{display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;cursor:pointer;}
+.field .check-grp input{width:auto;}
+.field input[type=file]{font-size:12px;padding:4px;border:0.5px solid #ccc;border-radius:4px;background:#fff;width:100%;}
+.field .checkbox-single{display:flex;align-items:center;gap:8px;}
+.field .checkbox-single input{width:auto;}
+.field .checkbox-single label{font-weight:400;font-size:13px;cursor:pointer;}
+.field .hint{font-size:11px;color:#888;display:block;margin-top:3px;}
+
+/* Submit */
+.submit-row{margin-top:24px;padding-top:18px;border-top:0.5px solid #e0e0e0;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .15s;}
+.btn-reset{background:#f0efe8;color:#666;border:0.5px solid #ccc;}
+.btn-reset:hover{background:#e4e3dc;}
+.btn-create{background:#1D9E75;color:#fff;font-size:14px;padding:12px 26px;}
+.btn-create:hover{background:#188760;}
+
+#status{font-size:12px;color:#666;margin-left:auto;}
+#status.ok{color:#0F6E56;font-weight:600;}
+#status.err{color:#A32D2D;font-weight:600;}
+
+/* Photos grid */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media(max-width:760px){.photo-grid{grid-template-columns:1fr 1fr;}}
+.photo-field{display:flex;flex-direction:column;gap:4px;}
+.photo-field label{font-size:12px;font-weight:600;color:#1a1a1a;}
+.photo-field input[type=file]{font-size:11px;padding:4px;border:0.5px solid #ccc;border-radius:4px;background:#fff;}
+.photo-preview{margin-top:4px;}
+.photo-preview img{max-width:100%;max-height:80px;border-radius:4px;border:0.5px solid #d8d8d0;}
+
+/* Loading overlay */
+.loading{position:fixed;inset:0;background:rgba(255,255,255,0.95);display:none;align-items:center;justify-content:center;z-index:1000;font-size:14px;color:#1a1a1a;}
+.loading.active{display:flex;}
+.loading .box{background:#fff;border:0.5px solid #d8d8d0;border-radius:10px;padding:20px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.12);text-align:center;}
+.loading .spinner{display:inline-block;width:24px;height:24px;border:3px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
-<div class="box">
-  <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
-  <div class="icon-big">📄</div>
-  <div class="badge">În construcție</div>
-  <h1>Dosar prosumator</h1>
-  <div class="subtitle">Documentație pentru înregistrarea ca prosumator</div>
-  <div class="desc">
-    Acest instrument va include în curând generarea automată a documentelor necesare
-    pentru depunerea dosarului de prosumator la furnizorul de energie / ANRE: cerere,
-    declarații, scheme electrice, fișe tehnice și anexele cerute.
+
+<div class="app">
+  <div class="brand-bar">
+    <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
+    <div class="meta">
+      <div class="name">PROFCEISS</div>
+      <div class="sub">Dosar prosumator — generare automată</div>
+    </div>
+    <a class="back-btn" href="../">← Înapoi</a>
   </div>
-  <a class="btn" href="../">← Înapoi la instrumente</a>
+
+  <h1>Dosar Prosumator</h1>
+  <p class="subtitle">Completează formularul în ordinea de mai jos, apoi apasă „Creează Dosar Prosumator” pentru a obține PDF-ul unificat cu toate datele și documentele atașate.</p>
+
+  <!-- ─── ANTET DOSAR ─────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Antet dosar</div>
+    <div class="row">
+      <div class="field">
+        <label>Tip Abonament</label>
+        <input type="text" id="f_abonament" value="Pro">
+      </div>
+      <div class="field">
+        <div></div>
+        <div class="checkbox-single">
+          <input type="checkbox" id="f_complete_contract">
+          <label for="f_complete_contract"><strong>Completează Date Contract</strong></label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Data Dosar</label>
+        <input type="date" id="f_data_dosar">
+      </div>
+      <div class="field">
+        <label>Data Instalare</label>
+        <input type="date" id="f_data_instalare">
+      </div>
+      <div class="field">
+        <label>Tip Client</label>
+        <div class="check-grp">
+          <label><input type="radio" name="tip_client" value="PF" checked> Persoană Fizică</label>
+          <label><input type="radio" name="tip_client" value="PJ"> Persoană Juridică</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Status Client</label>
+        <select id="f_status_client">
+          <option value="">-Selectați-</option>
+          <option>Activ</option>
+          <option>În proces</option>
+          <option>Suspendat</option>
+          <option>Finalizat</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Program Finanțat AFM</label>
+        <select id="f_afm">
+          <option value="">-Selectați-</option>
+          <option>Casa Verde Fotovoltaice 2024</option>
+          <option>Casa Verde Fotovoltaice 2025</option>
+          <option>Casa Verde Fotovoltaice 2026</option>
+          <option>Fără program AFM</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Tip Dosar</label>
+        <select id="f_tip_dosar">
+          <option value="Dosar prosumator" selected>Dosar prosumator</option>
+          <option>Dosar utilizare (spor putere)</option>
+          <option>Dosar racordare</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label>Tip Energie Prezent</label>
+        <div class="check-grp">
+          <label><input type="radio" name="tip_energie" value="Monofazat"> Monofazat</label>
+          <label><input type="radio" name="tip_energie" value="Trifazat" checked> Trifazat</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── BENEFICIAR & LOC CONSUM ──────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Date beneficiar & loc de consum</div>
+    <div class="row">
+      <div class="field"><label>Nume Beneficiar</label><input type="text" id="f_nume" placeholder="Ionescu Popescu"></div>
+      <div class="field"><label>CNP / CUI</label><input type="text" id="f_cnp" placeholder="1xxxxxxxxxxxxx"></div>
+      <div class="field"><label>Telefon</label><input type="text" id="f_telefon" placeholder="0722 222 222"></div>
+      <div class="field"><label>Email</label><input type="text" id="f_email" placeholder="email@exemplu.ro"></div>
+      <div class="field full"><label>Adresa Domiciliu</label><input type="text" id="f_adr_dom" placeholder="Strada ..., nr. ..., loc. ..., jud. ..."></div>
+      <div class="field full"><label>Adresa Loc Consum</label><input type="text" id="f_adr_consum" placeholder="Strada ..., nr. ..., loc. ..., jud. ..."></div>
+      <div class="field"><label>POD</label><input type="text" id="f_pod" placeholder="RO001E12345678"></div>
+      <div class="field"><label>Cod Loc Consum</label><input type="text" id="f_clc" placeholder="123456"></div>
+      <div class="field"><label>Putere contractată</label><input type="text" id="f_pc" placeholder="ex: 8 kW"></div>
+      <div class="field"><label>Furnizor energie</label>
+        <select id="f_furnizor">
+          <option value="">-Selectați-</option>
+          <option>DEER (Distribuție Energie Electrică România)</option>
+          <option>E-Distribuție Banat</option>
+          <option>E-Distribuție Dobrogea</option>
+          <option>E-Distribuție Muntenia</option>
+          <option>Delgaz Grid</option>
+          <option>PPC Romania</option>
+          <option>Hidroelectrica</option>
+          <option>Engie Romania</option>
+          <option>Enel Energie</option>
+          <option>CEZ Vânzare</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PANOURI FOTOVOLTAICE ────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Panouri Fotovoltaice</div>
+    <div class="row">
+      <div class="field">
+        <label>Panouri Fotovoltaice Client</label>
+        <select id="f_panouri">
+          <option value="">-Selectați-</option>
+          <option>Jinko Neo 460Wp</option>
+          <option>Jinko Tiger Pro 550Wp</option>
+          <option>Longi Hi-MO 6 450Wp</option>
+          <option>Longi Hi-MO 6 540Wp</option>
+          <option>Canadian Solar HiKu7 580Wp</option>
+          <option>JA Solar JAM72S30 545Wp</option>
+          <option>Trina Solar Vertex 580Wp</option>
+          <option>Q-Cells Q.Peak Duo 415Wp</option>
+        </select>
+      </div>
+      <div class="field"><label>Număr Panouri</label><input type="number" id="f_nr_panouri" min="1" placeholder="ex: 24"></div>
+      <div class="field"><label>Putere Totală (kWp)</label><input type="text" id="f_putere_kwp" placeholder="ex: 11.04 kWp"></div>
+      <div class="field"><label>Suprafață (mp)</label><input type="text" id="f_suprafata" placeholder="ex: 52 mp"></div>
+      <div class="field full tall">
+        <label>Serii Panouri</label>
+        <textarea id="f_serii_panouri" placeholder="Listează seriile panourilor (una pe rând)"></textarea>
+      </div>
+      <div class="field full">
+        <div></div>
+        <div class="checkbox-single">
+          <input type="checkbox" id="f_anti_insular">
+          <label for="f_anti_insular"><strong>Mai mult de 2 Invertoare (Anti-insularizare)</strong></label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Număr Invertoare</label>
+        <select id="f_nr_invertoare">
+          <option value="">-Selectați-</option>
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Smart Meter</label>
+        <select id="f_smart_meter">
+          <option value="">-Selectați-</option>
+          <option>GoodWe GM3000 (RS485)</option>
+          <option>GoodWe Smart Meter Single Phase</option>
+          <option>Huawei DDSU666-H</option>
+          <option>Huawei DTSU666-H</option>
+          <option>SolarEdge Modbus Meter</option>
+          <option>Sungrow DTSU666</option>
+          <option>Fronius Smart Meter 63A-3</option>
+          <option>Eastron SDM630</option>
+        </select>
+      </div>
+      <div class="field full"><label>Model Invertor</label><input type="text" id="f_invertor" placeholder="ex: GoodWe GW10K-ET-20 (10 kW Hibrid)"></div>
+    </div>
+  </div>
+
+  <!-- ─── PROTECȚII ȘI SIGURANȚE ──────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Protecții și siguranțe</div>
+    <div class="row">
+      <div class="field">
+        <label>BMP</label>
+        <select id="f_bmp">
+          <option value="">-Selectați-</option>
+          <option>BMP existent — Disjunctor 25A 1P+N</option>
+          <option>BMP existent — Disjunctor 32A 1P+N</option>
+          <option>BMP existent — Disjunctor 40A 4P</option>
+          <option>BMP existent — Disjunctor 50A 4P</option>
+          <option>BMP existent — Disjunctor 63A 4P</option>
+          <option>BMP nou montat</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Siguranță Generală TEG</label>
+        <select id="f_sig_gen_teg">
+          <option value="">-Selectați-</option>
+          <option>32A 1P+N</option>
+          <option>40A 1P+N</option>
+          <option>40A 4P</option>
+          <option>50A 4P</option>
+          <option>63A 4P</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Siguranță AC</label>
+        <select id="f_sig_ac">
+          <option value="">-Selectați-</option>
+          <option>16A 1P+N</option>
+          <option>20A 1P+N</option>
+          <option>25A 1P+N</option>
+          <option>20A 3P+N</option>
+          <option>25A 3P+N</option>
+          <option>32A 3P+N</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Descărcătoare AC Supratensiune</label>
+        <select id="f_descarc_ac">
+          <option value="">-Selectați-</option>
+          <option>SPD Tip 2 - 1P</option>
+          <option>SPD Tip 2 - 3P+N</option>
+          <option>SPD Tip 1+2 - 1P</option>
+          <option>SPD Tip 1+2 - 3P+N</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Întrerupător Suprasarcină</label>
+        <select id="f_intr_suprasarc">
+          <option value="">-Selectați-</option>
+          <option>16A</option>
+          <option>20A</option>
+          <option>25A</option>
+          <option>32A</option>
+          <option>40A</option>
+          <option>Nu este cazul</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Descărcătoare DC</label>
+        <select id="f_descarc_dc">
+          <option value="">-Selectați-</option>
+          <option>SPD DC Tip 2 - 1000V</option>
+          <option>SPD DC Tip 2 - 1500V</option>
+          <option>SPD DC Tip 1+2</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Separator cu Fuzibile</label>
+        <select id="f_separator_fuz">
+          <option value="">-Selectați-</option>
+          <option>10A</option>
+          <option selected>16A</option>
+          <option>20A</option>
+          <option>25A</option>
+          <option>32A</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CONFIGURAȚIE TEG ────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Configurație TEG (Tablou Electric General)</div>
+    <div class="row" id="circuits-grid"></div>
+    <div style="margin-top:10px;">
+      <button type="button" class="btn btn-reset" onclick="addCircuit()">+ Adaugă circuit</button>
+      <button type="button" class="btn btn-reset" onclick="removeCircuit()">− Șterge ultimul</button>
+    </div>
+  </div>
+
+  <!-- ─── BULETIN PRAM ────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Buletin PRAM</div>
+    <div class="row">
+      <div class="field"><label>Număr PRAM</label><input type="text" id="f_nr_pram" placeholder="ex: 12345 / 2026"></div>
+      <div class="field"><label>Data PRAM</label><input type="date" id="f_data_pram"></div>
+      <div class="field"><label>Rezistență dispersie (Ω)</label><input type="text" id="f_pram_r" placeholder="≤ 4 Ω"></div>
+      <div class="field"><label>Rezistență izolație (MΩ)</label><input type="text" id="f_pram_riz" placeholder="≥ 0.5 MΩ"></div>
+    </div>
+  </div>
+
+  <!-- ─── CABLAJ ȘI PROTECȚII ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Cablaj și protecții</div>
+    <div class="row">
+      <div class="field">
+        <label>Cablu Solar</label>
+        <select id="f_cablu_solar">
+          <option value="">-Selectați-</option>
+          <option>4 mmp H1Z2Z2-K (PV1+PV2)</option>
+          <option>6 mmp H1Z2Z2-K (PV1+PV2)</option>
+          <option>10 mmp H1Z2Z2-K (PV1+PV2)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cablu Conexiune Invertor - TEG</label>
+        <select id="f_cablu_inv_teg">
+          <option value="">-Selectați-</option>
+          <option>CYY-F 3x4 mmp</option>
+          <option>CYY-F 3x6 mmp</option>
+          <option>CYY-F 3x10 mmp</option>
+          <option>CYY-F 5x4 mmp</option>
+          <option>CYY-F 5x6 mmp</option>
+          <option>CYY-F 5x10 mmp</option>
+          <option>CYY-F 5x16 mmp</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cablu BMP - TEG</label>
+        <select id="f_cablu_bmp_teg">
+          <option value="">-Selectați-</option>
+          <option>CYY-F 3x6 mmp</option>
+          <option>CYY-F 3x10 mmp</option>
+          <option>CYY-F 5x6 mmp</option>
+          <option>CYY-F 5x10 mmp</option>
+          <option>CYY-F 5x16 mmp</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Conductor PE</label>
+        <select id="f_cond_pe">
+          <option value="">-Selectați-</option>
+          <option>Cu 6 mmp</option>
+          <option>Cu 10 mmp</option>
+          <option>Cu 16 mmp</option>
+          <option>Cu 25 mmp</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── STOCARE ─────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Stocare</div>
+    <div class="row">
+      <div class="field">
+        <label>Circuit Load</label>
+        <div class="check-grp">
+          <label><input type="radio" name="circuit_load" value="Da"> Da</label>
+          <label><input type="radio" name="circuit_load" value="Nu" checked> Nu</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Stocare</label>
+        <select id="f_stocare">
+          <option value="Nu" selected>Nu</option>
+          <option>Da — baterie litiu</option>
+          <option>Da — baterie LiFePO4</option>
+        </select>
+      </div>
+      <div class="field"><label>Model Baterie</label><input type="text" id="f_model_baterie" placeholder="ex: GoodWe LX A5.0-30 · 10.24 kWh"></div>
+      <div class="field"><label>Capacitate (kWh)</label><input type="text" id="f_cap_baterie" placeholder="ex: 10.24 kWh"></div>
+      <div class="field full tall">
+        <label>Serii Baterii</label>
+        <textarea id="f_serii_baterii" placeholder="Listează seriile bateriilor (una pe rând)"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── DOCUMENTE ────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Documente atașate</div>
+    <div class="row">
+      <div class="field"><label>Factură Furnizor</label><input type="file" id="f_doc_factura" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <div class="field"><label>Acte Client (CI/CUI)</label><input type="file" id="f_doc_acte" accept=".pdf,.jpg,.jpeg,.png"></div>
+      <div class="field"><label>Schema Monofilară</label><input type="file" id="f_doc_schema" accept=".pdf,.jpg,.jpeg,.png,.svg"></div>
+      <div class="field"><label>Dosar Prosumator (existent)</label><input type="file" id="f_doc_dosar" accept=".pdf"></div>
+      <div class="field"><label>Anexa 1 (Spor de putere)</label><input type="file" id="f_doc_anexa1" accept=".pdf"></div>
+      <div class="field"><label>Anexa 2</label><input type="file" id="f_doc_anexa2" accept=".pdf"></div>
+      <div class="field"><label>Proces Verbal Teste</label><input type="file" id="f_doc_pv_teste" accept=".pdf"></div>
+      <div class="field"><label>DIU Fotovoltaice</label><input type="file" id="f_doc_diu" accept=".pdf"></div>
+      <div class="field full tall">
+        <label>Comentarii Interne</label>
+        <textarea id="f_comentarii" placeholder="Note interne care vor apărea pe pagina de antet a dosarului"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── FOTOGRAFII LUCRARE ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Fotografii lucrare</div>
+    <div class="photo-grid">
+      <div class="photo-field"><label>Fotografie generală</label><input type="file" id="f_foto_gen" accept="image/*" onchange="previewPhoto(this,'p_gen')"><div class="photo-preview" id="p_gen"></div></div>
+      <div class="photo-field"><label>Poza 1</label><input type="file" id="f_poza1" accept="image/*" capture="environment" onchange="previewPhoto(this,'p_1')"><div class="photo-preview" id="p_1"></div></div>
+      <div class="photo-field"><label>Poza 2</label><input type="file" id="f_poza2" accept="image/*" onchange="previewPhoto(this,'p_2')"><div class="photo-preview" id="p_2"></div></div>
+      <div class="photo-field"><label>Poza 3</label><input type="file" id="f_poza3" accept="image/*" onchange="previewPhoto(this,'p_3')"><div class="photo-preview" id="p_3"></div></div>
+      <div class="photo-field"><label>Poza 4</label><input type="file" id="f_poza4" accept="image/*" onchange="previewPhoto(this,'p_4')"><div class="photo-preview" id="p_4"></div></div>
+      <div class="photo-field"><label>Poza 5</label><input type="file" id="f_poza5" accept="image/*" onchange="previewPhoto(this,'p_5')"><div class="photo-preview" id="p_5"></div></div>
+      <div class="photo-field"><label>Poza 6</label><input type="file" id="f_poza6" accept="image/*" onchange="previewPhoto(this,'p_6')"><div class="photo-preview" id="p_6"></div></div>
+    </div>
+  </div>
+
+  <!-- ─── SUBMIT ────────────────────────────────────────────────── -->
+  <div class="submit-row">
+    <button type="button" class="btn btn-create" onclick="createDosar()">📋 Creează Dosar Prosumator (PDF)</button>
+    <button type="button" class="btn btn-reset" onclick="resetForm()">Reset</button>
+    <span id="status">Completează formularul, apoi apasă „Creează Dosar Prosumator”.</span>
+  </div>
 </div>
+
+<div class="loading" id="loading">
+  <div class="box">
+    <div class="spinner"></div>
+    <div id="loading-msg">Generez dosarul, te rog așteaptă...</div>
+  </div>
+</div>
+
+<script>
+// ─── INIT ──────────────────────────────────────────────────────
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+const CIRCUIT_OPTIONS = [
+  'C10-1P+N','C10-1P+N Id=30mA',
+  'C16-1P+N','C16-1P+N Id=30mA',
+  'C20-1P+N','C20-1P+N Id=30mA',
+  'C25-1P+N Id=30mA','C32-1P+N Id=30mA',
+  'C16-3P+N','C16-3P+N Id=30mA',
+  'C20-3P+N','C20-3P+N Id=30mA',
+  'C25-3P+N Id=30mA','C32-3P+N Id=30mA',
+];
+
+const DEFAULT_CIRCUITS = [
+  { nume: 'Circuit 1', sig: 'C16-1P+N',          dest: 'Iluminat' },
+  { nume: 'Circuit 2', sig: 'C16-1P+N Id=30mA',  dest: 'Priză 1' },
+  { nume: 'Circuit 3', sig: 'C20-1P+N Id=30mA',  dest: 'Priză 2' },
+  { nume: 'Circuit 4', sig: 'C20-1P+N Id=30mA',  dest: 'Cuptor' },
+  { nume: 'Circuit 5', sig: 'C20-3P+N Id=30mA',  dest: 'Centrală' },
+  { nume: 'Circuit 6', sig: 'C20-1P+N Id=30mA',  dest: 'Rezervă' },
+];
+let circuits = JSON.parse(JSON.stringify(DEFAULT_CIRCUITS));
+
+function renderCircuits() {
+  const grid = document.getElementById('circuits-grid');
+  grid.innerHTML = circuits.map((c, i) => `
+    <div class="field">
+      <label>${escapeHtml(c.nume)}</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <select onchange="updCirc(${i},'sig',this.value)">
+          ${CIRCUIT_OPTIONS.map(o => `<option ${o===c.sig?'selected':''}>${o}</option>`).join('')}
+        </select>
+        <input type="text" value="${escapeHtml(c.dest)}" placeholder="Destinație" oninput="updCirc(${i},'dest',this.value)">
+      </div>
+    </div>
+  `).join('');
+}
+function updCirc(i, field, value) { circuits[i][field] = value; }
+function addCircuit() {
+  circuits.push({ nume: 'Circuit ' + (circuits.length + 1), sig: 'C16-1P+N Id=30mA', dest: '' });
+  renderCircuits();
+}
+function removeCircuit() {
+  if (circuits.length <= 1) return;
+  circuits.pop();
+  renderCircuits();
+}
+
+function escapeHtml(s) { return String(s||'').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c])); }
+function v(id) { const e = document.getElementById(id); return e ? (e.value || '') : ''; }
+function ck(id) { const e = document.getElementById(id); return e && e.checked; }
+function rd(name) { const e = document.querySelector('input[name="'+name+'"]:checked'); return e ? e.value : ''; }
+function fileOf(id) { const e = document.getElementById(id); return e && e.files && e.files[0] ? e.files[0] : null; }
+
+function previewPhoto(input, divId) {
+  const f = input.files && input.files[0];
+  const div = document.getElementById(divId);
+  if (!f) { div.innerHTML = ''; return; }
+  const reader = new FileReader();
+  reader.onload = e => { div.innerHTML = '<img src="'+e.target.result+'">'; };
+  reader.readAsDataURL(f);
+}
+
+function resetForm() {
+  if (!confirm('Sigur ștergi tot formularul?')) return;
+  document.querySelectorAll('input,select,textarea').forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') el.checked = el.defaultChecked;
+    else if (el.type === 'file') el.value = '';
+    else el.value = el.defaultValue || '';
+  });
+  document.querySelectorAll('.photo-preview').forEach(d => d.innerHTML = '');
+  circuits = JSON.parse(JSON.stringify(DEFAULT_CIRCUITS));
+  renderCircuits();
+  setDefaults();
+  setStatus('Formular resetat.');
+}
+
+function setDefaults() {
+  document.getElementById('f_data_dosar').value = todayISO();
+  document.getElementById('f_data_pram').value = todayISO();
+}
+
+function setStatus(msg, type='') {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  s.className = type;
+}
+
+// ─── PDF — CREEAZĂ DOSAR PROSUMATOR ────────────────────────────
+async function createDosar() {
+  setStatus('Generez dosar...');
+  document.getElementById('loading').classList.add('active');
+  document.getElementById('loading-msg').textContent = 'Construiesc pagina de antet...';
+
+  try {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const out = await PDFDocument.create();
+    const font = await out.embedFont(StandardFonts.Helvetica);
+    const fontBold = await out.embedFont(StandardFonts.HelveticaBold);
+
+    const wrapText = (text, maxChars) => {
+      const words = String(text||'').split(/\s+/);
+      const lines = [];
+      let line = '';
+      for (const w of words) {
+        if ((line + ' ' + w).trim().length > maxChars) {
+          if (line) lines.push(line);
+          line = w;
+        } else {
+          line = (line + ' ' + w).trim();
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    };
+
+    let page = out.addPage([595, 842]); // A4
+    const { width, height } = page.getSize();
+    let y = height - 50;
+
+    // Header
+    page.drawRectangle({ x: 0, y: height - 70, width, height: 70, color: rgb(0.11, 0.16, 0.29) });
+    page.drawText('DOSAR PROSUMATOR', { x: 40, y: height - 35, size: 18, font: fontBold, color: rgb(1, 1, 1) });
+    page.drawText('PROFCEISS · generat ' + new Date().toLocaleString('ro-RO'), { x: 40, y: height - 56, size: 9, font, color: rgb(0.85, 0.85, 0.85) });
+    y = height - 100;
+
+    const newPage = () => { page = out.addPage([595, 842]); y = height - 50; };
+    const drawSection = (title) => {
+      if (y < 80) newPage();
+      page.drawRectangle({ x: 40, y: y - 4, width: 515, height: 20, color: rgb(0.96, 0.62, 0.19) });
+      page.drawText(title, { x: 48, y: y + 2, size: 11, font: fontBold, color: rgb(1, 1, 1) });
+      y -= 30;
+    };
+    const drawField = (label, value) => {
+      if (y < 60) newPage();
+      const val = String(value || '—');
+      const lines = wrapText(val, 50);
+      page.drawText(label + ':', { x: 50, y, size: 9.5, font: fontBold, color: rgb(0.15, 0.15, 0.15) });
+      lines.forEach((ln, i) => {
+        page.drawText(ln, { x: 210, y: y - i * 12, size: 9.5, font, color: rgb(0.2, 0.2, 0.2) });
+      });
+      y -= Math.max(16, lines.length * 12 + 4);
+    };
+
+    // ── 1. ANTET DOSAR
+    drawSection('1. ANTET DOSAR');
+    drawField('Tip Abonament', v('f_abonament'));
+    drawField('Data Dosar', v('f_data_dosar'));
+    drawField('Data Instalare', v('f_data_instalare'));
+    drawField('Tip Client', rd('tip_client') === 'PF' ? 'Persoană Fizică' : 'Persoană Juridică');
+    drawField('Status Client', v('f_status_client'));
+    drawField('Program Finanțat AFM', v('f_afm'));
+    drawField('Tip Dosar', v('f_tip_dosar'));
+    drawField('Tip Energie', rd('tip_energie'));
+    drawField('Completează contract', ck('f_complete_contract') ? 'Da' : 'Nu');
+
+    // ── 2. BENEFICIAR
+    drawSection('2. BENEFICIAR & LOC CONSUM');
+    drawField('Nume Beneficiar', v('f_nume'));
+    drawField('CNP / CUI', v('f_cnp'));
+    drawField('Telefon', v('f_telefon'));
+    drawField('Email', v('f_email'));
+    drawField('Adresa Domiciliu', v('f_adr_dom'));
+    drawField('Adresa Loc Consum', v('f_adr_consum'));
+    drawField('POD', v('f_pod'));
+    drawField('Cod Loc Consum', v('f_clc'));
+    drawField('Putere contractată', v('f_pc'));
+    drawField('Furnizor energie', v('f_furnizor'));
+
+    // ── 3. PANOURI
+    drawSection('3. PANOURI FOTOVOLTAICE');
+    drawField('Model Panouri', v('f_panouri'));
+    drawField('Număr Panouri', v('f_nr_panouri'));
+    drawField('Putere Totală', v('f_putere_kwp'));
+    drawField('Suprafață', v('f_suprafata'));
+    drawField('Anti-insularizare (>2 inv.)', ck('f_anti_insular') ? 'Da' : 'Nu');
+    drawField('Număr Invertoare', v('f_nr_invertoare'));
+    drawField('Model Invertor', v('f_invertor'));
+    drawField('Smart Meter', v('f_smart_meter'));
+    const serii = v('f_serii_panouri');
+    if (serii) {
+      drawField('Serii Panouri', '(listate mai jos)');
+      wrapText(serii, 75).forEach(ln => {
+        if (y < 60) newPage();
+        page.drawText('  ' + ln, { x: 60, y, size: 8.5, font, color: rgb(0.3, 0.3, 0.3) });
+        y -= 11;
+      });
+      y -= 6;
+    }
+
+    // ── 4. PROTECȚII
+    drawSection('4. PROTECȚII ȘI SIGURANȚE');
+    drawField('BMP', v('f_bmp'));
+    drawField('Siguranță Generală TEG', v('f_sig_gen_teg'));
+    drawField('Siguranță AC', v('f_sig_ac'));
+    drawField('Descărcătoare AC Supratens.', v('f_descarc_ac'));
+    drawField('Întrerupător Suprasarcină', v('f_intr_suprasarc'));
+    drawField('Descărcătoare DC', v('f_descarc_dc'));
+    drawField('Separator cu Fuzibile', v('f_separator_fuz'));
+
+    // ── 5. CONFIGURAȚIE TEG
+    drawSection('5. CONFIGURAȚIE TEG');
+    circuits.forEach((c) => {
+      drawField(c.nume, c.sig + (c.dest ? '  ·  ' + c.dest : ''));
+    });
+
+    // ── 6. PRAM
+    drawSection('6. BULETIN PRAM');
+    drawField('Număr PRAM', v('f_nr_pram'));
+    drawField('Data PRAM', v('f_data_pram'));
+    drawField('Rezistență dispersie', v('f_pram_r'));
+    drawField('Rezistență izolație', v('f_pram_riz'));
+
+    // ── 7. CABLAJ
+    drawSection('7. CABLAJ ȘI PROTECȚII');
+    drawField('Cablu Solar', v('f_cablu_solar'));
+    drawField('Cablu Invertor → TEG', v('f_cablu_inv_teg'));
+    drawField('Cablu BMP → TEG', v('f_cablu_bmp_teg'));
+    drawField('Conductor PE', v('f_cond_pe'));
+
+    // ── 8. STOCARE
+    drawSection('8. STOCARE');
+    drawField('Circuit Load', rd('circuit_load'));
+    drawField('Stocare', v('f_stocare'));
+    drawField('Model Baterie', v('f_model_baterie'));
+    drawField('Capacitate', v('f_cap_baterie'));
+    const seriiBat = v('f_serii_baterii');
+    if (seriiBat) {
+      drawField('Serii Baterii', '(listate mai jos)');
+      wrapText(seriiBat, 75).forEach(ln => {
+        if (y < 60) newPage();
+        page.drawText('  ' + ln, { x: 60, y, size: 8.5, font, color: rgb(0.3, 0.3, 0.3) });
+        y -= 11;
+      });
+      y -= 6;
+    }
+
+    // ── 9. COMENTARII
+    const com = v('f_comentarii');
+    if (com) {
+      drawSection('9. COMENTARII INTERNE');
+      wrapText(com, 80).forEach(ln => {
+        if (y < 60) newPage();
+        page.drawText(ln, { x: 50, y, size: 9.5, font, color: rgb(0.2, 0.2, 0.2) });
+        y -= 12;
+      });
+    }
+
+    // ─── MERGE DOCUMENTE
+    document.getElementById('loading-msg').textContent = 'Atașez documentele încărcate...';
+    const docFields = [
+      { id: 'f_doc_factura',  label: 'FACTURĂ FURNIZOR' },
+      { id: 'f_doc_acte',     label: 'ACTE CLIENT' },
+      { id: 'f_doc_schema',   label: 'SCHEMA MONOFILARĂ' },
+      { id: 'f_doc_dosar',    label: 'DOSAR PROSUMATOR (existent)' },
+      { id: 'f_doc_anexa1',   label: 'ANEXA 1 (Spor de putere)' },
+      { id: 'f_doc_anexa2',   label: 'ANEXA 2' },
+      { id: 'f_doc_pv_teste', label: 'PROCES VERBAL TESTE' },
+      { id: 'f_doc_diu',      label: 'DIU FOTOVOLTAICE' },
+    ];
+
+    for (const df of docFields) {
+      const f = fileOf(df.id);
+      if (!f) continue;
+      try {
+        const sep = out.addPage([595, 842]);
+        sep.drawRectangle({ x: 0, y: 380, width: 595, height: 80, color: rgb(0.96, 0.62, 0.19) });
+        sep.drawText(df.label, { x: 80, y: 410, size: 22, font: fontBold, color: rgb(1, 1, 1) });
+
+        if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+          const bytes = await f.arrayBuffer();
+          const srcDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+          const copied = await out.copyPages(srcDoc, srcDoc.getPageIndices());
+          copied.forEach(p => out.addPage(p));
+        } else if (/^image\//.test(f.type)) {
+          const bytes = await f.arrayBuffer();
+          const img = f.type === 'image/png' ? await out.embedPng(bytes) : await out.embedJpg(bytes);
+          const imgPage = out.addPage([595, 842]);
+          const ratio = Math.min(515 / img.width, 700 / img.height);
+          const w = img.width * ratio, h = img.height * ratio;
+          imgPage.drawImage(img, { x: (595 - w)/2, y: (842 - h)/2, width: w, height: h });
+        }
+      } catch (e) {
+        console.warn('Eroare la documentul ' + df.label + ':', e);
+      }
+    }
+
+    // ─── MERGE FOTOGRAFII
+    document.getElementById('loading-msg').textContent = 'Atașez fotografiile...';
+    const photoFields = ['f_foto_gen','f_poza1','f_poza2','f_poza3','f_poza4','f_poza5','f_poza6'];
+    const photos = [];
+    for (const pf of photoFields) {
+      const f = fileOf(pf);
+      if (f) photos.push({ file: f, name: pf.replace('f_','').replace('_',' ').toUpperCase() });
+    }
+
+    if (photos.length > 0) {
+      const sepPhotos = out.addPage([595, 842]);
+      sepPhotos.drawRectangle({ x: 0, y: 380, width: 595, height: 80, color: rgb(0.96, 0.62, 0.19) });
+      sepPhotos.drawText('FOTOGRAFII LUCRARE', { x: 80, y: 410, size: 22, font: fontBold, color: rgb(1, 1, 1) });
+
+      let photoPage = null;
+      let slot = 0;
+      const slotPositions = [
+        { x: 30,  y: 440 }, { x: 305, y: 440 },
+        { x: 30,  y: 50 },  { x: 305, y: 50 },
+      ];
+      for (const p of photos) {
+        if (slot === 0) photoPage = out.addPage([595, 842]);
+        try {
+          const bytes = await p.file.arrayBuffer();
+          const img = p.file.type === 'image/png' ? await out.embedPng(bytes) : await out.embedJpg(bytes);
+          const pos = slotPositions[slot];
+          const maxW = 260, maxH = 350;
+          const ratio = Math.min(maxW / img.width, maxH / img.height);
+          const w = img.width * ratio, h = img.height * ratio;
+          photoPage.drawImage(img, { x: pos.x + (maxW - w)/2, y: pos.y, width: w, height: h });
+          photoPage.drawText(p.name, { x: pos.x, y: pos.y + maxH + 5, size: 9, font: fontBold, color: rgb(0.2, 0.2, 0.2) });
+        } catch (e) {
+          console.warn('Eroare la fotografia ' + p.name + ':', e);
+        }
+        slot = (slot + 1) % 4;
+      }
+    }
+
+    // ─── NUMEROTARE PAGINI
+    document.getElementById('loading-msg').textContent = 'Numerotez paginile...';
+    const total = out.getPageCount();
+    out.getPages().forEach((p, i) => {
+      p.drawText(`Pag. ${i+1} / ${total}`, { x: 510, y: 15, size: 8, font, color: rgb(0.45, 0.45, 0.45) });
+      p.drawText('PROFCEISS · Dosar Prosumator', { x: 40, y: 15, size: 8, font, color: rgb(0.45, 0.45, 0.45) });
+    });
+
+    // ─── SAVE & DOWNLOAD
+    document.getElementById('loading-msg').textContent = 'Salvez PDF-ul...';
+    const pdfBytes = await out.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const nume = (v('f_nume') || 'Beneficiar').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const data = v('f_data_dosar') || todayISO();
+    const filename = `Dosar_Prosumator_${nume}_${data}.pdf`;
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    document.getElementById('loading').classList.remove('active');
+    setStatus('✓ Dosar generat: ' + filename + ' (' + total + ' pagini)', 'ok');
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loading').classList.remove('active');
+    setStatus('✗ Eroare la generare: ' + err.message, 'err');
+    alert('Eroare la generare: ' + err.message);
+  }
+}
+
+window.addEventListener('load', () => {
+  setDefaults();
+  renderCircuits();
+});
+</script>
 </body>
 </html>
