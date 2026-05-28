@@ -270,9 +270,9 @@ function buildSVG() {
 
   // Dimensiuni
   const cn = Math.max(circuits.length, 1);
-  const circStep = 130; // distanta fixa intre circuite
   const margin = 50;
   const leftPad = 100;            // spatiu la stanga primului circuit
+  // circStep va fi calculat ADAPTIV mai jos (după ce știm rightPad și drawingW țintă)
 
   // ── Pre-calculează lățimile reale ale blocului PV (text-aware) ────────
   // IMPORTANT: calculăm întotdeauna pvDims (chiar și fără PV) ca să rezervăm
@@ -300,10 +300,30 @@ function buildSVG() {
   const smartMeterChannelW = pvDims.meterW + 30;
   const rightPad = circuitLabelHalfW + pvSafetyGap + smartMeterChannelW + pvDims.leftHalf + pvDims.rightHalf + pvRightMargin;
 
-  // Lațime calculată să acomodeze toate circuitele + paddings
-  const widthForCircuits = leftPad + (cn - 1) * circStep + rightPad;
-  const minW = 1300; // consistent indiferent de PV on/off
-  const drawingW = Math.max(minW, widthForCircuits);
+  // ── Compresie ADAPTIVĂ a circuitelor — pagina rămâne FIXĂ ────────────
+  // Circuitele se restrâng automat să încapă pe foaie până la o densitate minimă.
+  // Pagina se extinde DOAR dacă chiar și la distanța minimă circuitele nu mai au loc.
+  const circStepMax = 130;  // distanță ideală între circuite
+  const circStepMin = 35;   // distanță minimă (sub asta începe să se extindă pagina)
+  // Lățime țintă FIXĂ a foii (acomodează ~6 circuite la step ideal + tot blocul PV)
+  const reservedCircuits = 6;
+  const targetDrawingW = Math.max(1300, leftPad + (reservedCircuits - 1) * circStepMax + rightPad);
+
+  let circStep, drawingW;
+  if (cn <= 1) {
+    circStep = circStepMax;
+    drawingW = targetDrawingW;
+  } else {
+    const availForCircuits = targetDrawingW - leftPad - rightPad;
+    circStep = availForCircuits / (cn - 1);
+    if (circStep > circStepMax) circStep = circStepMax;        // nu prea mult spațiu între ele
+    if (circStep < circStepMin) {
+      circStep = circStepMin;                                  // limită minimă de citibilitate
+      drawingW = leftPad + (cn - 1) * circStep + rightPad;     // doar acum extindem pagina
+    } else {
+      drawingW = targetDrawingW;                               // foaia rămâne fixă
+    }
+  }
 
   // Y-uri pe verticala (sectiunile principale)
   let y = margin;
@@ -701,19 +721,8 @@ function buildSVG() {
     const pvContY = pvTopY - 16;
     const pvContH = py - pvContY + 4;
     svg += `<rect x="${pvContX}" y="${pvContY}" width="${pvContW}" height="${pvContH}" fill="none" stroke="#F9A630" stroke-width="1.8" stroke-dasharray="6,3" rx="6"/>`;
-  } else {
-    // PV dezactivat — desenăm un placeholder discret în zona rezervată
-    // (pagina rămâne aceeași dimensiune indiferent de toggle)
-    const phCenterX = lastCircX + circuitLabelHalfW + pvSafetyGap + smartMeterChannelW + pvDims.leftHalf;
-    const phW = pvDims.leftHalf + pvDims.rightHalf;
-    const phX = phCenterX - phW/2;
-    const phY = yIG - 16;
-    const phH = peBarY - phY - 10;
-    svg += `<rect x="${phX}" y="${phY}" width="${phW}" height="${phH}" fill="#FAFAFA" stroke="#D0D0D0" stroke-width="1" stroke-dasharray="4,4" rx="6"/>`;
-    svg += `<text x="${phCenterX}" y="${phY + phH/2 - 10}" text-anchor="middle" font-size="13" font-weight="bold" fill="#B0B0B0">⚡ SISTEM FOTOVOLTAIC</text>`;
-    svg += `<text x="${phCenterX}" y="${phY + phH/2 + 8}" text-anchor="middle" font-size="11" fill="#B0B0B0" font-style="italic">(dezactivat)</text>`;
-    svg += `<text x="${phCenterX}" y="${phY + phH/2 + 26}" text-anchor="middle" font-size="9" fill="#C0C0C0">Activează din bara de sus pentru a-l include în schemă</text>`;
   }
+  // Când PV e dezactivat: zona din dreapta rămâne pur și simplu albă (foaie goală)
 
   // ── CARTOUCHE jos ──────────────────────────────────────────────────
   const cartY = totalH - cartoucheH - margin;
