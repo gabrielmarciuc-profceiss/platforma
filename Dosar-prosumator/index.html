@@ -527,6 +527,41 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 </div>
 
 <script>
+// ─── FIX diacritice — pdf-lib StandardFonts (WinAnsi) nu suportă ă, â, î, ș, ț ──
+// Monkey-patch global pe drawText: orice text desenat în PDF este auto-strip-uit de diacritice.
+function noDiac(s) {
+  return String(s == null ? '' : s)
+    // diacritice românești
+    .replace(/[ăâ]/g, 'a').replace(/[ĂÂ]/g, 'A')
+    .replace(/î/g, 'i').replace(/Î/g, 'I')
+    .replace(/[șş]/g, 's').replace(/[ȘŞ]/g, 'S')
+    .replace(/[țţ]/g, 't').replace(/[ȚŢ]/g, 'T')
+    // dash-uri / quote-uri tipografice
+    .replace(/[‐-―]/g, '-')
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[“”„‟]/g, '"')
+    .replace(/…/g, '...').replace(/•/g, '·')
+    // simboluri matematice / tehnice
+    .replace(/≥/g, '>=').replace(/≤/g, '<=')
+    .replace(/Ω/g, 'Ohm').replace(/²/g, '2').replace(/³/g, '3')
+    .replace(/×/g, 'x').replace(/÷/g, '/').replace(/±/g, '+/-')
+    // săgeți
+    .replace(/→/g, '->').replace(/←/g, '<-').replace(/↑/g, '^').replace(/↓/g, 'v')
+    // checkmarks & emoji simple
+    .replace(/✓/g, 'V').replace(/[✗✕]/g, 'X').replace(/⏚/g, '')
+    // emoji decorative care apar în titluri/butoane (⚡, 📋, etc.)
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+    .replace(/[☀-➿]/g, '')
+    // FALLBACK: orice alt caracter ne-Latin1 devine '?'
+    .replace(/[^\x00-\xFF]/g, '?');
+}
+if (typeof PDFLib !== 'undefined' && PDFLib.PDFPage) {
+  const _origDrawText = PDFLib.PDFPage.prototype.drawText;
+  PDFLib.PDFPage.prototype.drawText = function(text, opts) {
+    return _origDrawText.call(this, noDiac(text), opts);
+  };
+}
+
 // ─── INIT ──────────────────────────────────────────────────────
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 
