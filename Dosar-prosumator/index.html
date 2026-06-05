@@ -275,8 +275,9 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
           <option>Eastron SDM630</option>
         </select>
       </div>
-      <div class="field full"><label>Model Invertor</label><input type="text" id="f_invertor" placeholder="ex: GoodWe GW10K-ET-20 (10 kW Hibrid)"></div>
     </div>
+    <!-- Container dinamic pentru invertoare — se generează N câmpuri în funcție de „Număr Invertoare" -->
+    <div id="invertoare-container" style="margin-top:8px;"></div>
   </div>
 
   <!-- ─── PROTECȚII ȘI SIGURANȚE ──────────────────────────────────── -->
@@ -602,6 +603,38 @@ const DEFAULT_CIRCUITS = [
 ];
 let circuits = JSON.parse(JSON.stringify(DEFAULT_CIRCUITS));
 
+// ─── Invertoare — listă dinamică (câmpuri se generează în funcție de „Număr Invertoare")
+let invertoare = [
+  { model: 'GoodWe GW10K-ET-20 (10 kW Hibrid)', serie: '', putere: '' }
+];
+function renderInvertoare() {
+  const dd = document.getElementById('f_nr_invertoare');
+  const n = parseInt(dd ? dd.value : '') || 1;
+  // sincronizăm lungimea array-ului cu valoarea selectată
+  while (invertoare.length < n) invertoare.push({ model: '', serie: '', putere: '' });
+  while (invertoare.length > n) invertoare.pop();
+  const cont = document.getElementById('invertoare-container');
+  if (!cont) return;
+  cont.innerHTML = invertoare.map((inv, i) => `
+    <div style="background:#fff;border:0.5px solid #d8d8d0;border-radius:8px;padding:12px;margin-bottom:8px;">
+      <div style="font-size:12px;font-weight:700;color:#185FA5;margin-bottom:8px;">Invertor ${i + 1}${n > 1 ? ' / ' + n : ''}</div>
+      <div class="row">
+        <div class="field full"><label>Model invertor ${i + 1}</label>
+          <input type="text" value="${escAttr(inv.model)}" placeholder="ex: GoodWe GW10K-ET-20 (10 kW Hibrid)" oninput="updInv(${i}, 'model', this.value)">
+        </div>
+        <div class="field"><label>Putere (kW)</label>
+          <input type="text" value="${escAttr(inv.putere)}" placeholder="ex: 10" oninput="updInv(${i}, 'putere', this.value)">
+        </div>
+        <div class="field"><label>Serie / SN</label>
+          <input type="text" value="${escAttr(inv.serie)}" placeholder="număr de serie" oninput="updInv(${i}, 'serie', this.value)">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function updInv(i, field, value) { if (invertoare[i]) invertoare[i][field] = value; }
+function escAttr(s) { return String(s == null ? '' : s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
 function renderCircuits() {
   const grid = document.getElementById('circuits-grid');
   grid.innerHTML = circuits.map((c, i) => `
@@ -652,6 +685,8 @@ function resetForm() {
   document.querySelectorAll('.photo-preview').forEach(d => d.innerHTML = '');
   circuits = JSON.parse(JSON.stringify(DEFAULT_CIRCUITS));
   renderCircuits();
+  invertoare = [{ model: 'GoodWe GW10K-ET-20 (10 kW Hibrid)', serie: '', putere: '' }];
+  renderInvertoare();
   setDefaults();
   setStatus('Formular resetat.');
 }
@@ -831,7 +866,8 @@ const FURN = () => v('f_furnizor') || '[Operator distribuție]';
 const KWP  = () => v('f_putere_kwp') || '[Putere PV]';
 const NRP  = () => v('f_nr_panouri') || '[Nr]';
 const PANE = () => v('f_panouri') || '[Model panou]';
-const INV  = () => v('f_invertor') || '[Model invertor]';
+const INV  = () => (invertoare && invertoare[0] && invertoare[0].model) || '[Model invertor]';
+const INVLIST = () => invertoare.map((inv, i) => `Invertor ${i+1}: ${inv.model || '[model]'}${inv.putere ? ' · ' + inv.putere + ' kW' : ''}${inv.serie ? ' · SN: ' + inv.serie : ''}`).join('\n');
 const SM   = () => v('f_smart_meter') || '[Smart Meter]';
 const DATAD= () => v('f_data_dosar') || todayISO();
 const DATAI= () => v('f_data_instalare') || '[Data instalare]';
@@ -872,8 +908,8 @@ const DOC_GEN = {
       const kwpNum = parseFloat(String(kwpRaw).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
       const nrPan = parseInt(v('f_nr_panouri')) || 0;
       const tipPan = v('f_panouri') || '';
-      const inv = v('f_invertor') || '';
-      const nrInv = parseInt(v('f_nr_invertoare')) || 1;
+      const nrInv = invertoare.length || 1;
+      const inv = (invertoare[0] && invertoare[0].model) || '';
       const dataD = DATAD();
       const isPJ = rd('tip_client') === 'PJ';
       const isTri = rd('tip_energie') === 'Trifazat';
@@ -911,15 +947,26 @@ const DOC_GEN = {
           draw(p2, (kwpNum / nrInv).toFixed(2), 445, 545, 8.5);  // Pi/invertor
           draw(p2, kwpNum.toFixed(2), 340, 480, 8.5, fontBold);  // TOTAL
         }
-        if (inv) {
-          draw(p2, '1', 75, 380, 8.5);                           // Nr crt invertoare
-          draw(p2, String(nrInv), 130, 380, 8.5);                // Nr invertoare
-          draw(p2, inv.substring(0, 28), 185, 380, 8);           // Tip invertor
-          draw(p2, isTri ? '400' : '230', 310, 380, 8.5);        // Un (V)
-          draw(p2, kwpNum.toFixed(2), 355, 380, 8.5);            // Pi invertor
-          draw(p2, kwpNum.toFixed(2), 400, 380, 8.5);            // Pmax evacuat
-          draw(p2, kwpNum.toFixed(2), 455, 380, 8.5);            // Pmax centrală
-          draw(p2, kwpNum.toFixed(2), 355, 320, 8.5, fontBold);  // TOTAL invertoare
+        if (invertoare.length > 0) {
+          // Suma puterilor invertoarelor (sau distribuie kWp egal dacă nu s-au declarat puteri individuale)
+          const sumPInv = invertoare.reduce((s, x) => s + (parseFloat(String(x.putere).replace(',','.')) || 0), 0);
+          const totalInvKw = sumPInv > 0 ? sumPInv : kwpNum;
+          // Pentru fiecare invertor, desenăm un rând (tabelul template-ului are 3 rânduri vizibile)
+          invertoare.slice(0, 3).forEach((iv, idx) => {
+            const rowY = 380 - idx * 14;
+            const putereInv = parseFloat(String(iv.putere).replace(',','.')) || (kwpNum / invertoare.length);
+            draw(p2, String(idx + 1), 75, rowY, 8.5);                  // Nr crt
+            draw(p2, '1', 130, rowY, 8.5);                             // Nr invertoare per rând (1 buc per model)
+            draw(p2, String(iv.model || '').substring(0, 28), 185, rowY, 8); // Tipul invertorului
+            draw(p2, isTri ? '400' : '230', 310, rowY, 8.5);           // Un (V)
+            draw(p2, putereInv.toFixed(2), 355, rowY, 8.5);            // Pi invertor
+            draw(p2, putereInv.toFixed(2), 400, rowY, 8.5);            // Pmax evacuat
+            draw(p2, putereInv.toFixed(2), 455, rowY, 8.5);            // Pmax centrală
+          });
+          // TOTAL pe ultimul rând
+          draw(p2, totalInvKw.toFixed(2), 355, 320, 8.5, fontBold);
+          draw(p2, totalInvKw.toFixed(2), 400, 320, 8.5, fontBold);
+          draw(p2, totalInvKw.toFixed(2), 455, 320, 8.5, fontBold);
         }
       }
 
@@ -1287,8 +1334,11 @@ async function createDosar() {
     drawField('Putere Totală', v('f_putere_kwp'));
     drawField('Suprafață', v('f_suprafata'));
     drawField('Anti-insularizare (>2 inv.)', ck('f_anti_insular') ? 'Da' : 'Nu');
-    drawField('Număr Invertoare', v('f_nr_invertoare'));
-    drawField('Model Invertor', v('f_invertor'));
+    drawField('Număr Invertoare', String(invertoare.length));
+    // Listează fiecare invertor pe rândul lui
+    invertoare.forEach((inv, i) => {
+      drawField(`Invertor ${i + 1}`, `${inv.model || '—'}${inv.putere ? ' · ' + inv.putere + ' kW' : ''}${inv.serie ? ' · SN: ' + inv.serie : ''}`);
+    });
     drawField('Smart Meter', v('f_smart_meter'));
     const serii = v('f_serii_panouri');
     if (serii) {
@@ -1528,9 +1578,12 @@ async function createDosar() {
 window.addEventListener('load', () => {
   setDefaults();
   renderCircuits();
+  renderInvertoare();
   initOpis();
   // Re-render opis când se schimbă Tip Dosar (Anexa 2 apare doar pentru "Dosar prosumator")
   document.getElementById('f_tip_dosar').addEventListener('change', renderOpis);
+  // Re-render câmpurile invertoarelor când se schimbă numărul
+  document.getElementById('f_nr_invertoare').addEventListener('change', renderInvertoare);
 });
 </script>
 </body>
