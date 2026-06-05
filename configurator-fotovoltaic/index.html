@@ -738,7 +738,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   <div class="price-section">
     <div class="price-title">Alte costuri</div>
     <div class="fg fg2">
-      <div class="f"><label>Proiect tehnic & avize (RON)</label><select id="proiect_pret" onchange="updTotal()"></select>
+      <div class="f"><label>Dosar prosumator (RON)</label><select id="proiect_pret" onchange="updTotal()"></select>
         <div style="display:flex;gap:6px;margin-top:4px;align-items:center;"><span style="font-size:10px;color:#888;">Adaos:</span><input type="number" id="proiect_adp" placeholder="%" onchange="onAdaosEdit('proiect','pct')" style="width:54px;padding:4px 6px;font-size:12px;"><span style="font-size:10px;color:#888;">%</span><input type="number" id="proiect_adr" placeholder="RON" onchange="onAdaosEdit('proiect','ron')" style="width:78px;padding:4px 6px;font-size:12px;"><span style="font-size:10px;color:#888;">RON</span></div>
       </div>
       <div class="f"><label>Cost suplimentar — descriere editabilă</label>
@@ -3247,7 +3247,7 @@ function renderOferta(d){
         v: a.ron_total,
         sub: a.qty>1?fmt(a.ron_unit)+' RON/buc × '+a.qty+' buc':''
       })):[]),
-    {l:'Proiect tehnic & avize',v:d.prices.proiect},
+    {l:'Dosar prosumator',v:d.prices.proiect},
     ...(d.prices.alte>0?[{l:'Costuri diverse',v:d.prices.alte}]:[])
   ];
 
@@ -3390,7 +3390,7 @@ function renderOferta(d){
   }
   let servRows=[
     {d:'Manoperă instalare',um:'serviciu',c:1,pu:d.prices.manopera,v:d.prices.manopera},
-    {d:'Proiect tehnic & avize',um:'serviciu',c:1,pu:d.prices.proiect,v:d.prices.proiect}
+    {d:'Dosar prosumator',um:'serviciu',c:1,pu:d.prices.proiect,v:d.prices.proiect}
   ];
   if(d.prices.alte>0) servRows.push({d:d.alteDesc||'Cost suplimentar',um:'serviciu',c:1,pu:d.prices.alte,v:d.prices.alte});
   let subEch=echRows.reduce((a,r)=>a+r.v,0), subServ=servRows.reduce((a,r)=>a+r.v,0);
