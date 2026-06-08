@@ -70,18 +70,19 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
 .prod .info{flex:1;min-width:0}
 .prod .nm{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.2}
 .prod .dm{font-size:11px;color:var(--muted);margin-top:2px}
-.prod .add{flex:none;border:0;border-radius:10px;padding:10px 13px;font-family:"Chakra Petch";font-weight:700;
+.prod .ctlbox{flex:none}
+.prod .add{border:0;border-radius:10px;padding:10px 13px;font-family:"Chakra Petch";font-weight:700;
   font-size:13px;letter-spacing:.04em;color:#06210f;background:linear-gradient(180deg,#54e0a4,#2bbd80);cursor:pointer}
-/* lista sistem */
+.qstep{display:flex;align-items:center;gap:8px}
+.qstep button{width:36px;height:36px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+  border-radius:10px;font-size:19px;font-family:"Chakra Petch";cursor:pointer;line-height:1}
+.qstep .q{min-width:22px;text-align:center;font-family:"Chakra Petch";font-size:16px;color:var(--ink)}
+/* lista sistem (recapitulare) */
 .sys{display:grid;gap:8px}
-.sysrow{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:8px 10px}
+.sysrow{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 11px}
 .sysrow .dot{width:11px;height:11px;border-radius:3px;flex:none}
 .sysrow .nm{flex:1;font-size:13px}
-.sysrow .mini{display:flex;align-items:center;gap:7px}
-.sysrow .mini button{width:30px;height:30px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;font-size:16px;cursor:pointer;font-family:"Chakra Petch";line-height:1}
-.sysrow .q{min-width:20px;text-align:center;font-family:"Chakra Petch";font-size:14px}
-.sysrow .rm{margin-left:2px;color:var(--muted);background:none;border:0;font-size:17px;cursor:pointer}
-.empty{color:var(--muted);font-size:12.5px;text-align:center;padding:6px}
+.empty{color:var(--muted);font-size:12.5px;text-align:center;padding:8px;line-height:1.5}
 .ar{width:100%;border:0;border-radius:16px;cursor:pointer;padding:16px;
   font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.08em;font-size:16px;
   color:#1a1300;background:linear-gradient(180deg,#ffc24d,var(--solar));box-shadow:0 10px 30px -10px rgba(255,176,32,.55)}
@@ -117,21 +118,21 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
 <div class="controls">
 
   <!-- PANOURI PV -->
-  <div class="section-t">Panouri fotovoltaice</div>
+  <div class="section-t">Panouri fotovoltaice <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(opțional)</span></div>
   <div class="ctl">
-    <div class="lab">Număr panouri <b id="countVal">2</b></div>
+    <div class="lab">Număr panouri <b id="countVal">0</b></div>
     <div class="stepper">
       <button id="cMinus">−</button>
-      <input id="count" type="number" inputmode="numeric" min="0" max="60" value="2">
+      <input id="count" type="number" inputmode="numeric" min="0" max="60" value="0">
       <button id="cPlus">＋</button>
     </div>
   </div>
   <div class="row2">
     <div class="ctl">
-      <div class="lab">Pe rând <b id="perRowVal">2</b></div>
+      <div class="lab">Pe rând <b id="perRowVal">1</b></div>
       <div class="stepper">
         <button id="rMinus">−</button>
-        <input id="perRow" type="number" inputmode="numeric" min="1" max="20" value="2">
+        <input id="perRow" type="number" inputmode="numeric" min="1" max="20" value="1">
         <button id="rPlus">＋</button>
       </div>
     </div>
@@ -170,7 +171,7 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
     <small id="arSmall">sistemul apare la dimensiunea reală</small>
   </button>
 
-  <p class="note">Toate dimensiunile sunt <span class="k">reale</span> (din fișele tehnice) și <b>fixe</b> în AR — fără zoom, ca să vezi exact cum încape pe perete. Reglează configurația aici, apoi deschide AR.</p>
+  <p class="note">Toate dimensiunile sunt <span class="k">reale</span> (din fișele tehnice) și <b>fixe</b> în AR — fără zoom, ca să vezi exact cum încape pe perete. Panourile sunt opționale: poți porni AR și doar cu invertor + baterie.</p>
   <p class="note" id="compatNote"></p>
 </div>
 
@@ -190,7 +191,7 @@ const GAP = 0.02;       // rost panouri
 const ITEM_GAP = 0.18;  // spațiu între echipamente
 
 const state = {
-  panel:{ count:2, perRow:2, tilt:30, orient:'portret' },
+  panel:{ count:0, perRow:1, tilt:30, orient:'portret' },
   qty:{ solis:0, g2:0, powerbrick:0, tablou:0 },
   placement:'wall',
 };
@@ -303,10 +304,10 @@ async function rebuild(){
   ['solis','g2','powerbrick','tablou'].forEach(k=>{ if(state.qty[k]>0) parts.push(`${state.qty[k]}× ${PRODUCTS[k].name.split(' ').slice(0,2).join(' ')}`); });
   $('dims').innerHTML = parts.length
     ? `<b>${parts.join(' · ')}</b><br>Lățime totală sistem: <b>${totalW.toFixed(2)} m</b> · scară reală fixă`
-    : 'Adaugă panouri și echipamente ca să compui sistemul.';
+    : 'Adaugă panouri și/sau echipamente ca să compui sistemul.';
   renderSys();
 
-  if(totalW===0){ mv.removeAttribute('src'); return; }
+  if(totalW===0){ mv.removeAttribute('src'); refreshAR(); return; }
   try{
     const glb=await new Promise((res,rej)=> new GLTFExporter().parse(root,res,rej,{binary:true}));
     const blob=new Blob([glb],{type:'model/gltf-binary'});
@@ -316,7 +317,13 @@ async function rebuild(){
 }
 function scheduleRebuild(){ clearTimeout(rebuildTimer); rebuildTimer=setTimeout(rebuild,120); }
 
-/* ===== catalog UI ===== */
+/* ===== catalog UI cu − [n] + pe fiecare echipament ===== */
+function prodControl(k){
+  const q=state.qty[k];
+  return q<=0
+    ? `<button class="add" data-k="${k}" data-a="add">＋ Adaugă</button>`
+    : `<span class="qstep"><button data-k="${k}" data-a="m">−</button><span class="q">${q}</span><button data-k="${k}" data-a="p">＋</button></span>`;
+}
 function renderCatalog(){
   const c=$('catalog'); c.innerHTML='';
   Object.entries(PRODUCTS).forEach(([k,p])=>{
@@ -325,34 +332,30 @@ function renderCatalog(){
     el.innerHTML=`<div class="ic">${p.icon}</div>
       <div class="info"><div class="nm">${p.name}</div>
       <div class="dm">${Math.round(d.w*1000)} × ${Math.round(d.h*1000)} × ${Math.round(d.d*1000)} mm · ${p.mount==='wall'?'perete':'podea'}</div></div>
-      <button class="add" data-k="${k}">＋ Adaugă</button>`;
+      <span class="ctlbox" id="ctl-${k}">${prodControl(k)}</span>`;
     c.appendChild(el);
   });
-  c.querySelectorAll('.add').forEach(b=> b.onclick=()=>{ state.qty[b.dataset.k]++; scheduleRebuild(); });
 }
+function updateProd(k){ const b=$('ctl-'+k); if(b) b.innerHTML=prodControl(k); }
+function onCatalogClick(e){
+  const b=e.target.closest('button'); if(!b||!b.dataset.k) return;
+  const k=b.dataset.k, a=b.dataset.a;
+  if(a==='add'||a==='p') state.qty[k]++;
+  else if(a==='m') state.qty[k]=Math.max(0,state.qty[k]-1);
+  updateProd(k); renderSys(); scheduleRebuild();
+}
+
+/* recapitulare (read-only) */
 function renderSys(){
   const s=$('sysList'); s.innerHTML='';
   const rows=[];
-  if(state.panel.count>0) rows.push({key:'panel', dot:'#0b1230', nm:`Panouri PV (${state.panel.count})`, fixed:true});
-  ['solis','g2','powerbrick','tablou'].forEach(k=>{ if(state.qty[k]>0) rows.push({key:k, dot:PRODUCTS[k].dot, nm:PRODUCTS[k].name, q:state.qty[k]}); });
-  if(!rows.length){ s.innerHTML='<div class="empty">Nimic adăugat încă. Setează panourile sus și apasă „＋ Adaugă" la echipamente.</div>'; return; }
+  if(state.panel.count>0) rows.push({dot:'#0b1230', nm:`Panouri PV × ${state.panel.count}`});
+  ['solis','g2','powerbrick','tablou'].forEach(k=>{ if(state.qty[k]>0) rows.push({dot:PRODUCTS[k].dot, nm:`${PRODUCTS[k].name} × ${state.qty[k]}`}); });
+  if(!rows.length){ s.innerHTML='<div class="empty">Nimic adăugat încă. Reglează panourile și/sau apasă „＋ Adaugă" la echipamente.<br>Poți porni AR și doar cu invertor + baterie.</div>'; return; }
   rows.forEach(r=>{
     const el=document.createElement('div'); el.className='sysrow';
-    if(r.fixed){
-      el.innerHTML=`<span class="dot" style="background:${r.dot}"></span><span class="nm">${r.nm}</span><span class="mini" style="color:var(--muted);font-size:12px">reglat sus</span>`;
-    }else{
-      el.innerHTML=`<span class="dot" style="background:${r.dot}"></span><span class="nm">${r.nm}</span>
-        <span class="mini"><button data-a="m" data-k="${r.key}">−</button><span class="q">${r.q}</span><button data-a="p" data-k="${r.key}">＋</button>
-        <button class="rm" data-a="x" data-k="${r.key}">✕</button></span>`;
-    }
+    el.innerHTML=`<span class="dot" style="background:${r.dot}"></span><span class="nm">${r.nm}</span>`;
     s.appendChild(el);
-  });
-  s.querySelectorAll('button[data-a]').forEach(b=> b.onclick=()=>{
-    const k=b.dataset.k;
-    if(b.dataset.a==='m') state.qty[k]=Math.max(0,state.qty[k]-1);
-    else if(b.dataset.a==='p') state.qty[k]++;
-    else if(b.dataset.a==='x') state.qty[k]=0;
-    scheduleRebuild();
   });
 }
 
@@ -385,7 +388,8 @@ function refreshAR(){
   const can=mv.canActivateAR;
   arChip.textContent=can?'AR disponibil':'AR indisponibil';
   arChip.classList.toggle('on',can); arChip.classList.toggle('off',!can);
-  arBtn.disabled=!can||!mv.src;
+  arBtn.disabled=!can||!mv.getAttribute('src');
+  if(!mv.getAttribute('src')){ compatNote.innerHTML='Adaugă cel puțin un element (panouri sau echipamente) ca să poți deschide AR.'; return; }
   if(!can){
     if(isIOS) compatNote.innerHTML='<b>iPhone:</b> AR doar prin <span class="k">Safari</span> (Quick Look), pe HTTPS.';
     else if(isAndroid) compatNote.innerHTML='<b>Android:</b> nevoie de <span class="k">Chrome</span> + ARCore, pe HTTPS.';
@@ -399,6 +403,7 @@ arBtn.addEventListener('click',()=>{ try{ mv.activateAR(); }catch(err){ refreshA
 
 /* ===== start ===== */
 renderCatalog();
+$('catalog').addEventListener('click', onCatalogClick);
 rebuild();
 </script>
 </body>
