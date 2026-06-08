@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PV·AR — Plasare fotovoltaice în realitate augmentată</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer/dist/model-viewer.min.js"></script>
+<style>
+:root{
+  --bg:#0b0f17; --panel:#121826; --line:#1f2937; --ink:#e7edf6; --muted:#8a98ad;
+  --solar:#ffb020; --pv:#3fa9ff; --good:#34d399; --bad:#f87171;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(63,169,255,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255,176,32,.08), transparent 55%),
+    var(--bg);
+  color:var(--ink); font-family:"IBM Plex Sans",system-ui,sans-serif;
+  display:flex; flex-direction:column; min-height:100%;
+}
+/* faint blueprint grid */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:34px 34px;}
+header{padding:18px 18px 8px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand{font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.06em;font-size:22px}
+.brand b{color:var(--solar)}
+.sub{color:var(--muted);font-size:13px}
+.stage{position:relative;flex:1;min-height:340px;margin:6px 14px;border:1px solid var(--line);
+  border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#0e1420,#0a0e16)}
+model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent}
+.badge{position:absolute;top:12px;left:12px;z-index:5;display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:"Chakra Petch",sans-serif;font-size:11px;letter-spacing:.05em;
+  padding:5px 9px;border-radius:999px;border:1px solid var(--line);background:rgba(18,24,38,.7);
+  color:var(--muted);backdrop-filter:blur(6px)}
+.chip.on{color:var(--bg);background:var(--good);border-color:var(--good)}
+.chip.off{color:var(--bad);border-color:rgba(248,113,113,.4)}
+.hint{position:absolute;bottom:12px;left:12px;right:12px;z-index:5;text-align:center;
+  font-size:12px;color:var(--muted);background:rgba(11,15,23,.55);padding:8px 10px;
+  border-radius:12px;backdrop-filter:blur(6px)}
+.controls{padding:6px 14px 22px;display:grid;gap:12px}
+.row{display:flex;gap:10px}
+.seg{display:flex;flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px}
+.seg button{flex:1;border:0;background:transparent;color:var(--muted);font-family:"Chakra Petch",sans-serif;
+  font-weight:600;letter-spacing:.04em;font-size:13px;padding:11px 8px;border-radius:10px;cursor:pointer;transition:.18s}
+.seg button.active{background:linear-gradient(180deg,#1b2840,#16203a);color:var(--ink);
+  box-shadow:inset 0 0 0 1px rgba(63,169,255,.35)}
+.ar{width:100%;border:0;border-radius:16px;cursor:pointer;padding:16px;
+  font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.08em;font-size:16px;
+  color:#1a1300;background:linear-gradient(180deg,#ffc24d,var(--solar));
+  box-shadow:0 10px 30px -10px rgba(255,176,32,.55)}
+.ar[disabled]{filter:grayscale(.7) brightness(.7);cursor:not-allowed;box-shadow:none}
+.ar small{display:block;font-weight:500;letter-spacing:.02em;font-size:11px;color:#5a4500;margin-top:2px;font-family:"IBM Plex Sans"}
+details{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0 14px}
+summary{cursor:pointer;padding:13px 0;font-family:"Chakra Petch",sans-serif;font-size:13px;letter-spacing:.04em;color:var(--muted)}
+.field{display:grid;gap:5px;margin:4px 0 14px}
+.field label{font-size:12px;color:var(--muted)}
+.field input{background:#0c1220;border:1px solid var(--line);border-radius:10px;color:var(--ink);
+  padding:11px 12px;font-size:13px;font-family:inherit}
+.note{font-size:12px;color:var(--muted);line-height:1.5}
+.note b{color:var(--ink)}
+.k{color:var(--pv);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">PV<b>·</b>AR</div>
+  <div class="sub">Plasează un sistem fotovoltaic prin camera telefonului</div>
+</header>
+
+<div class="stage">
+  <div class="badge">
+    <span class="chip" id="platChip">platformă…</span>
+    <span class="chip" id="arChip">AR…</span>
+    <span class="chip" id="placeChip">acoperiș / sol</span>
+  </div>
+
+  <model-viewer id="mv"
+    src="data:model/gltf-binary;base64,Z2xURgIAAACcGAAA0AQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJjbGF1ZGUtcHYifSwic2NlbmUiOjAsInNjZW5lcyI6W3sibm9kZXMiOlswXX1dLCJub2RlcyI6W3sibWVzaCI6MCwibmFtZSI6IlBWX0FycmF5In1dLCJtYXRlcmlhbHMiOlt7Im5hbWUiOiJmcmFtZSIsInBick1ldGFsbGljUm91Z2huZXNzIjp7ImJhc2VDb2xvckZhY3RvciI6WzAuNzgsMC44LDAuODMsMV0sIm1ldGFsbGljRmFjdG9yIjowLjksInJvdWdobmVzc0ZhY3RvciI6MC4zNX19LHsibmFtZSI6ImNlbGwiLCJwYnJNZXRhbGxpY1JvdWdobmVzcyI6eyJiYXNlQ29sb3JGYWN0b3IiOlswLjA0LDAuMDcsMC4yLDFdLCJtZXRhbGxpY0ZhY3RvciI6MC41LCJyb3VnaG5lc3NGYWN0b3IiOjAuM319XSwibWVzaGVzIjpbeyJwcmltaXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJOT1JNQUwiOjF9LCJpbmRpY2VzIjoyLCJtYXRlcmlhbCI6MH0seyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJOT1JNQUwiOjF9LCJpbmRpY2VzIjozLCJtYXRlcmlhbCI6MX1dfV0sImFjY2Vzc29ycyI6W3siYnVmZmVyVmlldyI6MCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE2OCwidHlwZSI6IlZFQzMiLCJtaW4iOlstMS41MzQ5OTk5NjY2MjEzOTksMC4wLC0xLjY3OTk5OTk0NzU0NzkxMjZdLCJtYXgiOlsxLjUzNDk5OTk2NjYyMTM5OSwwLjA3MDAwMDAwMDI5ODAyMzIyLDEuNjc5OTk5OTQ3NTQ3OTEyNl19LHsiYnVmZmVyVmlldyI6MSwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE2OCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjIsImNvbXBvbmVudFR5cGUiOjUxMjUsImNvdW50IjozNiwidHlwZSI6IlNDQUxBUiJ9LHsiYnVmZmVyVmlldyI6MywiY29tcG9uZW50VHlwZSI6NTEyNSwiY291bnQiOjIxNiwidHlwZSI6IlNDQUxBUiJ9XSwiYnVmZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6MjAxNiwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjIwMTYsImJ5dGVMZW5ndGgiOjIwMTYsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo0MDMyLCJieXRlTGVuZ3RoIjoxNDQsInRhcmdldCI6MzQ5NjN9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo0MTc2LCJieXRlTGVuZ3RoIjo4NjQsInRhcmdldCI6MzQ5NjN9XSwiYnVmZmVycyI6W3siYnl0ZUxlbmd0aCI6NTA0MH1dfSAgILATAABCSU4A4XrEvwAAAAA9Ctc/4XrEPwAAAAA9Ctc/4XrEPwrXIz09Ctc/4XrEvwrXIz09Ctc/4XrEPwAAAAA9Cte/4XrEvwAAAAA9Cte/4XrEvwrXIz09Cte/4XrEPwrXIz09Cte/4XrEPwAAAAA9Ctc/4XrEPwAAAAA9Cte/4XrEPwrXIz09Cte/4XrEPwrXIz09Ctc/4XrEvwAAAAA9Cte/4XrEvwAAAAA9Ctc/4XrEvwrXIz09Ctc/4XrEvwrXIz09Cte/4XrEvwrXIz09Ctc/4XrEPwrXIz09Ctc/4XrEPwrXIz09Cte/4XrEvwrXIz09Cte/4XrEvwAAAAA9Cte/4XrEPwAAAAA9Cte/4XrEPwAAAAA9Ctc/4XrEvwAAAAA9Ctc/CRu+vwrXIz0OTy+9p+gIvwrXIz0OTy+9p+gIvylcjz0OTy+9CRu+vylcjz0OTy+9p+gIvwrXIz1pAM+/CRu+vwrXIz1pAM+/CRu+vylcjz1pAM+/p+gIvylcjz1pAM+/p+gIvwrXIz0OTy+9p+gIvwrXIz1pAM+/p+gIvylcjz1pAM+/p+gIvylcjz0OTy+9CRu+vwrXIz1pAM+/CRu+vwrXIz0OTy+9CRu+vylcjz0OTy+9CRu+vylcjz1pAM+/CRu+vylcjz0OTy+9p+gIvylcjz0OTy+9p+gIvylcjz1pAM+/CRu+vylcjz1pAM+/CRu+vwrXIz1pAM+/p+gIvwrXIz1pAM+/p+gIvwrXIz0OTy+9CRu+vwrXIz0OTy+9ak3zvgrXIz0OTy+9ak3zPgrXIz0OTy+9ak3zPilcjz0OTy+9ak3zvilcjz0OTy+9ak3zPgrXIz1pAM+/ak3zvgrXIz1pAM+/ak3zvilcjz1pAM+/ak3zPilcjz1pAM+/ak3zPgrXIz0OTy+9ak3zPgrXIz1pAM+/ak3zPilcjz1pAM+/ak3zPilcjz0OTy+9ak3zvgrXIz1pAM+/ak3zvgrXIz0OTy+9ak3zvilcjz0OTy+9ak3zvilcjz1pAM+/ak3zvilcjz0OTy+9ak3zPilcjz0OTy+9ak3zPilcjz1pAM+/ak3zvilcjz1pAM+/ak3zvgrXIz1pAM+/ak3zPgrXIz1pAM+/ak3zPgrXIz0OTy+9ak3zvgrXIz0OTy+9p+gIPwrXIz0OTy+9CRu+PwrXIz0OTy+9CRu+Pylcjz0OTy+9p+gIPylcjz0OTy+9CRu+PwrXIz1pAM+/p+gIPwrXIz1pAM+/p+gIPylcjz1pAM+/CRu+Pylcjz1pAM+/CRu+PwrXIz0OTy+9CRu+PwrXIz1pAM+/CRu+Pylcjz1pAM+/CRu+Pylcjz0OTy+9p+gIPwrXIz1pAM+/p+gIPwrXIz0OTy+9p+gIPylcjz0OTy+9p+gIPylcjz1pAM+/p+gIPylcjz0OTy+9CRu+Pylcjz0OTy+9CRu+Pylcjz1pAM+/p+gIPylcjz1pAM+/p+gIPwrXIz1pAM+/CRu+PwrXIz1pAM+/CRu+PwrXIz0OTy+9p+gIPwrXIz0OTy+9CRu+vwrXIz1pAM8/p+gIvwrXIz1pAM8/p+gIvylcjz1pAM8/CRu+vylcjz1pAM8/p+gIvwrXIz0OTy89CRu+vwrXIz0OTy89CRu+vylcjz0OTy89p+gIvylcjz0OTy89p+gIvwrXIz1pAM8/p+gIvwrXIz0OTy89p+gIvylcjz0OTy89p+gIvylcjz1pAM8/CRu+vwrXIz0OTy89CRu+vwrXIz1pAM8/CRu+vylcjz1pAM8/CRu+vylcjz0OTy89CRu+vylcjz1pAM8/p+gIvylcjz1pAM8/p+gIvylcjz0OTy89CRu+vylcjz0OTy89CRu+vwrXIz0OTy89p+gIvwrXIz0OTy89p+gIvwrXIz1pAM8/CRu+vwrXIz1pAM8/ak3zvgrXIz1pAM8/ak3zPgrXIz1pAM8/ak3zPilcjz1pAM8/ak3zvilcjz1pAM8/ak3zPgrXIz0OTy89ak3zvgrXIz0OTy89ak3zvilcjz0OTy89ak3zPilcjz0OTy89ak3zPgrXIz1pAM8/ak3zPgrXIz0OTy89ak3zPilcjz0OTy89ak3zPilcjz1pAM8/ak3zvgrXIz0OTy89ak3zvgrXIz1pAM8/ak3zvilcjz1pAM8/ak3zvilcjz0OTy89ak3zvilcjz1pAM8/ak3zPilcjz1pAM8/ak3zPilcjz0OTy89ak3zvilcjz0OTy89ak3zvgrXIz0OTy89ak3zPgrXIz0OTy89ak3zPgrXIz1pAM8/ak3zvgrXIz1pAM8/p+gIPwrXIz1pAM8/CRu+PwrXIz1pAM8/CRu+Pylcjz1pAM8/p+gIPylcjz1pAM8/CRu+PwrXIz0OTy89p+gIPwrXIz0OTy89p+gIPylcjz0OTy89CRu+Pylcjz0OTy89CRu+PwrXIz1pAM8/CRu+PwrXIz0OTy89CRu+Pylcjz0OTy89CRu+Pylcjz1pAM8/p+gIPwrXIz0OTy89p+gIPwrXIz1pAM8/p+gIPylcjz1pAM8/p+gIPylcjz0OTy89p+gIPylcjz1pAM8/CRu+Pylcjz1pAM8/CRu+Pylcjz0OTy89p+gIPylcjz0OTy89p+gIPwrXIz0OTy89CRu+PwrXIz0OTy89CRu+PwrXIz1pAM8/p+gIPwrXIz1pAM8/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAEAAAACAAAAAAAAAAIAAAADAAAABAAAAAUAAAAGAAAABAAAAAYAAAAHAAAACAAAAAkAAAAKAAAACAAAAAoAAAALAAAADAAAAA0AAAAOAAAADAAAAA4AAAAPAAAAEAAAABEAAAASAAAAEAAAABIAAAATAAAAFAAAABUAAAAWAAAAFAAAABYAAAAXAAAAGAAAABkAAAAaAAAAGAAAABoAAAAbAAAAHAAAAB0AAAAeAAAAHAAAAB4AAAAfAAAAIAAAACEAAAAiAAAAIAAAACIAAAAjAAAAJAAAACUAAAAmAAAAJAAAACYAAAAnAAAAKAAAACkAAAAqAAAAKAAAACoAAAArAAAALAAAAC0AAAAuAAAALAAAAC4AAAAvAAAAMAAAADEAAAAyAAAAMAAAADIAAAAzAAAANAAAADUAAAA2AAAANAAAADYAAAA3AAAAOAAAADkAAAA6AAAAOAAAADoAAAA7AAAAPAAAAD0AAAA+AAAAPAAAAD4AAAA/AAAAQAAAAEEAAABCAAAAQAAAAEIAAABDAAAARAAAAEUAAABGAAAARAAAAEYAAABHAAAASAAAAEkAAABKAAAASAAAAEoAAABLAAAATAAAAE0AAABOAAAATAAAAE4AAABPAAAAUAAAAFEAAABSAAAAUAAAAFIAAABTAAAAVAAAAFUAAABWAAAAVAAAAFYAAABXAAAAWAAAAFkAAABaAAAAWAAAAFoAAABbAAAAXAAAAF0AAABeAAAAXAAAAF4AAABfAAAAYAAAAGEAAABiAAAAYAAAAGIAAABjAAAAZAAAAGUAAABmAAAAZAAAAGYAAABnAAAAaAAAAGkAAABqAAAAaAAAAGoAAABrAAAAbAAAAG0AAABuAAAAbAAAAG4AAABvAAAAcAAAAHEAAAByAAAAcAAAAHIAAABzAAAAdAAAAHUAAAB2AAAAdAAAAHYAAAB3AAAAeAAAAHkAAAB6AAAAeAAAAHoAAAB7AAAAfAAAAH0AAAB+AAAAfAAAAH4AAAB/AAAAgAAAAIEAAACCAAAAgAAAAIIAAACDAAAAhAAAAIUAAACGAAAAhAAAAIYAAACHAAAAiAAAAIkAAACKAAAAiAAAAIoAAACLAAAAjAAAAI0AAACOAAAAjAAAAI4AAACPAAAAkAAAAJEAAACSAAAAkAAAAJIAAACTAAAAlAAAAJUAAACWAAAAlAAAAJYAAACXAAAAmAAAAJkAAACaAAAAmAAAAJoAAACbAAAAnAAAAJ0AAACeAAAAnAAAAJ4AAACfAAAAoAAAAKEAAACiAAAAoAAAAKIAAACjAAAApAAAAKUAAACmAAAApAAAAKYAAACnAAAA"
+    alt="Sistem fotovoltaic 3D"
+    camera-controls touch-action="pan-y"
+    shadow-intensity="1" exposure="0.95"
+    environment-image="neutral"
+    ar ar-modes="webxr scene-viewer quick-look"
+    ar-placement="floor"
+    ar-scale="auto"
+    interaction-prompt="none">
+    <button slot="ar-button" style="display:none"></button>
+  </model-viewer>
+
+  <div class="hint" id="hint">Rotește cu degetul pentru previzualizare. Apasă „Deschide în AR" ca să-l plasezi pe casă.</div>
+</div>
+
+<div class="controls">
+  <div class="row">
+    <div class="seg" id="placeSeg">
+      <button data-p="floor" class="active">Acoperiș / Sol</button>
+      <button data-p="wall">Perete / Fațadă</button>
+    </div>
+  </div>
+
+  <button class="ar" id="arBtn">
+    DESCHIDE ÎN AR
+    <small id="arSmall">deschide camera și plasează panourile</small>
+  </button>
+
+  <details>
+    <summary>Setări avansate · modelul tău 3D</summary>
+    <div class="field">
+      <label>URL model Android/web (.glb / .gltf)</label>
+      <input id="glbUrl" placeholder="https://exemplu.ro/panou.glb">
+    </div>
+    <div class="field">
+      <label>URL model iPhone (.usdz) — opțional</label>
+      <input id="usdzUrl" placeholder="https://exemplu.ro/panou.usdz">
+    </div>
+    <p class="note">Lasă gol ca să folosești panoul demonstrativ inclus (matrice 3×2, ~3×3.4&nbsp;m, la scară reală). Pe iPhone, dacă nu pui un <span class="k">.usdz</span>, model-viewer încearcă să-l genereze automat din .glb — funcționează pentru modele statice, dar pentru calitate maximă oferă tu fișierul .usdz.</p>
+  </details>
+
+  <p class="note" id="compatNote"></p>
+</div>
+
+<script>
+const mv = document.getElementById('mv');
+const arBtn = document.getElementById('arBtn');
+const placeSeg = document.getElementById('placeSeg');
+const placeChip = document.getElementById('placeChip');
+const platChip = document.getElementById('platChip');
+const arChip = document.getElementById('arChip');
+const compatNote = document.getElementById('compatNote');
+const hint = document.getElementById('hint');
+
+const ua = navigator.userAgent;
+const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/.test(ua);
+platChip.textContent = isIOS ? 'iPhone / iPad' : isAndroid ? 'Android' : 'Desktop';
+
+// AR availability (async API from model-viewer)
+function refreshAR(){
+  const can = mv.canActivateAR;
+  arChip.textContent = can ? 'AR disponibil' : 'AR indisponibil';
+  arChip.classList.toggle('on', can);
+  arChip.classList.toggle('off', !can);
+  arBtn.disabled = !can;
+  if(!can){
+    if(isIOS) compatNote.innerHTML = '<b>iPhone:</b> AR în browser merge doar prin <span class="k">Safari</span> (AR Quick Look). Deschide pagina în Safari, nu într-un browser din altă aplicație. Necesită <b>HTTPS</b>.';
+    else if(isAndroid) compatNote.innerHTML = '<b>Android:</b> e nevoie de <span class="k">Chrome</span> + serviciul <b>Google Play Services for AR (ARCore)</b> instalat, iar pagina servită prin <b>HTTPS</b>.';
+    else compatNote.innerHTML = 'Pe desktop vezi doar previzualizarea 3D. Deschide pagina pe telefon (HTTPS) pentru AR.';
+  } else {
+    compatNote.innerHTML = isIOS
+      ? 'Plasare pe suprafață, apoi <span class="k">trage</span> pentru poziție și <span class="k">prinde cu 2 degete</span> pentru scară.'
+      : 'Mișcă telefonul ca să detecteze suprafața, atinge ca să plasezi, apoi scalează/rotește cu degetele.';
+  }
+}
+mv.addEventListener('load', refreshAR);
+mv.addEventListener('ar-status', e=>{ if(e.detail.status==='failed') compatNote.innerHTML='<b>AR nu a putut porni.</b> Verifică permisiunea camerei și că pagina e pe HTTPS.'; });
+setTimeout(refreshAR, 1200);
+
+arBtn.addEventListener('click', ()=>{ try{ mv.activateAR(); }catch(err){ refreshAR(); } });
+
+// placement toggle
+placeSeg.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  [...placeSeg.children].forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const p = b.dataset.p;
+  mv.setAttribute('ar-placement', p);
+  placeChip.textContent = p==='wall' ? 'perete' : 'acoperiș / sol';
+});
+
+// custom model
+const glbUrl=document.getElementById('glbUrl'), usdzUrl=document.getElementById('usdzUrl');
+const baseSrc = mv.getAttribute('src');
+function applyModel(){
+  mv.setAttribute('src', glbUrl.value.trim() || baseSrc);
+  if(usdzUrl.value.trim()) mv.setAttribute('ios-src', usdzUrl.value.trim());
+  else mv.removeAttribute('ios-src');
+}
+glbUrl.addEventListener('change', applyModel);
+usdzUrl.addEventListener('change', applyModel);
+</script>
+</body>
+</html>

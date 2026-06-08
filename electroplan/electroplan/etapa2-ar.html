@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>ElectroPlan AR · montaj cu realitate augmentată</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070b12;--panel:#0f1622;--line:#22304a;--ink:#e7eef8;--muted:#8696b0;
+  --aparataj:#ffb020;--doza:#34d399;--circuit:#46b4ff;--ok:#34d399;--bad:#f87171;--accent:#46b4ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;font-family:"IBM Plex Sans",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+#app{height:100%;display:flex;flex-direction:column}
+header{padding:14px 16px;border-bottom:1px solid var(--line)}
+.brand{font-family:"Chakra Petch";font-weight:700;letter-spacing:.05em;font-size:18px}
+.brand b{color:var(--aparataj)}
+.sub{color:var(--muted);font-size:12px;margin-top:2px}
+.screen{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.step h2{margin:0 0 4px;font-family:"Chakra Petch";font-size:13px;letter-spacing:.06em}
+.step .n{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#16233a;color:var(--accent);
+  align-items:center;justify-content:center;font-family:"Chakra Petch";font-size:12px;margin-right:8px}
+.step.done{opacity:.55}
+.step.done .n{background:#143726;color:var(--ok)}
+.muted{color:var(--muted);font-size:12.5px;line-height:1.55}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);
+  background:#131c2b;color:var(--ink);border-radius:10px;padding:12px 14px;font-size:14px;font-family:inherit;cursor:pointer;width:100%}
+.btn.primary{background:linear-gradient(180deg,#ffc24d,var(--aparataj));color:#1a1300;border:0;font-family:"Chakra Petch";font-weight:700;letter-spacing:.04em}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+canvas#plan{width:100%;height:230px;background:#0a0f1a;border:1px solid var(--line);border-radius:10px;touch-action:none;margin-top:8px}
+.refrow{display:flex;gap:8px;margin-top:8px}
+.refchip{flex:1;text-align:center;padding:8px;border-radius:9px;border:1px dashed var(--line);font-size:12px;color:var(--muted)}
+.refchip.set{border-style:solid;border-color:var(--accent);color:var(--ink)}
+#compat{font-size:12.5px;padding:10px;border-radius:10px}
+#compat.ok{background:#0f2a1d;color:#9ff0c8}#compat.bad{background:#2a1316;color:#f4b6b6}
+/* AR DOM overlay */
+#overlay{position:fixed;inset:0;display:none;pointer-events:none;font-family:"IBM Plex Sans"}
+#overlay.on{display:block}
+#prompt{position:absolute;top:14px;left:14px;right:14px;background:rgba(7,11,18,.82);border:1px solid var(--line);
+  border-radius:12px;padding:12px 14px;backdrop-filter:blur(8px);pointer-events:none}
+#prompt .t{font-family:"Chakra Petch";font-size:14px;letter-spacing:.03em}
+#prompt .d{color:var(--muted);font-size:12.5px;margin-top:3px}
+.tapbtn{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);pointer-events:auto;
+  background:var(--accent);color:#04101c;border:0;border-radius:999px;padding:14px 22px;font-family:"Chakra Petch";
+  font-weight:700;letter-spacing:.05em;font-size:15px}
+.numpad{position:absolute;left:14px;right:14px;bottom:90px;background:rgba(15,22,34,.96);border:1px solid var(--line);
+  border-radius:14px;padding:14px;pointer-events:auto;display:none}
+.numpad.on{display:block}
+.numpad label{font-size:12px;color:var(--muted)}
+.numpad input{width:100%;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:11px;font-size:18px;margin-top:5px;font-family:"Chakra Petch"}
+.numpad .row{display:flex;gap:8px;margin-top:10px}
+.numpad .btn{flex:1}
+#toggles{position:absolute;right:14px;bottom:24px;display:none;flex-direction:column;gap:8px;pointer-events:auto}
+#toggles.on{display:flex}
+.tog{display:flex;align-items:center;gap:8px;background:rgba(7,11,18,.82);border:1px solid var(--line);
+  border-radius:999px;padding:8px 12px;font-size:12.5px;backdrop-filter:blur(8px)}
+.tog .dot{width:11px;height:11px;border-radius:3px}
+.tog.off{opacity:.4}
+#exitAR{position:absolute;top:14px;right:14px;pointer-events:auto;background:rgba(7,11,18,.82);border:1px solid var(--line);
+  color:var(--ink);border-radius:10px;padding:9px 12px;font-size:12px}
+.quality{position:absolute;left:14px;bottom:24px;pointer-events:none;background:rgba(7,11,18,.82);border:1px solid var(--line);
+  border-radius:10px;padding:8px 11px;font-size:11.5px;color:var(--muted);max-width:55%}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">Electro<b>Plan</b> AR</div>
+    <div class="sub">Montaj aparataj prin realitate augmentată · Etapa 2</div>
+  </header>
+  <div class="screen" id="setup">
+    <div id="compat"></div>
+
+    <div class="step" id="s1">
+      <h2><span class="n">1</span>Selectează harta</h2>
+      <p class="muted">Încarcă fișierul JSON exportat din editor (planul + dispozitivele + traseele).</p>
+      <label class="btn" style="margin-top:8px">📂 Încarcă plan (.json)
+        <input id="map" type="file" accept=".json" hidden></label>
+      <p class="muted" id="mapInfo" style="margin-top:8px"></p>
+    </div>
+
+    <div class="step" id="s2">
+      <h2><span class="n">2</span>Puncte de reper pe plan</h2>
+      <p class="muted">Atinge pe plan 2 colțuri ușor de regăsit în realitate. Le vei atinge fizic în AR. (Atinge aproape de un colț — se prinde automat.)</p>
+      <canvas id="plan"></canvas>
+      <div class="refrow">
+        <div class="refchip" id="rc1">Reper 1: —</div>
+        <div class="refchip" id="rc2">Reper 2: —</div>
+      </div>
+      <button class="btn" id="resetRef" style="margin-top:8px">↺ Resetează reperele</button>
+    </div>
+
+    <div class="step" id="s3">
+      <h2><span class="n">3</span>Pornește AR + calibrare</h2>
+      <p class="muted">În AR: te plimbi prin apartament pentru scanare, apoi atingi cele 2 repere și introduci distanțele reale (orizontal + vertical) măsurate cu ruleta.</p>
+      <button class="btn primary" id="startAR" style="margin-top:8px" disabled>▶ PORNEȘTE AR</button>
+    </div>
+  </div>
+</div>
+
+<!-- AR overlay -->
+<div id="overlay">
+  <button id="exitAR">✕ Ieși</button>
+  <div id="prompt"><div class="t" id="pt">—</div><div class="d" id="pd"></div></div>
+  <div class="quality" id="quality" style="display:none"></div>
+  <button class="tapbtn" id="tapbtn" style="display:none">Gata</button>
+  <div class="numpad" id="numpad">
+    <label id="npLabel">Distanța reală (cm)</label>
+    <input id="npVal" type="number" inputmode="decimal" placeholder="ex. 400">
+    <div class="row">
+      <button class="btn" id="npCancel">Înapoi</button>
+      <button class="btn primary" id="npOk">Confirmă</button>
+    </div>
+  </div>
+  <div id="toggles">
+    <div class="tog" data-layer="circuite"><span class="dot" style="background:var(--circuit)"></span>Trasee circuite</div>
+    <div class="tog" data-layer="doza"><span class="dot" style="background:var(--doza)"></span>Doze</div>
+    <div class="tog" data-layer="aparataj"><span class="dot" style="background:var(--aparataj)"></span>Aparataj electric</div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const SUB={priza:['#ffb020','aparataj'],priza_blat:['#ffb020','aparataj'],intrerupator:['#ffb020','aparataj'],
+  tablou:['#ffb020','aparataj'],doza_der:['#34d399','doza'],doza_ap:['#34d399','doza']};
+const COL={aparataj:0xffb020,doza:0x34d399,circuit:0x46b4ff};
+
+let plan=null, factor=1, refA=null, refB=null; // refA/refB in plan units
+const $=id=>document.getElementById(id);
+
+// ---- compatibility check ----
+(async()=>{
+  const c=$('compat');
+  if(!('xr' in navigator)){c.className='bad';c.innerHTML='⚠ Acest browser nu suportă WebXR. Deschide pe <b>Android + Chrome</b>, prin <b>HTTPS</b>. Pe iPhone AR-ul în browser nu este disponibil.';return;}
+  let ok=false;try{ok=await navigator.xr.isSessionSupported('immersive-ar');}catch(e){}
+  if(ok){c.className='ok';c.textContent='✓ AR disponibil pe acest dispozitiv.';}
+  else{c.className='bad';c.innerHTML='⚠ AR (immersive-ar) indisponibil. Necesită Android + Chrome + ARCore, servit prin HTTPS.';}
+})();
+
+// ---- load plan ----
+$('map').addEventListener('change',ev=>{
+  const f=ev.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{plan=JSON.parse(r.result);factor=(plan.meta&&plan.meta.units_per_mm)||1;
+    const nd=(plan.devices||[]).length,nr=(plan.routes||[]).length;
+    $('mapInfo').textContent=`✓ ${nd} dispozitive · ${nr} trasee încărcate.`;
+    $('s1').classList.add('done');drawPlan();maybeEnable();}catch(e){$('mapInfo').textContent='JSON invalid.';}};
+  r.readAsText(f);
+});
+
+// ---- 2D plan picker ----
+const pcv=$('plan'),pctx=pcv.getContext('2d');let pv={s:1,ox:0,oy:0};
+function fit2d(){if(!plan||!plan.geometry)return;const g=plan.geometry;let b=g.bbox;
+  if(!b){return;}const w=pcv.width,h=pcv.height,pad=18;
+  pv.s=Math.min((w-2*pad)/Math.max(1,b.mxx-b.mnx),(h-2*pad)/Math.max(1,b.mxy-b.mny));
+  pv.ox=w/2-((b.mnx+b.mxx)/2)*pv.s;pv.oy=h/2+((b.mny+b.mxy)/2)*pv.s;}
+function X(x){return x*pv.s+pv.ox;}function Y(y){return -y*pv.s+pv.oy;}
+function drawPlan(){pcv.width=pcv.clientWidth*devicePixelRatio;pcv.height=pcv.clientHeight*devicePixelRatio;
+  pctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);fit2d();
+  const w=pcv.width/devicePixelRatio,h=pcv.height/devicePixelRatio;pctx.clearRect(0,0,w,h);
+  const g=plan.geometry;pctx.strokeStyle='#5fb6e6';pctx.lineWidth=1.4;pctx.beginPath();
+  (g.lines||[]).forEach(l=>{pctx.moveTo(X(l.x1),Y(l.y1));pctx.lineTo(X(l.x2),Y(l.y2));});
+  (g.polylines||[]).forEach(p=>{pctx.moveTo(X(p[0].x),Y(p[0].y));for(let k=1;k<p.length;k++)pctx.lineTo(X(p[k].x),Y(p[k].y));});
+  pctx.stroke();
+  [[refA,'#46b4ff','1'],[refB,'#ff5d8f','2']].forEach(([p,c,t])=>{if(!p)return;
+    pctx.fillStyle=c;pctx.beginPath();pctx.arc(X(p.x),Y(p.y),6,0,7);pctx.fill();
+    pctx.fillStyle='#04101c';pctx.font='700 9px "Chakra Petch"';pctx.textAlign='center';pctx.textBaseline='middle';pctx.fillText(t,X(p.x),Y(p.y));});
+}
+function endpoints(){const g=plan.geometry,pts=[];(g.lines||[]).forEach(l=>{pts.push({x:l.x1,y:l.y1});pts.push({x:l.x2,y:l.y2});});
+  (g.polylines||[]).forEach(p=>p.forEach(v=>pts.push({x:v.x,y:v.y})));return pts;}
+pcv.addEventListener('pointerdown',e=>{if(!plan)return;const r=pcv.getBoundingClientRect();
+  const wx=(e.clientX-r.left-pv.ox)/pv.s, wy=-(e.clientY-r.top-pv.oy)/pv.s;
+  let best=null,bd=1e15;endpoints().forEach(p=>{const d=Math.hypot(p.x-wx,p.y-wy);if(d<bd){bd=d;best=p;}});
+  const snap=bd< (20/pv.s)?best:{x:wx,y:wy};
+  if(!refA){refA=snap;$('rc1').classList.add('set');$('rc1').textContent='Reper 1: ✓';}
+  else if(!refB){refB=snap;$('rc2').classList.add('set');$('rc2').textContent='Reper 2: ✓';}
+  drawPlan();maybeEnable();
+});
+$('resetRef').onclick=()=>{refA=refB=null;$('rc1').className='refchip';$('rc1').textContent='Reper 1: —';
+  $('rc2').className='refchip';$('rc2').textContent='Reper 2: —';drawPlan();maybeEnable();};
+function maybeEnable(){$('startAR').disabled=!(plan&&refA&&refB);if(plan&&refA&&refB)$('s2').classList.add('done');}
+window.addEventListener('resize',()=>{if(plan)drawPlan();});
+
+// ================= AR =================
+let renderer,scene,camera,session,hitSource,viewerSpace,refSpace,reticle,group;
+let stage='', tapWorld={h1:null,h2:null,v1:null,v2:null}, calib={};
+const overlay=$('overlay');
+
+$('startAR').onclick=startAR;
+$('exitAR').onclick=()=>{if(session)session.end();};
+
+async function startAR(){
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.01,40);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x445566,1.1));
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setPixelRatio(devicePixelRatio);renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
+  document.body.appendChild(renderer.domElement);
+
+  const ring=new THREE.RingGeometry(0.06,0.075,32).rotateX(-Math.PI/2);
+  reticle=new THREE.Mesh(ring,new THREE.MeshBasicMaterial({color:0x46b4ff}));
+  reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
+  group=new THREE.Group();group.visible=false;scene.add(group);
+
+  try{
+    session=await navigator.xr.requestSession('immersive-ar',{
+      requiredFeatures:['hit-test'],optionalFeatures:['local-floor','dom-overlay','anchors'],
+      domOverlay:{root:overlay}});
+  }catch(e){alert('Nu am putut porni AR: '+e.message);return;}
+
+  overlay.classList.add('on');
+  renderer.xr.setReferenceSpaceType('local-floor');
+  await renderer.xr.setSession(session);
+  refSpace=await session.requestReferenceSpace('local-floor');
+  viewerSpace=await session.requestReferenceSpace('viewer');
+  hitSource=await session.requestHitTestSource({space:viewerSpace});
+  session.addEventListener('end',cleanup);
+  session.addEventListener('select',onSelect);
+  setStage('scan');
+  renderer.setAnimationLoop(loop);
+}
+function cleanup(){renderer.setAnimationLoop(null);overlay.classList.remove('on');
+  if(renderer&&renderer.domElement)renderer.domElement.remove();
+  $('toggles').classList.remove('on');$('numpad').classList.remove('on');$('tapbtn').style.display='none';$('quality').style.display='none';
+  session=null;stage='';tapWorld={h1:null,h2:null,v1:null,v2:null};}
+
+// stage machine
+function setStage(s){stage=s;const t=$('pt'),d=$('pd');$('tapbtn').style.display='none';$('numpad').classList.remove('on');
+  if(s==='scan'){t.textContent='Scanează apartamentul';d.textContent='Plimbă-te încet prin toate camerele, ține telefonul spre pereți și podea. Apoi apasă „Gata".';$('tapbtn').textContent='Gata';$('tapbtn').style.display='block';}
+  else if(s==='calibH1'){t.textContent='Calibrare · Reper 1';d.textContent='Vizează colțul reper 1 (cercul albastru), pe podea, și atinge ecranul.';}
+  else if(s==='calibH2'){t.textContent='Calibrare · Reper 2';d.textContent='Vizează colțul reper 2 și atinge ecranul.';}
+  else if(s==='askH'){t.textContent='Distanța orizontală reală';d.textContent='Măsoară cu ruleta între cele 2 repere și introdu valoarea în cm.';openNum('Distanța reper1–reper2 (cm)',suggestH());}
+  else if(s==='calibV1'){t.textContent='Calibrare verticală · jos';d.textContent='Vizează un punct pe podea (lângă un perete) și atinge ecranul.';}
+  else if(s==='calibV2'){t.textContent='Calibrare verticală · sus';d.textContent='Vizează un punct mai sus pe acel perete și atinge ecranul.';}
+  else if(s==='askV'){t.textContent='Distanța verticală reală';d.textContent='Înălțimea reală între cele 2 puncte verticale, în cm.';openNum('Înălțime jos→sus (cm)','');}
+  else if(s==='live'){t.textContent='Montaj activ';d.textContent='Dispozitivele sunt afișate. Folosește bifele din dreapta.';$('toggles').classList.add('on');showQuality();}
+}
+function suggestH(){if(!refA||!refB)return '';const dx=(refB.x-refA.x)*factor,dy=(refB.y-refA.y)*factor;return Math.round(Math.hypot(dx,dy)/10).toString();}
+
+$('tapbtn').onclick=()=>{if(stage==='scan')setStage('calibH1');};
+['beforexrselect'].forEach(()=>{});
+// prevent AR-select when tapping UI controls
+['tapbtn','numpad','toggles','exitAR'].forEach(id=>$(id).addEventListener('beforexrselect',e=>e.preventDefault()));
+
+function onSelect(){
+  if(!reticle.visible)return;
+  const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+  if(stage==='calibH1'){tapWorld.h1=p.clone();setStage('calibH2');}
+  else if(stage==='calibH2'){tapWorld.h2=p.clone();setStage('askH');}
+  else if(stage==='calibV1'){tapWorld.v1=p.clone();setStage('calibV2');}
+  else if(stage==='calibV2'){tapWorld.v2=p.clone();setStage('askV');}
+}
+
+// numpad
+function openNum(label,val){$('npLabel').textContent=label;$('npVal').value=val;$('numpad').classList.add('on');}
+$('npCancel').onclick=()=>{ if(stage==='askH')setStage('calibH1'); else if(stage==='askV')setStage('calibV1'); };
+$('npOk').onclick=()=>{
+  const v=parseFloat($('npVal').value);
+  if(stage==='askH'){ if(!(v>0))return; calib.rulerH=v/100; $('numpad').classList.remove('on'); setStage('calibV1'); }
+  else if(stage==='askV'){ if(!(v>0))return; calib.rulerV=v/100; $('numpad').classList.remove('on'); computeAndPlace(); setStage('live'); }
+};
+
+// ---- transform + placement ----
+function computeAndPlace(){
+  const wa=tapWorld.h1, wb=tapWorld.h2;
+  const planVx=(refB.x-refA.x)*factor/1000, planVy=(refB.y-refA.y)*factor/1000; // meters
+  const planDist=Math.hypot(planVx,planVy);
+  const worldVx=wb.x-wa.x, worldVz=wb.z-wa.z;
+  const measured=Math.hypot(worldVx,worldVz);
+  calib.measuredH=measured;
+  const theta=Math.atan2(worldVz,worldVx)-Math.atan2(planVy,planVx);
+  // scale: honor ruler as ground truth for real size
+  const scaleH=(calib.rulerH>0?calib.rulerH:measured)/planDist;
+  const floorY=Math.min(wa.y,wb.y);
+  // vertical scale
+  let scaleV=1;
+  if(tapWorld.v1&&tapWorld.v2&&calib.rulerV>0){const dy=Math.abs(tapWorld.v2.y-tapWorld.v1.y);if(dy>0.05)scaleV=calib.rulerV/dy;}
+  calib.scaleV=scaleV;
+  const cos=Math.cos(theta),sin=Math.sin(theta);
+  function toWorld(px,py,hMeters){
+    const rx=(px-refA.x)*factor/1000, ry=(py-refA.y)*factor/1000;
+    const X=wa.x+scaleH*(cos*rx-sin*ry);
+    const Z=wa.z+scaleH*(sin*rx+cos*ry);
+    return new THREE.Vector3(X, floorY + hMeters*scaleV, Z);
+  }
+  group.clear();
+  // devices
+  (plan.devices||[]).forEach(d=>{
+    const meta=SUB[d.sub]||['#ffffff','aparataj'];const col=new THREE.Color(meta[0]);
+    const pos=toWorld(d.x,d.y,(d.h||0)/100);
+    const m=new THREE.Mesh(new THREE.SphereGeometry(0.05,16,12),new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.4}));
+    m.position.copy(pos);m.userData.layer=meta[1];group.add(m);
+    // stem to floor
+    const stemH=Math.max(0.001,pos.y-floorY);
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,stemH,6),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.5}));
+    stem.position.set(pos.x,floorY+stemH/2,pos.z);stem.userData.layer=meta[1];group.add(stem);
+    group.add(makeLabel((d.label?d.label+' · ':'')+(d.h||0)+'cm',pos,meta[0]));
+  });
+  // routes
+  (plan.routes||[]).forEach(r=>{
+    if(!r.pts||r.pts.length<2)return;
+    const pts=r.pts.map(p=>toWorld(p.x,p.y,0.10));
+    const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({color:new THREE.Color(r.color||'#46b4ff')}));
+    line.userData.layer='circuite';group.add(line);
+  });
+  group.visible=true;applyLayers();
+}
+function makeLabel(text,pos,color){
+  const c=document.createElement('canvas');c.width=256;c.height=64;const x=c.getContext('2d');
+  x.fillStyle='rgba(7,11,18,.8)';x.fillRect(0,0,256,64);x.strokeStyle=color;x.lineWidth=3;x.strokeRect(2,2,252,60);
+  x.fillStyle='#fff';x.font='600 30px "IBM Plex Sans",sans-serif';x.textBaseline='middle';x.fillText(text,14,34);
+  const tex=new THREE.CanvasTexture(c);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false}));
+  sp.scale.set(0.4,0.1,1);sp.position.set(pos.x,pos.y+0.12,pos.z);sp.userData.layer='__label';return sp;
+}
+
+// layer toggles
+let layers={aparataj:true,doza:true,circuite:true};
+document.querySelectorAll('.tog').forEach(t=>t.addEventListener('click',()=>{
+  const k=t.dataset.layer;layers[k]=!layers[k];t.classList.toggle('off',!layers[k]);applyLayers();}));
+function applyLayers(){group.children.forEach(o=>{const l=o.userData.layer;
+  if(l==='__label')return;o.visible=layers[l]!==false;});}
+
+function showQuality(){const q=$('quality');q.style.display='block';
+  const errPct=calib.measuredH&&calib.rulerH?((Math.abs(calib.measuredH-calib.rulerH)/calib.rulerH)*100):0;
+  q.innerHTML=`AR măsurat: ${(calib.measuredH||0).toFixed(2)} m · ruletă: ${(calib.rulerH||0).toFixed(2)} m<br>`+
+    `Δ scară AR: <b style="color:${errPct>4?'#f87171':'#34d399'}">${errPct.toFixed(1)}%</b> · scară V: ${(calib.scaleV||1).toFixed(2)}×`;
+}
+
+// render loop
+function loop(t,frame){
+  if(frame&&hitSource){
+    const hits=frame.getHitTestResults(hitSource);
+    if(hits.length){const pose=hits[0].getPose(refSpace);
+      reticle.visible=(stage.startsWith('calib'));
+      reticle.matrix.fromArray(pose.transform.matrix);
+    } else reticle.visible=false;
+  }
+  renderer.render(scene,camera);
+}
+</script>
+</body>
+</html>

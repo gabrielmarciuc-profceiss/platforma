@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ElectroPlan · Suită AR</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070b12;--panel:#0f1622;--line:#22304a;--ink:#e7eef8;--muted:#8696b0;--amber:#ffb020;--cyan:#46b4ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:
+ radial-gradient(900px 500px at 80% -10%,rgba(70,180,255,.10),transparent 60%),
+ radial-gradient(700px 400px at -10% 110%,rgba(255,176,32,.08),transparent 55%),var(--bg);
+ color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;padding:26px 18px;max-width:680px;margin:auto}
+h1{font-family:"Chakra Petch";letter-spacing:.04em;font-size:24px;margin:0}
+h1 b{color:var(--amber)}.sub{color:var(--muted);font-size:13px;margin:4px 0 22px}
+.card{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--line);
+ border-radius:16px;padding:16px 18px;margin-bottom:14px;transition:.15s}
+.card:hover{border-color:#3b5170;transform:translateY(-2px)}
+.card h2{font-family:"Chakra Petch";font-size:15px;margin:0 0 4px;letter-spacing:.03em}
+.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.tags{margin-top:9px;display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-family:"Chakra Petch";font-size:10px;letter-spacing:.05em;padding:3px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+.tag.and{color:#9ff0c8;border-color:#1f5d3f}.tag.ios{color:#9fd2ff;border-color:#1f3f5d}.tag.all{color:#ffd98a;border-color:#5d4a1f}
+.note{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>Electro<b>Plan</b> · suită AR</h1>
+<div class="sub">Plan electric → realitate augmentată pe șantier</div>
+
+<a class="card" href="etapa0-editor.html">
+  <h2>① Editor plan + dispozitive</h2>
+  <p>Încarci DXF, marchezi prize/întrerupătoare/doze/tablou cu înălțimi, tragi trasee de circuite, exporți baza de date JSON.</p>
+  <div class="tags"><span class="tag all">desktop + telefon</span><span class="tag">DXF</span><span class="tag">JSON</span></div>
+</a>
+
+<a class="card" href="etapa2-ar.html">
+  <h2>② Montaj AR (plan → perete)</h2>
+  <p>Încarci JSON-ul, scanezi, calibrezi cu 2 repere + verticală, vezi dispozitivele și traseele suprapuse pe casa reală. Bife: circuite / doze / aparataj.</p>
+  <div class="tags"><span class="tag and">doar Android + Chrome · HTTPS</span></div>
+</a>
+
+<a class="card" href="pv-ar.html">
+  <h2>③ Plasare fotovoltaice AR</h2>
+  <p>Demo separat: plasează un sistem fotovoltaic 3D pe acoperiș/perete prin cameră.</p>
+  <div class="tags"><span class="tag and">Android (WebXR)</span><span class="tag ios">iPhone (Quick Look)</span></div>
+</a>
+
+<p class="note">Pentru fișierul <b>.usdz</b> de test pe iPhone: deschide direct <a href="pv-panou.usdz" style="color:var(--cyan)">pv-panou.usdz</a> pe telefon → se deschide în AR Quick Look.<br><br>
+Vezi <b>README.md</b> pentru găzduire și <b>PROIECT.md</b> pentru rezumatul complet al proiectului.</p>
+</body>
+</html>

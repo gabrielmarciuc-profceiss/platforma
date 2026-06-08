@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ElectroPlan · Editor plan + dispozitive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b12; --panel:#0f1622; --panel2:#131c2b; --line:#22304a; --ink:#e7eef8; --muted:#8696b0;
+  --wall:#5fb6e6; --grid:#0d2036;
+  --aparataj:#ffb020; --doza:#34d399; --circuit:#46b4ff; --sel:#ff5d8f;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;display:flex;flex-direction:column;height:100%}
+header{display:flex;align-items:baseline;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.05em;font-size:18px}
+.brand b{color:var(--aparataj)}
+.sub{color:var(--muted);font-size:12px}
+.wrap{flex:1;display:flex;min-height:0}
+#stage{flex:1;position:relative;background:
+  radial-gradient(900px 500px at 70% -10%, rgba(70,180,255,.07), transparent 60%), var(--bg)}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+aside{width:300px;flex:none;border-left:1px solid var(--line);background:var(--panel);
+  display:flex;flex-direction:column;overflow-y:auto}
+.sec{padding:12px 14px;border-bottom:1px solid var(--line)}
+.sec h3{margin:0 0 9px;font-family:"Chakra Petch",sans-serif;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel2);
+  color:var(--ink);border-radius:9px;padding:8px 10px;font-size:12.5px;font-family:inherit;cursor:pointer;transition:.15s}
+.btn:hover{border-color:#3b5170}
+.btn.active{background:linear-gradient(180deg,#173049,#12283f);border-color:var(--circuit);color:#fff;
+  box-shadow:inset 0 0 0 1px rgba(70,180,255,.4)}
+.btn.amber.active{border-color:var(--aparataj);box-shadow:inset 0 0 0 1px rgba(255,176,32,.45)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+select,input[type=text],input[type=number]{background:#0a0f1a;border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:8px;font-size:12.5px;font-family:inherit;width:100%}
+label.fld{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel2);margin-bottom:7px;cursor:pointer}
+.toggle .dot{width:11px;height:11px;border-radius:3px}
+.toggle .nm{flex:1;font-size:13px;font-weight:500}
+.toggle .sw{width:38px;height:21px;border-radius:999px;background:#26344c;position:relative;transition:.18s;flex:none}
+.toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#6c7d99;transition:.18s}
+.toggle.on .sw{background:#1f5d3f}
+.toggle.on .sw::after{left:19px;background:#34d399}
+.muted{color:var(--muted);font-size:11.5px;line-height:1.5}
+.tag{font-family:"Chakra Petch";font-size:10px;letter-spacing:.06em;padding:2px 6px;border-radius:5px;background:#0a0f1a;border:1px solid var(--line);color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:5px}
+.litem{display:flex;align-items:center;gap:8px;font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.litem .x{margin-left:auto;cursor:pointer;color:var(--muted);border:0;background:none;font-size:15px}
+.hud{position:absolute;left:10px;bottom:10px;background:rgba(7,11,18,.7);border:1px solid var(--line);
+  border-radius:9px;padding:6px 9px;font-size:11px;color:var(--muted);backdrop-filter:blur(6px)}
+.fab{position:absolute;right:10px;top:10px;display:flex;gap:6px}
+.kbd{font-family:"Chakra Petch";color:var(--ink)}
+#mobileToggle{display:none}
+@media (max-width:780px){
+  aside{position:fixed;inset:auto 0 0 0;top:auto;width:100%;height:62vh;border-left:0;border-top:1px solid var(--line);
+    transform:translateY(calc(100% - 46px));transition:.25s;z-index:20;border-radius:16px 16px 0 0}
+  aside.open{transform:translateY(0)}
+  #mobileToggle{display:flex;position:sticky;top:0;width:100%;justify-content:center;background:var(--panel);
+    border:0;border-bottom:1px solid var(--line);color:var(--ink);padding:13px;font-family:"Chakra Petch";letter-spacing:.08em;font-size:12px;cursor:pointer}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Electro<b>Plan</b></div>
+  <div class="sub">Plan DXF → dispozitive · trasee · înălțimi → bază de date JSON &nbsp;(Etapa 0)</div>
+</header>
+
+<div class="wrap">
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div class="fab">
+      <button class="btn" id="fit">⤢ Încadrează</button>
+    </div>
+    <div class="hud" id="hud">Încarcă un DXF ca să începi.</div>
+  </div>
+
+  <aside id="panel">
+    <button id="mobileToggle">≡ PANOU CONTROL</button>
+
+    <div class="sec">
+      <h3>Plan</h3>
+      <div class="row">
+        <label class="btn amber" style="flex:1;justify-content:center">
+          📂 Încarcă DXF
+          <input id="dxf" type="file" accept=".dxf" hidden>
+        </label>
+      </div>
+      <label class="fld">Unitate desen</label>
+      <select id="units">
+        <option value="1">milimetri (mm)</option>
+        <option value="10">centimetri (cm)</option>
+        <option value="1000">metri (m)</option>
+      </select>
+      <p class="muted" id="planInfo" style="margin-top:8px"></p>
+    </div>
+
+    <div class="sec">
+      <h3>Unealtă</h3>
+      <div class="grid2">
+        <button class="btn active" data-mode="select" id="mSelect">▣ Selectează</button>
+        <button class="btn" data-mode="add" id="mAdd">＋ Dispozitiv</button>
+        <button class="btn" data-mode="route" id="mRoute">〰 Traseu</button>
+        <button class="btn" data-mode="delete" id="mDelete">🗑 Șterge</button>
+      </div>
+
+      <div id="addBox" style="display:none">
+        <label class="fld">Tip dispozitiv</label>
+        <select id="subType"></select>
+        <label class="fld">Înălțime montaj (cm)</label>
+        <input id="addH" type="number" step="1" value="30">
+        <p class="muted" style="margin-top:7px">Atinge planul ca să plasezi.</p>
+      </div>
+
+      <div id="routeBox" style="display:none">
+        <label class="fld">Nume circuit</label>
+        <input id="rName" type="text" placeholder="ex. C1 prize living">
+        <div class="row" style="margin-top:7px">
+          <button class="btn" id="rStart" style="flex:1">● Traseu nou</button>
+          <button class="btn" id="rEnd" style="flex:1">✔ Termină</button>
+        </div>
+        <p class="muted" style="margin-top:7px">Atinge punct cu punct pe traseu; „Termină" îl închide.</p>
+      </div>
+    </div>
+
+    <div class="sec" id="editBox" style="display:none">
+      <h3>Dispozitiv selectat</h3>
+      <div class="row"><span class="tag" id="selTag"></span></div>
+      <label class="fld">Înălțime (cm)</label>
+      <input id="selH" type="number" step="1">
+      <label class="fld">Etichetă (opțional)</label>
+      <input id="selLabel" type="text" placeholder="ex. priză frigider">
+      <div class="row" style="margin-top:9px">
+        <button class="btn" id="selSave" style="flex:1">Salvează</button>
+        <button class="btn" id="selDel" style="flex:1;border-color:#5b2740">Șterge</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>Straturi afișate</h3>
+      <div class="toggle on" data-layer="aparataj"><span class="dot" style="background:var(--aparataj)"></span><span class="nm">Aparataj electric</span><span class="sw"></span></div>
+      <div class="toggle on" data-layer="doza"><span class="dot" style="background:var(--doza)"></span><span class="nm">Doze</span><span class="sw"></span></div>
+      <div class="toggle on" data-layer="circuite"><span class="dot" style="background:var(--circuit)"></span><span class="nm">Circuite</span><span class="sw"></span></div>
+    </div>
+
+    <div class="sec">
+      <h3>Circuite</h3>
+      <div class="list" id="routeList"><p class="muted">Niciun traseu încă.</p></div>
+    </div>
+
+    <div class="sec">
+      <h3>Bază de date</h3>
+      <div class="grid2">
+        <button class="btn" id="exp">⬇ Export JSON</button>
+        <label class="btn" style="justify-content:center">⬆ Import<input id="imp" type="file" accept=".json" hidden></label>
+      </div>
+      <p class="muted" id="dbInfo" style="margin-top:8px">0 dispozitive · 0 trasee</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ---------- state ----------
+const SUBTYPES=[
+  {sub:'priza',      label:'Priză',          cat:'aparataj', h:30,  letter:'P'},
+  {sub:'priza_blat', label:'Priză blat',     cat:'aparataj', h:110, letter:'P'},
+  {sub:'intrerupator',label:'Întrerupător',  cat:'aparataj', h:105, letter:'Î'},
+  {sub:'tablou',     label:'Tablou electric',cat:'aparataj', h:150, letter:'T'},
+  {sub:'doza_der',   label:'Doză derivație', cat:'doza',     h:220, letter:'D'},
+  {sub:'doza_ap',    label:'Doză aparat',    cat:'doza',     h:105, letter:'d'},
+];
+const CATCOLOR={aparataj:'#ffb020',doza:'#34d399'};
+const ROUTE_COLORS=['#46b4ff','#f59e0b','#a78bfa','#fb7185','#34d399','#22d3ee'];
+let geom={lines:[],polylines:[],circles:[],arcs:[],texts:[],bbox:null};
+let devices=[], routes=[];
+let view={scale:1,ox:0,oy:0};
+let mode='select', selDev=null, curRoute=null, rColorIdx=0;
+let layers={aparataj:true,doza:true,circuite:true};
+
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const hud=document.getElementById('hud');
+
+// populate subtype select
+const subSel=document.getElementById('subType');
+SUBTYPES.forEach((s,i)=>{const o=document.createElement('option');o.value=i;o.textContent=s.label;subSel.appendChild(o);});
+subSel.addEventListener('change',()=>{document.getElementById('addH').value=SUBTYPES[subSel.value].h;});
+
+// ---------- DXF parser (LINE, LWPOLYLINE, CIRCLE, ARC, TEXT) ----------
+function parseDXF(txt){
+  const L=txt.split(/\r\n|\r|\n/); const P=[];
+  for(let i=0;i+1<L.length;i+=2) P.push([parseInt(L[i].trim(),10), L[i+1]]);
+  const g={lines:[],polylines:[],circles:[],arcs:[],texts:[]};
+  let i=0;
+  // jump to first entity
+  while(i<P.length && !(P[i][0]===0)) i++;
+  while(i<P.length){
+    if(P[i][0]!==0){i++;continue;}
+    const type=(P[i][1]||'').trim(); i++;
+    const e={xs:[],ys:[]}; const codes={};
+    while(i<P.length && P[i][0]!==0){
+      const [c,v]=P[i];
+      if(c===10) e.xs.push(parseFloat(v));
+      else if(c===20) e.ys.push(parseFloat(v));
+      else if(c===11) codes.x2=parseFloat(v);
+      else if(c===21) codes.y2=parseFloat(v);
+      else if(c===40) codes.r=parseFloat(v);
+      else if(c===50) codes.a1=parseFloat(v);
+      else if(c===51) codes.a2=parseFloat(v);
+      else if(c===1)  codes.text=v;
+      else if(c===70) codes.flag=parseInt(v,10);
+      i++;
+    }
+    if(type==='LINE' && e.xs.length>=1 && codes.x2!=null)
+      g.lines.push({x1:e.xs[0],y1:e.ys[0],x2:codes.x2,y2:codes.y2});
+    else if(type==='LWPOLYLINE'||type==='POLYLINE'){
+      const pts=e.xs.map((x,k)=>({x,y:e.ys[k]})).filter(p=>p.y!=null);
+      if(pts.length>1){ if(codes.flag&1) pts.push({...pts[0]}); g.polylines.push(pts); }
+    }
+    else if(type==='CIRCLE' && codes.r) g.circles.push({x:e.xs[0],y:e.ys[0],r:codes.r});
+    else if(type==='ARC' && codes.r) g.arcs.push({x:e.xs[0],y:e.ys[0],r:codes.r,a1:codes.a1,a2:codes.a2});
+    else if((type==='TEXT'||type==='MTEXT') && codes.text!=null)
+      g.texts.push({x:e.xs[0],y:e.ys[0],h:codes.r||200,s:(codes.text||'').replace(/\\[A-Za-z][^;]*;|[{}]/g,'').trim()});
+  }
+  return g;
+}
+function computeBBox(g){
+  let mnx=1e15,mny=1e15,mxx=-1e15,mxy=-1e15;
+  const upd=(x,y)=>{if(x<mnx)mnx=x;if(y<mny)mny=y;if(x>mxx)mxx=x;if(y>mxy)mxy=y;};
+  g.lines.forEach(l=>{upd(l.x1,l.y1);upd(l.x2,l.y2);});
+  g.polylines.forEach(p=>p.forEach(v=>upd(v.x,v.y)));
+  g.circles.forEach(c=>{upd(c.x-c.r,c.y-c.r);upd(c.x+c.r,c.y+c.r);});
+  g.arcs.forEach(c=>{upd(c.x-c.r,c.y-c.r);upd(c.x+c.r,c.y+c.r);});
+  g.texts.forEach(t=>upd(t.x,t.y));
+  if(mnx>mxx) return null;
+  return {mnx,mny,mxx,mxy};
+}
+
+// ---------- view transforms ----------
+function W2Sx(x){return x*view.scale+view.ox;}
+function W2Sy(y){return -y*view.scale+view.oy;}
+function S2Wx(sx){return (sx-view.ox)/view.scale;}
+function S2Wy(sy){return -(sy-view.oy)/view.scale;}
+function fitView(){
+  if(!geom.bbox)return;
+  const b=geom.bbox, w=cv.width, h=cv.height, pad=40;
+  const sx=(w-2*pad)/Math.max(1,(b.mxx-b.mnx)), sy=(h-2*pad)/Math.max(1,(b.mxy-b.mny));
+  view.scale=Math.min(sx,sy);
+  view.ox=w/2 - ((b.mnx+b.mxx)/2)*view.scale;
+  view.oy=h/2 + ((b.mny+b.mxy)/2)*view.scale;
+  draw();
+}
+
+// ---------- draw ----------
+function resize(){const r=cv.parentElement.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);draw();}
+function draw(){
+  const w=cv.width/devicePixelRatio, h=cv.height/devicePixelRatio;
+  ctx.clearRect(0,0,w,h);
+  // walls
+  ctx.lineWidth=1.6; ctx.strokeStyle='#5fb6e6'; ctx.lineCap='round';
+  ctx.beginPath();
+  geom.lines.forEach(l=>{ctx.moveTo(W2Sx(l.x1),W2Sy(l.y1));ctx.lineTo(W2Sx(l.x2),W2Sy(l.y2));});
+  geom.polylines.forEach(p=>{ctx.moveTo(W2Sx(p[0].x),W2Sy(p[0].y));for(let k=1;k<p.length;k++)ctx.lineTo(W2Sx(p[k].x),W2Sy(p[k].y));});
+  ctx.stroke();
+  ctx.strokeStyle='#3f7fa6';
+  geom.circles.forEach(c=>{ctx.beginPath();ctx.arc(W2Sx(c.x),W2Sy(c.y),c.r*view.scale,0,7);ctx.stroke();});
+  geom.arcs.forEach(c=>{ctx.beginPath();ctx.arc(W2Sx(c.x),W2Sy(c.y),c.r*view.scale,-(c.a2||0)*Math.PI/180,-(c.a1||0)*Math.PI/180);ctx.stroke();});
+  // texts
+  ctx.fillStyle='#6f86a6'; ctx.textAlign='left';
+  geom.texts.forEach(t=>{const fs=Math.max(9,Math.min(22,t.h*view.scale));ctx.font=`600 ${fs}px "Chakra Petch",sans-serif`;ctx.fillText(t.s,W2Sx(t.x),W2Sy(t.y));});
+
+  // routes
+  if(layers.circuite){
+    routes.forEach(r=>{
+      ctx.strokeStyle=r.color;ctx.lineWidth=2.4;ctx.setLineDash([7,5]);ctx.beginPath();
+      r.pts.forEach((p,k)=>{const X=W2Sx(p.x),Y=W2Sy(p.y);k?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+      ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=r.color;r.pts.forEach(p=>{ctx.beginPath();ctx.arc(W2Sx(p.x),W2Sy(p.y),3,0,7);ctx.fill();});
+      if(r.pts.length){ctx.font='600 11px "Chakra Petch"';ctx.fillText(r.name||'',W2Sx(r.pts[0].x)+6,W2Sy(r.pts[0].y)-6);}
+    });
+  }
+  if(curRoute && curRoute.pts.length){
+    ctx.strokeStyle=curRoute.color;ctx.lineWidth=2.4;ctx.setLineDash([4,4]);ctx.beginPath();
+    curRoute.pts.forEach((p,k)=>{const X=W2Sx(p.x),Y=W2Sy(p.y);k?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+    ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=curRoute.color;curRoute.pts.forEach(p=>{ctx.beginPath();ctx.arc(W2Sx(p.x),W2Sy(p.y),4,0,7);ctx.fill();});
+  }
+  // devices
+  devices.forEach(d=>{
+    const meta=SUBTYPES.find(s=>s.sub===d.sub)||{};
+    if(!layers[meta.cat]) return;
+    const X=W2Sx(d.x),Y=W2Sy(d.y), col=CATCOLOR[meta.cat]||'#fff';
+    const sel=(d===selDev);
+    ctx.beginPath();ctx.arc(X,Y,sel?12:10,0,7);
+    ctx.fillStyle=col;ctx.globalAlpha=.18;ctx.fill();ctx.globalAlpha=1;
+    ctx.lineWidth=sel?2.4:1.6;ctx.strokeStyle=sel?'#ff5d8f':col;ctx.stroke();
+    ctx.fillStyle=col;ctx.font='700 11px "Chakra Petch"';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(meta.letter||'?',X,Y+.5);
+    ctx.textBaseline='alphabetic';ctx.textAlign='left';
+    ctx.fillStyle='#9fb2cc';ctx.font='600 10px "IBM Plex Sans"';
+    ctx.fillText(d.h+'cm',X+13,Y+3);
+  });
+}
+
+// ---------- interaction ----------
+const pointers=new Map(); let last=null, pinch=null, dragView=false;
+function evtPos(e){const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function nearestDevice(wx,wy){
+  let best=null,bd=1e15;const thr=14/view.scale;
+  devices.forEach(d=>{const dx=d.x-wx,dy=d.y-wy,dist=Math.hypot(dx,dy);if(dist<thr&&dist<bd){bd=dist;best=d;}});
+  return best;
+}
+cv.addEventListener('pointerdown',e=>{
+  cv.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,evtPos(e));
+  if(pointers.size===2){const p=[...pointers.values()];pinch={d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),mx:(p[0].x+p[1].x)/2,my:(p[0].y+p[1].y)/2,scale:view.scale,ox:view.ox,oy:view.oy};return;}
+  last=evtPos(e); dragView=false;
+});
+cv.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,evtPos(e));
+  if(pinch && pointers.size===2){
+    const p=[...pointers.values()];const nd=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    const f=nd/pinch.d;const ns=pinch.scale*f;
+    const wx=(pinch.mx-pinch.ox)/pinch.scale, wy=-(pinch.my-pinch.oy)/pinch.scale;
+    view.scale=ns;view.ox=pinch.mx-wx*ns;view.oy=pinch.my+wy*ns;draw();return;
+  }
+  if(last){const cur=evtPos(e);const dx=cur.x-last.x,dy=cur.y-last.y;
+    if(Math.hypot(dx,dy)>3)dragView=true;
+    if(mode==='select'||dragView){ if(mode==='select'){view.ox+=dx;view.oy+=dy;} }
+    last=cur; if(mode==='select')draw();}
+});
+cv.addEventListener('pointerup',e=>{
+  pointers.delete(e.pointerId); pinch=pointers.size<2?null:pinch;
+  const pos=evtPos(e); const wx=S2Wx(pos.x),wy=S2Wy(pos.y);
+  if(!dragView){ handleTap(wx,wy); }
+  last=pointers.size?[...pointers.values()][0]:null;
+});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();const pos=evtPos(e);const f=Math.exp(-e.deltaY*0.0012);
+  const wx=S2Wx(pos.x),wy=S2Wy(pos.y);view.scale*=f;view.ox=pos.x-wx*view.scale;view.oy=pos.y+wy*view.scale;draw();
+},{passive:false});
+
+function handleTap(wx,wy){
+  if(mode==='add'){
+    const meta=SUBTYPES[subSel.value];
+    devices.push({id:Date.now()+Math.random(),sub:meta.sub,x:wx,y:wy,h:parseInt(document.getElementById('addH').value||meta.h,10),label:''});
+    refreshDB();draw();
+  }else if(mode==='route'){
+    if(!curRoute){startRoute();}
+    curRoute.pts.push({x:wx,y:wy});draw();
+  }else if(mode==='delete'){
+    const d=nearestDevice(wx,wy);
+    if(d){devices=devices.filter(x=>x!==d);if(selDev===d)closeEdit();refreshDB();draw();return;}
+    // route node delete
+    for(const r of routes){const idx=r.pts.findIndex(p=>Math.hypot(p.x-wx,p.y-wy)<14/view.scale);if(idx>=0){r.pts.splice(idx,1);if(r.pts.length<2)routes=routes.filter(x=>x!==r);refreshRoutes();draw();return;}}
+  }else{ // select
+    const d=nearestDevice(wx,wy);
+    if(d){selDev=d;openEdit(d);}else{closeEdit();}
+    draw();
+  }
+}
+
+// ---------- editor ----------
+function openEdit(d){const meta=SUBTYPES.find(s=>s.sub===d.sub)||{};
+  document.getElementById('editBox').style.display='block';
+  document.getElementById('selTag').textContent=meta.label||d.sub;
+  document.getElementById('selH').value=d.h;
+  document.getElementById('selLabel').value=d.label||'';
+}
+function closeEdit(){selDev=null;document.getElementById('editBox').style.display='none';}
+document.getElementById('selSave').onclick=()=>{if(!selDev)return;selDev.h=parseInt(document.getElementById('selH').value,10)||selDev.h;selDev.label=document.getElementById('selLabel').value;draw();};
+document.getElementById('selDel').onclick=()=>{if(!selDev)return;devices=devices.filter(x=>x!==selDev);closeEdit();refreshDB();draw();};
+
+// ---------- routes ----------
+function startRoute(){const nm=document.getElementById('rName').value.trim()||('C'+(routes.length+1));
+  curRoute={id:Date.now(),name:nm,color:ROUTE_COLORS[rColorIdx++%ROUTE_COLORS.length],pts:[]};}
+document.getElementById('rStart').onclick=()=>{if(curRoute&&curRoute.pts.length>1)routes.push(curRoute);startRoute();draw();};
+document.getElementById('rEnd').onclick=()=>{if(curRoute&&curRoute.pts.length>1){routes.push(curRoute);}curRoute=null;refreshRoutes();refreshDB();draw();};
+function refreshRoutes(){const el=document.getElementById('routeList');
+  if(!routes.length){el.innerHTML='<p class="muted">Niciun traseu încă.</p>';return;}
+  el.innerHTML='';routes.forEach(r=>{const d=document.createElement('div');d.className='litem';
+    d.innerHTML=`<span class="dot" style="width:10px;height:10px;border-radius:2px;background:${r.color}"></span><span>${r.name} · ${r.pts.length} pct</span><button class="x">×</button>`;
+    d.querySelector('.x').onclick=()=>{routes=routes.filter(x=>x!==r);refreshRoutes();refreshDB();draw();};
+    el.appendChild(d);});
+}
+
+// ---------- modes / toggles ----------
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
+  mode=b.dataset.mode;
+  document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  document.getElementById('addBox').style.display=mode==='add'?'block':'none';
+  document.getElementById('routeBox').style.display=mode==='route'?'block':'none';
+  if(mode!=='route'&&curRoute){if(curRoute.pts.length>1)routes.push(curRoute);curRoute=null;refreshRoutes();draw();}
+  hud.textContent={select:'Selectează/mută planul; atinge un dispozitiv ca să-l editezi.',add:'Alege tipul și atinge planul.',route:'Atinge punct cu punct traseul circuitului.',delete:'Atinge un dispozitiv sau nod de traseu ca să-l ștergi.'}[mode];
+});
+document.querySelectorAll('.toggle').forEach(t=>t.onclick=()=>{
+  const k=t.dataset.layer;layers[k]=!layers[k];t.classList.toggle('on',layers[k]);draw();});
+
+// ---------- file IO ----------
+document.getElementById('dxf').addEventListener('change',ev=>{
+  const f=ev.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{geom=parseDXF(rd.result);geom.bbox=computeBBox(geom);
+    const n=geom.lines.length+geom.polylines.length+geom.circles.length+geom.arcs.length;
+    document.getElementById('planInfo').textContent=`${n} entități · ${geom.texts.length} texte`;
+    fitView();
+    if(geom.bbox){const u=parseFloat(document.getElementById('units').value);
+      const wm=((geom.bbox.mxx-geom.bbox.mnx)*u/1000).toFixed(2), hm=((geom.bbox.mxy-geom.bbox.mny)*u/1000).toFixed(2);
+      hud.textContent=`Plan încărcat · ~${wm} × ${hm} m`;}
+  };rd.readAsText(f);
+});
+document.getElementById('units').addEventListener('change',()=>{if(geom.bbox){const u=parseFloat(document.getElementById('units').value);
+  const wm=((geom.bbox.mxx-geom.bbox.mnx)*u/1000).toFixed(2),hm=((geom.bbox.mxy-geom.bbox.mny)*u/1000).toFixed(2);hud.textContent=`Plan · ~${wm} × ${hm} m`;}});
+document.getElementById('fit').onclick=fitView;
+
+document.getElementById('exp').onclick=()=>{
+  const data={meta:{app:'ElectroPlan',etapa:0,units_per_mm:parseFloat(document.getElementById('units').value),created:new Date().toISOString()},
+    geometry:geom,devices,routes};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='plan-electric.json';a.click();
+};
+document.getElementById('imp').addEventListener('change',ev=>{
+  const f=ev.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);geom=d.geometry||geom;if(!geom.bbox)geom.bbox=computeBBox(geom);
+    devices=d.devices||[];routes=d.routes||[];if(d.meta&&d.meta.units_per_mm)document.getElementById('units').value=String(d.meta.units_per_mm);
+    refreshRoutes();refreshDB();fitView();hud.textContent='Bază de date importată.';}catch(err){alert('JSON invalid');}};
+  rd.readAsText(f);
+});
+function refreshDB(){document.getElementById('dbInfo').textContent=`${devices.length} dispozitive · ${routes.length} trasee`;}
+
+// mobile panel
+document.getElementById('mobileToggle').onclick=()=>document.getElementById('panel').classList.toggle('open');
+
+new ResizeObserver(resize).observe(cv.parentElement);
+resize();
+</script>
+</body>
+</html>
