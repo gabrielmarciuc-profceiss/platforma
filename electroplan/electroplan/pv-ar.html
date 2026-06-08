@@ -199,7 +199,7 @@ const state = {
 
 const $ = id => document.getElementById(id);
 const mv = $('mv');
-let currentURL=null, rebuildTimer=null;
+let currentURL=null, rebuildTimer=null, hasModel=false;
 
 /* ===== materiale ===== */
 const M = {
@@ -302,12 +302,12 @@ async function rebuild(){
   ['solis','g2','powerbrick','tablou'].forEach(k=>{ const q=qtyOf(k); if(q>0) parts.push(`${q}× ${PRODUCTS[k].short}`); });
   $('dims').innerHTML = parts.length ? `<b>${parts.join(' · ')}</b> · scară reală fixă` : 'Adaugă panouri și/sau echipamente, apoi aranjează-le pe perete.';
   drawWall();
-  if(!any){ mv.removeAttribute('src'); refreshAR(); return; }
+  if(!any){ mv.removeAttribute('src'); hasModel=false; refreshAR(); return; }
   try{
     const glb=await new Promise((res,rej)=> new GLTFExporter().parse(root,res,rej,{binary:true}));
     const blob=new Blob([glb],{type:'model/gltf-binary'});
     if(currentURL) URL.revokeObjectURL(currentURL);
-    currentURL=URL.createObjectURL(blob); mv.src=currentURL;
+    currentURL=URL.createObjectURL(blob); mv.src=currentURL; hasModel=true; refreshAR();
   }catch(e){ $('compatNote').innerHTML='<b>Eroare</b> la generarea modelului: '+e.message; }
 }
 function scheduleRebuild(){ clearTimeout(rebuildTimer); rebuildTimer=setTimeout(rebuild,140); }
@@ -406,8 +406,8 @@ function refreshAR(){
   const can=mv.canActivateAR;
   arChip.textContent=can?'AR disponibil':'AR indisponibil';
   arChip.classList.toggle('on',can); arChip.classList.toggle('off',!can);
-  arBtn.disabled=!can||!mv.getAttribute('src');
-  if(!mv.getAttribute('src')){ compatNote.innerHTML='Adaugă cel puțin un element ca să poți deschide AR.'; return; }
+  arBtn.disabled=!can||!hasModel;
+  if(!hasModel){ compatNote.innerHTML='Adaugă cel puțin un element (panou sau echipament) ca să poți deschide AR.'; return; }
   if(!can){
     if(isIOS) compatNote.innerHTML='<b>iPhone:</b> AR doar prin <span class="k">Safari</span> (Quick Look), pe HTTPS.';
     else if(isAndroid) compatNote.innerHTML='<b>Android:</b> nevoie de <span class="k">Chrome</span> + ARCore, pe HTTPS.';
