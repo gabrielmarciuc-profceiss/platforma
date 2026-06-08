@@ -3,14 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PV·AR — Plasare fotovoltaice în realitate augmentată</title>
+<title>PV·AR — Configurator sistem fotovoltaic în AR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 :root{
-  --bg:#0b0f17; --panel:#121826; --line:#1f2937; --ink:#e7edf6; --muted:#8a98ad;
+  --bg:#0b0f17; --panel:#121826; --panel2:#0c1220; --line:#1f2937; --ink:#e7edf6; --muted:#8a98ad;
   --solar:#ffb020; --pv:#3fa9ff; --good:#34d399; --bad:#f87171;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -23,16 +26,15 @@ body{
   color:var(--ink); font-family:"IBM Plex Sans",system-ui,sans-serif;
   display:flex; flex-direction:column; min-height:100%;
 }
-/* faint blueprint grid */
 body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
   background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
                    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
   background-size:34px 34px;}
-header{padding:18px 18px 8px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+header{padding:16px 18px 6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .brand{font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.06em;font-size:22px}
 .brand b{color:var(--solar)}
 .sub{color:var(--muted);font-size:13px}
-.stage{position:relative;flex:1;min-height:340px;margin:6px 14px;border:1px solid var(--line);
+.stage{position:relative;flex:1;min-height:300px;margin:6px 14px;border:1px solid var(--line);
   border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#0e1420,#0a0e16)}
 model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent}
 .badge{position:absolute;top:12px;left:12px;z-index:5;display:flex;gap:6px;flex-wrap:wrap}
@@ -41,149 +43,363 @@ model-viewer{width:100%;height:100%;--poster-color:transparent;background:transp
   color:var(--muted);backdrop-filter:blur(6px)}
 .chip.on{color:var(--bg);background:var(--good);border-color:var(--good)}
 .chip.off{color:var(--bad);border-color:rgba(248,113,113,.4)}
-.hint{position:absolute;bottom:12px;left:12px;right:12px;z-index:5;text-align:center;
-  font-size:12px;color:var(--muted);background:rgba(11,15,23,.55);padding:8px 10px;
-  border-radius:12px;backdrop-filter:blur(6px)}
-.controls{padding:6px 14px 22px;display:grid;gap:12px}
-.row{display:flex;gap:10px}
-.seg{display:flex;flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px}
+.dims{position:absolute;bottom:12px;left:12px;right:12px;z-index:5;text-align:center;
+  font-size:12px;color:var(--muted);background:rgba(11,15,23,.6);padding:7px 10px;
+  border-radius:12px;backdrop-filter:blur(6px);line-height:1.5}
+.dims b{color:var(--ink)}
+.controls{padding:8px 14px 24px;display:grid;gap:12px}
+.section-t{font-family:"Chakra Petch";font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:6px 2px 0}
+.ctl{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+.ctl .lab{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--muted);margin-bottom:9px}
+.ctl .lab b{color:var(--ink);font-family:"Chakra Petch";font-size:14px;letter-spacing:.02em}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:42px;height:42px;flex:none;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+  border-radius:11px;font-size:21px;font-family:"Chakra Petch";cursor:pointer;line-height:1}
+.stepper input{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  border-radius:11px;padding:10px;font-size:17px;font-family:"Chakra Petch"}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:4px}
 .seg button{flex:1;border:0;background:transparent;color:var(--muted);font-family:"Chakra Petch",sans-serif;
-  font-weight:600;letter-spacing:.04em;font-size:13px;padding:11px 8px;border-radius:10px;cursor:pointer;transition:.18s}
-.seg button.active{background:linear-gradient(180deg,#1b2840,#16203a);color:var(--ink);
-  box-shadow:inset 0 0 0 1px rgba(63,169,255,.35)}
+  font-weight:600;letter-spacing:.03em;font-size:13px;padding:10px 8px;border-radius:9px;cursor:pointer;transition:.18s}
+.seg button.active{background:linear-gradient(180deg,#1b2840,#16203a);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(63,169,255,.35)}
+input[type=range]{width:100%;accent-color:var(--solar);height:28px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* catalog */
+.cat{display:grid;gap:10px}
+.prod{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.prod .ic{width:42px;height:42px;flex:none;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--panel2)}
+.prod .info{flex:1;min-width:0}
+.prod .nm{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.2}
+.prod .dm{font-size:11px;color:var(--muted);margin-top:2px}
+.prod .add{flex:none;border:0;border-radius:10px;padding:10px 13px;font-family:"Chakra Petch";font-weight:700;
+  font-size:13px;letter-spacing:.04em;color:#06210f;background:linear-gradient(180deg,#54e0a4,#2bbd80);cursor:pointer}
+/* lista sistem */
+.sys{display:grid;gap:8px}
+.sysrow{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:8px 10px}
+.sysrow .dot{width:11px;height:11px;border-radius:3px;flex:none}
+.sysrow .nm{flex:1;font-size:13px}
+.sysrow .mini{display:flex;align-items:center;gap:7px}
+.sysrow .mini button{width:30px;height:30px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;font-size:16px;cursor:pointer;font-family:"Chakra Petch";line-height:1}
+.sysrow .q{min-width:20px;text-align:center;font-family:"Chakra Petch";font-size:14px}
+.sysrow .rm{margin-left:2px;color:var(--muted);background:none;border:0;font-size:17px;cursor:pointer}
+.empty{color:var(--muted);font-size:12.5px;text-align:center;padding:6px}
 .ar{width:100%;border:0;border-radius:16px;cursor:pointer;padding:16px;
   font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.08em;font-size:16px;
-  color:#1a1300;background:linear-gradient(180deg,#ffc24d,var(--solar));
-  box-shadow:0 10px 30px -10px rgba(255,176,32,.55)}
+  color:#1a1300;background:linear-gradient(180deg,#ffc24d,var(--solar));box-shadow:0 10px 30px -10px rgba(255,176,32,.55)}
 .ar[disabled]{filter:grayscale(.7) brightness(.7);cursor:not-allowed;box-shadow:none}
 .ar small{display:block;font-weight:500;letter-spacing:.02em;font-size:11px;color:#5a4500;margin-top:2px;font-family:"IBM Plex Sans"}
-details{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0 14px}
-summary{cursor:pointer;padding:13px 0;font-family:"Chakra Petch",sans-serif;font-size:13px;letter-spacing:.04em;color:var(--muted)}
-.field{display:grid;gap:5px;margin:4px 0 14px}
-.field label{font-size:12px;color:var(--muted)}
-.field input{background:#0c1220;border:1px solid var(--line);border-radius:10px;color:var(--ink);
-  padding:11px 12px;font-size:13px;font-family:inherit}
 .note{font-size:12px;color:var(--muted);line-height:1.5}
-.note b{color:var(--ink)}
-.k{color:var(--pv);font-weight:600}
+.note b{color:var(--ink)} .k{color:var(--pv);font-weight:600}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">PV<b>·</b>AR</div>
-  <div class="sub">Plasează un sistem fotovoltaic prin camera telefonului</div>
+  <div class="sub">Configurează sistemul și vezi-l la scară reală pe perete</div>
 </header>
 
 <div class="stage">
   <div class="badge">
     <span class="chip" id="platChip">platformă…</span>
     <span class="chip" id="arChip">AR…</span>
-    <span class="chip" id="placeChip">acoperiș / sol</span>
+    <span class="chip on">scară reală</span>
   </div>
-
   <model-viewer id="mv"
-    src="data:model/gltf-binary;base64,Z2xURgIAAACcGAAA0AQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJjbGF1ZGUtcHYifSwic2NlbmUiOjAsInNjZW5lcyI6W3sibm9kZXMiOlswXX1dLCJub2RlcyI6W3sibWVzaCI6MCwibmFtZSI6IlBWX0FycmF5In1dLCJtYXRlcmlhbHMiOlt7Im5hbWUiOiJmcmFtZSIsInBick1ldGFsbGljUm91Z2huZXNzIjp7ImJhc2VDb2xvckZhY3RvciI6WzAuNzgsMC44LDAuODMsMV0sIm1ldGFsbGljRmFjdG9yIjowLjksInJvdWdobmVzc0ZhY3RvciI6MC4zNX19LHsibmFtZSI6ImNlbGwiLCJwYnJNZXRhbGxpY1JvdWdobmVzcyI6eyJiYXNlQ29sb3JGYWN0b3IiOlswLjA0LDAuMDcsMC4yLDFdLCJtZXRhbGxpY0ZhY3RvciI6MC41LCJyb3VnaG5lc3NGYWN0b3IiOjAuM319XSwibWVzaGVzIjpbeyJwcmltaXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJOT1JNQUwiOjF9LCJpbmRpY2VzIjoyLCJtYXRlcmlhbCI6MH0seyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJOT1JNQUwiOjF9LCJpbmRpY2VzIjozLCJtYXRlcmlhbCI6MX1dfV0sImFjY2Vzc29ycyI6W3siYnVmZmVyVmlldyI6MCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE2OCwidHlwZSI6IlZFQzMiLCJtaW4iOlstMS41MzQ5OTk5NjY2MjEzOTksMC4wLC0xLjY3OTk5OTk0NzU0NzkxMjZdLCJtYXgiOlsxLjUzNDk5OTk2NjYyMTM5OSwwLjA3MDAwMDAwMDI5ODAyMzIyLDEuNjc5OTk5OTQ3NTQ3OTEyNl19LHsiYnVmZmVyVmlldyI6MSwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE2OCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjIsImNvbXBvbmVudFR5cGUiOjUxMjUsImNvdW50IjozNiwidHlwZSI6IlNDQUxBUiJ9LHsiYnVmZmVyVmlldyI6MywiY29tcG9uZW50VHlwZSI6NTEyNSwiY291bnQiOjIxNiwidHlwZSI6IlNDQUxBUiJ9XSwiYnVmZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6MjAxNiwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjIwMTYsImJ5dGVMZW5ndGgiOjIwMTYsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo0MDMyLCJieXRlTGVuZ3RoIjoxNDQsInRhcmdldCI6MzQ5NjN9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo0MTc2LCJieXRlTGVuZ3RoIjo4NjQsInRhcmdldCI6MzQ5NjN9XSwiYnVmZmVycyI6W3siYnl0ZUxlbmd0aCI6NTA0MH1dfSAgILATAABCSU4A4XrEvwAAAAA9Ctc/4XrEPwAAAAA9Ctc/4XrEPwrXIz09Ctc/4XrEvwrXIz09Ctc/4XrEPwAAAAA9Cte/4XrEvwAAAAA9Cte/4XrEvwrXIz09Cte/4XrEPwrXIz09Cte/4XrEPwAAAAA9Ctc/4XrEPwAAAAA9Cte/4XrEPwrXIz09Cte/4XrEPwrXIz09Ctc/4XrEvwAAAAA9Cte/4XrEvwAAAAA9Ctc/4XrEvwrXIz09Ctc/4XrEvwrXIz09Cte/4XrEvwrXIz09Ctc/4XrEPwrXIz09Ctc/4XrEPwrXIz09Cte/4XrEvwrXIz09Cte/4XrEvwAAAAA9Cte/4XrEPwAAAAA9Cte/4XrEPwAAAAA9Ctc/4XrEvwAAAAA9Ctc/CRu+vwrXIz0OTy+9p+gIvwrXIz0OTy+9p+gIvylcjz0OTy+9CRu+vylcjz0OTy+9p+gIvwrXIz1pAM+/CRu+vwrXIz1pAM+/CRu+vylcjz1pAM+/p+gIvylcjz1pAM+/p+gIvwrXIz0OTy+9p+gIvwrXIz1pAM+/p+gIvylcjz1pAM+/p+gIvylcjz0OTy+9CRu+vwrXIz1pAM+/CRu+vwrXIz0OTy+9CRu+vylcjz0OTy+9CRu+vylcjz1pAM+/CRu+vylcjz0OTy+9p+gIvylcjz0OTy+9p+gIvylcjz1pAM+/CRu+vylcjz1pAM+/CRu+vwrXIz1pAM+/p+gIvwrXIz1pAM+/p+gIvwrXIz0OTy+9CRu+vwrXIz0OTy+9ak3zvgrXIz0OTy+9ak3zPgrXIz0OTy+9ak3zPilcjz0OTy+9ak3zvilcjz0OTy+9ak3zPgrXIz1pAM+/ak3zvgrXIz1pAM+/ak3zvilcjz1pAM+/ak3zPilcjz1pAM+/ak3zPgrXIz0OTy+9ak3zPgrXIz1pAM+/ak3zPilcjz1pAM+/ak3zPilcjz0OTy+9ak3zvgrXIz1pAM+/ak3zvgrXIz0OTy+9ak3zvilcjz0OTy+9ak3zvilcjz1pAM+/ak3zvilcjz0OTy+9ak3zPilcjz0OTy+9ak3zPilcjz1pAM+/ak3zvilcjz1pAM+/ak3zvgrXIz1pAM+/ak3zPgrXIz1pAM+/ak3zPgrXIz0OTy+9ak3zvgrXIz0OTy+9p+gIPwrXIz0OTy+9CRu+PwrXIz0OTy+9CRu+Pylcjz0OTy+9p+gIPylcjz0OTy+9CRu+PwrXIz1pAM+/p+gIPwrXIz1pAM+/p+gIPylcjz1pAM+/CRu+Pylcjz1pAM+/CRu+PwrXIz0OTy+9CRu+PwrXIz1pAM+/CRu+Pylcjz1pAM+/CRu+Pylcjz0OTy+9p+gIPwrXIz1pAM+/p+gIPwrXIz0OTy+9p+gIPylcjz0OTy+9p+gIPylcjz1pAM+/p+gIPylcjz0OTy+9CRu+Pylcjz0OTy+9CRu+Pylcjz1pAM+/p+gIPylcjz1pAM+/p+gIPwrXIz1pAM+/CRu+PwrXIz1pAM+/CRu+PwrXIz0OTy+9p+gIPwrXIz0OTy+9CRu+vwrXIz1pAM8/p+gIvwrXIz1pAM8/p+gIvylcjz1pAM8/CRu+vylcjz1pAM8/p+gIvwrXIz0OTy89CRu+vwrXIz0OTy89CRu+vylcjz0OTy89p+gIvylcjz0OTy89p+gIvwrXIz1pAM8/p+gIvwrXIz0OTy89p+gIvylcjz0OTy89p+gIvylcjz1pAM8/CRu+vwrXIz0OTy89CRu+vwrXIz1pAM8/CRu+vylcjz1pAM8/CRu+vylcjz0OTy89CRu+vylcjz1pAM8/p+gIvylcjz1pAM8/p+gIvylcjz0OTy89CRu+vylcjz0OTy89CRu+vwrXIz0OTy89p+gIvwrXIz0OTy89p+gIvwrXIz1pAM8/CRu+vwrXIz1pAM8/ak3zvgrXIz1pAM8/ak3zPgrXIz1pAM8/ak3zPilcjz1pAM8/ak3zvilcjz1pAM8/ak3zPgrXIz0OTy89ak3zvgrXIz0OTy89ak3zvilcjz0OTy89ak3zPilcjz0OTy89ak3zPgrXIz1pAM8/ak3zPgrXIz0OTy89ak3zPilcjz0OTy89ak3zPilcjz1pAM8/ak3zvgrXIz0OTy89ak3zvgrXIz1pAM8/ak3zvilcjz1pAM8/ak3zvilcjz0OTy89ak3zvilcjz1pAM8/ak3zPilcjz1pAM8/ak3zPilcjz0OTy89ak3zvilcjz0OTy89ak3zvgrXIz0OTy89ak3zPgrXIz0OTy89ak3zPgrXIz1pAM8/ak3zvgrXIz1pAM8/p+gIPwrXIz1pAM8/CRu+PwrXIz1pAM8/CRu+Pylcjz1pAM8/p+gIPylcjz1pAM8/CRu+PwrXIz0OTy89p+gIPwrXIz0OTy89p+gIPylcjz0OTy89CRu+Pylcjz0OTy89CRu+PwrXIz1pAM8/CRu+PwrXIz0OTy89CRu+Pylcjz0OTy89CRu+Pylcjz1pAM8/p+gIPwrXIz0OTy89p+gIPwrXIz1pAM8/p+gIPylcjz1pAM8/p+gIPylcjz0OTy89p+gIPylcjz1pAM8/CRu+Pylcjz1pAM8/CRu+Pylcjz0OTy89p+gIPylcjz0OTy89p+gIPwrXIz0OTy89CRu+PwrXIz0OTy89CRu+PwrXIz1pAM8/p+gIPwrXIz1pAM8/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAEAAAACAAAAAAAAAAIAAAADAAAABAAAAAUAAAAGAAAABAAAAAYAAAAHAAAACAAAAAkAAAAKAAAACAAAAAoAAAALAAAADAAAAA0AAAAOAAAADAAAAA4AAAAPAAAAEAAAABEAAAASAAAAEAAAABIAAAATAAAAFAAAABUAAAAWAAAAFAAAABYAAAAXAAAAGAAAABkAAAAaAAAAGAAAABoAAAAbAAAAHAAAAB0AAAAeAAAAHAAAAB4AAAAfAAAAIAAAACEAAAAiAAAAIAAAACIAAAAjAAAAJAAAACUAAAAmAAAAJAAAACYAAAAnAAAAKAAAACkAAAAqAAAAKAAAACoAAAArAAAALAAAAC0AAAAuAAAALAAAAC4AAAAvAAAAMAAAADEAAAAyAAAAMAAAADIAAAAzAAAANAAAADUAAAA2AAAANAAAADYAAAA3AAAAOAAAADkAAAA6AAAAOAAAADoAAAA7AAAAPAAAAD0AAAA+AAAAPAAAAD4AAAA/AAAAQAAAAEEAAABCAAAAQAAAAEIAAABDAAAARAAAAEUAAABGAAAARAAAAEYAAABHAAAASAAAAEkAAABKAAAASAAAAEoAAABLAAAATAAAAE0AAABOAAAATAAAAE4AAABPAAAAUAAAAFEAAABSAAAAUAAAAFIAAABTAAAAVAAAAFUAAABWAAAAVAAAAFYAAABXAAAAWAAAAFkAAABaAAAAWAAAAFoAAABbAAAAXAAAAF0AAABeAAAAXAAAAF4AAABfAAAAYAAAAGEAAABiAAAAYAAAAGIAAABjAAAAZAAAAGUAAABmAAAAZAAAAGYAAABnAAAAaAAAAGkAAABqAAAAaAAAAGoAAABrAAAAbAAAAG0AAABuAAAAbAAAAG4AAABvAAAAcAAAAHEAAAByAAAAcAAAAHIAAABzAAAAdAAAAHUAAAB2AAAAdAAAAHYAAAB3AAAAeAAAAHkAAAB6AAAAeAAAAHoAAAB7AAAAfAAAAH0AAAB+AAAAfAAAAH4AAAB/AAAAgAAAAIEAAACCAAAAgAAAAIIAAACDAAAAhAAAAIUAAACGAAAAhAAAAIYAAACHAAAAiAAAAIkAAACKAAAAiAAAAIoAAACLAAAAjAAAAI0AAACOAAAAjAAAAI4AAACPAAAAkAAAAJEAAACSAAAAkAAAAJIAAACTAAAAlAAAAJUAAACWAAAAlAAAAJYAAACXAAAAmAAAAJkAAACaAAAAmAAAAJoAAACbAAAAnAAAAJ0AAACeAAAAnAAAAJ4AAACfAAAAoAAAAKEAAACiAAAAoAAAAKIAAACjAAAApAAAAKUAAACmAAAApAAAAKYAAACnAAAA"
-    alt="Sistem fotovoltaic 3D"
-    camera-controls touch-action="pan-y"
-    shadow-intensity="1" exposure="0.95"
-    environment-image="neutral"
+    alt="Sistem fotovoltaic 3D la scară reală"
+    camera-controls disable-zoom touch-action="pan-y"
+    shadow-intensity="1" exposure="1" environment-image="neutral"
     ar ar-modes="webxr scene-viewer quick-look"
-    ar-placement="floor"
-    ar-scale="auto"
-    interaction-prompt="none">
+    ar-placement="wall" ar-scale="fixed" interaction-prompt="none">
     <button slot="ar-button" style="display:none"></button>
   </model-viewer>
-
-  <div class="hint" id="hint">Rotește cu degetul pentru previzualizare. Apasă „Deschide în AR" ca să-l plasezi pe casă.</div>
+  <div class="dims" id="dims">—</div>
 </div>
 
 <div class="controls">
-  <div class="row">
+
+  <!-- PANOURI PV -->
+  <div class="section-t">Panouri fotovoltaice</div>
+  <div class="ctl">
+    <div class="lab">Număr panouri <b id="countVal">2</b></div>
+    <div class="stepper">
+      <button id="cMinus">−</button>
+      <input id="count" type="number" inputmode="numeric" min="0" max="60" value="2">
+      <button id="cPlus">＋</button>
+    </div>
+  </div>
+  <div class="row2">
+    <div class="ctl">
+      <div class="lab">Pe rând <b id="perRowVal">2</b></div>
+      <div class="stepper">
+        <button id="rMinus">−</button>
+        <input id="perRow" type="number" inputmode="numeric" min="1" max="20" value="2">
+        <button id="rPlus">＋</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="lab">Orientare</div>
+      <div class="seg" id="orientSeg">
+        <button data-o="portret" class="active">Portret</button>
+        <button data-o="peisaj">Peisaj</button>
+      </div>
+    </div>
+  </div>
+  <div class="ctl">
+    <div class="lab">Unghi înclinare panouri <b id="tiltVal">30°</b></div>
+    <input id="tilt" type="range" min="0" max="60" step="1" value="30">
+  </div>
+
+  <!-- CATALOG ECHIPAMENTE -->
+  <div class="section-t">Adaugă echipamente</div>
+  <div class="cat" id="catalog"></div>
+
+  <!-- SISTEMUL TĂU -->
+  <div class="section-t">Sistemul tău</div>
+  <div class="sys" id="sysList"></div>
+
+  <!-- PLASARE -->
+  <div class="section-t">Plasare în AR</div>
+  <div class="ctl">
     <div class="seg" id="placeSeg">
-      <button data-p="floor" class="active">Acoperiș / Sol</button>
-      <button data-p="wall">Perete / Fațadă</button>
+      <button data-p="wall" class="active">Pe perete</button>
+      <button data-p="floor">Pe podea</button>
     </div>
   </div>
 
   <button class="ar" id="arBtn">
     DESCHIDE ÎN AR
-    <small id="arSmall">deschide camera și plasează panourile</small>
+    <small id="arSmall">sistemul apare la dimensiunea reală</small>
   </button>
 
-  <details>
-    <summary>Setări avansate · modelul tău 3D</summary>
-    <div class="field">
-      <label>URL model Android/web (.glb / .gltf)</label>
-      <input id="glbUrl" placeholder="https://exemplu.ro/panou.glb">
-    </div>
-    <div class="field">
-      <label>URL model iPhone (.usdz) — opțional</label>
-      <input id="usdzUrl" placeholder="https://exemplu.ro/panou.usdz">
-    </div>
-    <p class="note">Lasă gol ca să folosești panoul demonstrativ inclus (matrice 3×2, ~3×3.4&nbsp;m, la scară reală). Pe iPhone, dacă nu pui un <span class="k">.usdz</span>, model-viewer încearcă să-l genereze automat din .glb — funcționează pentru modele statice, dar pentru calitate maximă oferă tu fișierul .usdz.</p>
-  </details>
-
+  <p class="note">Toate dimensiunile sunt <span class="k">reale</span> (din fișele tehnice) și <b>fixe</b> în AR — fără zoom, ca să vezi exact cum încape pe perete. Reglează configurația aici, apoi deschide AR.</p>
   <p class="note" id="compatNote"></p>
 </div>
 
-<script>
-const mv = document.getElementById('mv');
-const arBtn = document.getElementById('arBtn');
-const placeSeg = document.getElementById('placeSeg');
-const placeChip = document.getElementById('placeChip');
-const platChip = document.getElementById('platChip');
-const arChip = document.getElementById('arChip');
-const compatNote = document.getElementById('compatNote');
-const hint = document.getElementById('hint');
+<script type="module">
+import * as THREE from 'three';
+import { GLTFExporter } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/exporters/GLTFExporter.js';
 
-const ua = navigator.userAgent;
-const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const isAndroid = /Android/.test(ua);
-platChip.textContent = isIOS ? 'iPhone / iPad' : isAndroid ? 'Android' : 'Desktop';
+/* ===== dimensiuni reale (metri) — din datasheet, ajustabile ===== */
+const PANEL = { L:1.762, W:1.134, T:0.035 };
+const PRODUCTS = {
+  solis:      { name:'Invertor Solis S6 trifazat 10 kW', icon:'🔌', dim:{w:0.596,h:0.496,d:0.23}, color:0xdfe3e8, mount:'wall', dot:'#cfd6df' },
+  g2:         { name:'Baterie Dyness Powerbox G2 · 10,24 kWh', icon:'🔋', dim:{w:0.64,h:0.71,d:0.165}, color:0x1f2a3a, mount:'wall', dot:'#3fa9ff' },
+  powerbrick: { name:'Dyness PowerBrick · ~16 kWh', icon:'🗄️', dim:{w:0.435,h:0.90,d:0.233}, color:0x10151f, mount:'floor', dot:'#7c93b3' },
+  tablou:     { name:'Tablou electric cu siguranțe', icon:'🎛️', dim:{w:0.40,h:0.30,d:0.10}, color:0xeef1f4, mount:'wall', dot:'#ffb020' },
+};
+const GAP = 0.02;       // rost panouri
+const ITEM_GAP = 0.18;  // spațiu între echipamente
 
-// AR availability (async API from model-viewer)
-function refreshAR(){
-  const can = mv.canActivateAR;
-  arChip.textContent = can ? 'AR disponibil' : 'AR indisponibil';
-  arChip.classList.toggle('on', can);
-  arChip.classList.toggle('off', !can);
-  arBtn.disabled = !can;
-  if(!can){
-    if(isIOS) compatNote.innerHTML = '<b>iPhone:</b> AR în browser merge doar prin <span class="k">Safari</span> (AR Quick Look). Deschide pagina în Safari, nu într-un browser din altă aplicație. Necesită <b>HTTPS</b>.';
-    else if(isAndroid) compatNote.innerHTML = '<b>Android:</b> e nevoie de <span class="k">Chrome</span> + serviciul <b>Google Play Services for AR (ARCore)</b> instalat, iar pagina servită prin <b>HTTPS</b>.';
-    else compatNote.innerHTML = 'Pe desktop vezi doar previzualizarea 3D. Deschide pagina pe telefon (HTTPS) pentru AR.';
-  } else {
-    compatNote.innerHTML = isIOS
-      ? 'Plasare pe suprafață, apoi <span class="k">trage</span> pentru poziție și <span class="k">prinde cu 2 degete</span> pentru scară.'
-      : 'Mișcă telefonul ca să detecteze suprafața, atinge ca să plasezi, apoi scalează/rotește cu degetele.';
+const state = {
+  panel:{ count:2, perRow:2, tilt:30, orient:'portret' },
+  qty:{ solis:0, g2:0, powerbrick:0, tablou:0 },
+  placement:'wall',
+};
+
+const $ = id => document.getElementById(id);
+const mv = $('mv');
+let currentURL=null, rebuildTimer=null;
+
+/* ===== materiale ===== */
+const M = {
+  frame:  ()=> new THREE.MeshStandardMaterial({color:0xc8ccd2, metalness:.9, roughness:.35}),
+  cell:   ()=> new THREE.MeshStandardMaterial({color:0x0b1230, metalness:.45, roughness:.28}),
+  body:   c => new THREE.MeshStandardMaterial({color:c, metalness:.4, roughness:.5}),
+  dark:   ()=> new THREE.MeshStandardMaterial({color:0x0a0d14, metalness:.3, roughness:.6}),
+  accent: c => new THREE.MeshStandardMaterial({color:c, metalness:.2, roughness:.5, emissive:c, emissiveIntensity:.25}),
+};
+function box(w,h,d,mat){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat); }
+
+/* ===== builders: fiecare întoarce un Group, bază la y=0, spate la z=0, fața spre +Z, centrat pe x ===== */
+function buildPanelArray(p){
+  const fx = p.orient==='portret'? PANEL.W : PANEL.L;
+  const fz = p.orient==='portret'? PANEL.L : PANEL.W;
+  const cols = Math.max(1, Math.min(p.perRow, p.count));
+  const rows = Math.ceil(p.count/cols);
+  const totalW = cols*fx+(cols-1)*GAP, totalD = rows*fz+(rows-1)*GAP;
+  const g = new THREE.Group(), tilt = new THREE.Group(); g.add(tilt);
+  const fm=M.frame(), cm=M.cell();
+  let i=0;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    if(i>=p.count) break;
+    const cx=-totalW/2+fx/2+c*(fx+GAP), cz=-(fz/2+r*(fz+GAP));
+    const fr=box(fx,PANEL.T,fz,fm); fr.position.set(cx,-PANEL.T/2,cz); tilt.add(fr);
+    const ce=box(fx*0.94,PANEL.T*0.6,fz*0.93,cm); ce.position.set(cx,0.003,cz); tilt.add(ce);
+    i++;
   }
+  tilt.rotation.x = p.tilt*Math.PI/180;
+  return seat(g);
 }
-mv.addEventListener('load', refreshAR);
-mv.addEventListener('ar-status', e=>{ if(e.detail.status==='failed') compatNote.innerHTML='<b>AR nu a putut porni.</b> Verifică permisiunea camerei și că pagina e pe HTTPS.'; });
-setTimeout(refreshAR, 1200);
-
-arBtn.addEventListener('click', ()=>{ try{ mv.activateAR(); }catch(err){ refreshAR(); } });
-
-// placement toggle
-placeSeg.addEventListener('click', e=>{
-  const b = e.target.closest('button'); if(!b) return;
-  [...placeSeg.children].forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  const p = b.dataset.p;
-  mv.setAttribute('ar-placement', p);
-  placeChip.textContent = p==='wall' ? 'perete' : 'acoperiș / sol';
-});
-
-// custom model
-const glbUrl=document.getElementById('glbUrl'), usdzUrl=document.getElementById('usdzUrl');
-const baseSrc = mv.getAttribute('src');
-function applyModel(){
-  mv.setAttribute('src', glbUrl.value.trim() || baseSrc);
-  if(usdzUrl.value.trim()) mv.setAttribute('ios-src', usdzUrl.value.trim());
-  else mv.removeAttribute('ios-src');
+function buildSolis(d){
+  const g=new THREE.Group();
+  const b=box(d.w,d.h,d.d,M.body(PRODUCTS.solis.color)); b.position.set(0,d.h/2,d.d/2); g.add(b);
+  const face=box(d.w*0.86,d.h*0.5,0.012,M.dark()); face.position.set(0,d.h*0.62,d.d+0.006); g.add(face);
+  const scr=box(d.w*0.34,d.h*0.14,0.006,M.accent(0x1b9e75)); scr.position.set(0,d.h*0.70,d.d+0.012); g.add(scr);
+  // fante de ventilație jos
+  for(let k=-2;k<=2;k++){ const v=box(d.w*0.7,0.01,0.006,M.dark()); v.position.set(0,d.h*0.22+k*0.03,d.d+0.006); g.add(v); }
+  return g;
 }
-glbUrl.addEventListener('change', applyModel);
-usdzUrl.addEventListener('change', applyModel);
+function buildG2(d){
+  const g=new THREE.Group();
+  const b=box(d.w,d.h,d.d,M.body(PRODUCTS.g2.color)); b.position.set(0,d.h/2,d.d/2); g.add(b);
+  const stripe=box(d.w,0.05,0.008,M.accent(0x3fa9ff)); stripe.position.set(0,d.h*0.82,d.d+0.004); g.add(stripe);
+  for(let k=0;k<4;k++){ const led=box(0.02,0.02,0.006,M.accent(0x34d399)); led.position.set(-d.w/2+0.08+k*0.05,d.h*0.12,d.d+0.004); g.add(led); }
+  return g;
+}
+function buildPowerBrick(d){
+  const g=new THREE.Group();
+  const b=box(d.w,d.h,d.d,M.body(PRODUCTS.powerbrick.color)); b.position.set(0,d.h/2,d.d/2); g.add(b);
+  const mods=Math.max(3,Math.round(d.h/0.18));
+  for(let k=1;k<mods;k++){ const seam=box(d.w*1.002,0.006,d.d*1.002,M.dark()); seam.position.set(0,k*(d.h/mods),d.d/2); g.add(seam); }
+  const cap=box(d.w*1.04,0.05,d.d*1.04,M.body(0x2a3340)); cap.position.set(0,d.h+0.02,d.d/2); g.add(cap);
+  return g;
+}
+function buildTablou(d){
+  const g=new THREE.Group();
+  const encl=box(d.w,d.h,d.d,M.body(PRODUCTS.tablou.color)); encl.position.set(0,d.h/2,d.d/2); g.add(encl);
+  const door=box(d.w*0.9,d.h*0.82,0.01,M.body(0xf6f8fa)); door.position.set(0,d.h/2,d.d+0.005); g.add(door);
+  // rând de siguranțe (mini-întrerupătoare) pe DIN
+  const rail=box(d.w*0.8,0.02,0.006,M.dark()); rail.position.set(0,d.h*0.5,d.d+0.012); g.add(rail);
+  const n=8, bw=d.w*0.8/n;
+  for(let k=0;k<n;k++){
+    const br=box(bw*0.7,0.07,0.02,M.body(0xe8ebee)); br.position.set(-d.w*0.4+bw/2+k*bw, d.h*0.5, d.d+0.022); g.add(br);
+    const lev=box(bw*0.3,0.02,0.012,M.accent(0xff6b3d)); lev.position.set(-d.w*0.4+bw/2+k*bw, d.h*0.5+0.025, d.d+0.03); g.add(lev);
+  }
+  return g;
+}
+const BUILD = { solis:buildSolis, g2:buildG2, powerbrick:buildPowerBrick, tablou:buildTablou };
+
+/* așază un group cu baza la y=0 */
+function seat(g){ g.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(g); g.position.y-=bb.min.y; return g; }
+function widthOf(g){ g.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(g); return bb.max.x-bb.min.x; }
+
+/* ===== compunere sistem ===== */
+function buildSystem(){
+  const root=new THREE.Group();
+  const items=[];
+  if(state.panel.count>0) items.push({ g:buildPanelArray(state.panel), key:'panel' });
+  ['tablou','solis','g2','powerbrick'].forEach(k=>{
+    for(let i=0;i<state.qty[k];i++) items.push({ g:seat(BUILD[k](PRODUCTS[k].dim)), key:k });
+  });
+  if(!items.length) return { root, totalW:0, count:0 };
+
+  // aliniate într-un rând, baza pe podea/perete, spate la z=0
+  const gaps=ITEM_GAP;
+  const widths=items.map(it=>widthOf(it.g));
+  const totalW=widths.reduce((a,b)=>a+b,0)+gaps*(items.length-1);
+  let cursor=-totalW/2;
+  items.forEach((it,idx)=>{
+    it.g.position.x += cursor + widths[idx]/2;
+    root.add(it.g);
+    cursor += widths[idx]+gaps;
+  });
+  return { root, totalW, count:items.length };
+}
+
+async function rebuild(){
+  const { root, totalW } = buildSystem();
+  // info
+  const parts=[];
+  if(state.panel.count>0) parts.push(`${state.panel.count} panou(ri)`);
+  ['solis','g2','powerbrick','tablou'].forEach(k=>{ if(state.qty[k]>0) parts.push(`${state.qty[k]}× ${PRODUCTS[k].name.split(' ').slice(0,2).join(' ')}`); });
+  $('dims').innerHTML = parts.length
+    ? `<b>${parts.join(' · ')}</b><br>Lățime totală sistem: <b>${totalW.toFixed(2)} m</b> · scară reală fixă`
+    : 'Adaugă panouri și echipamente ca să compui sistemul.';
+  renderSys();
+
+  if(totalW===0){ mv.removeAttribute('src'); return; }
+  try{
+    const glb=await new Promise((res,rej)=> new GLTFExporter().parse(root,res,rej,{binary:true}));
+    const blob=new Blob([glb],{type:'model/gltf-binary'});
+    if(currentURL) URL.revokeObjectURL(currentURL);
+    currentURL=URL.createObjectURL(blob); mv.src=currentURL;
+  }catch(e){ $('compatNote').innerHTML='<b>Eroare</b> la generarea modelului: '+e.message; }
+}
+function scheduleRebuild(){ clearTimeout(rebuildTimer); rebuildTimer=setTimeout(rebuild,120); }
+
+/* ===== catalog UI ===== */
+function renderCatalog(){
+  const c=$('catalog'); c.innerHTML='';
+  Object.entries(PRODUCTS).forEach(([k,p])=>{
+    const d=p.dim;
+    const el=document.createElement('div'); el.className='prod';
+    el.innerHTML=`<div class="ic">${p.icon}</div>
+      <div class="info"><div class="nm">${p.name}</div>
+      <div class="dm">${Math.round(d.w*1000)} × ${Math.round(d.h*1000)} × ${Math.round(d.d*1000)} mm · ${p.mount==='wall'?'perete':'podea'}</div></div>
+      <button class="add" data-k="${k}">＋ Adaugă</button>`;
+    c.appendChild(el);
+  });
+  c.querySelectorAll('.add').forEach(b=> b.onclick=()=>{ state.qty[b.dataset.k]++; scheduleRebuild(); });
+}
+function renderSys(){
+  const s=$('sysList'); s.innerHTML='';
+  const rows=[];
+  if(state.panel.count>0) rows.push({key:'panel', dot:'#0b1230', nm:`Panouri PV (${state.panel.count})`, fixed:true});
+  ['solis','g2','powerbrick','tablou'].forEach(k=>{ if(state.qty[k]>0) rows.push({key:k, dot:PRODUCTS[k].dot, nm:PRODUCTS[k].name, q:state.qty[k]}); });
+  if(!rows.length){ s.innerHTML='<div class="empty">Nimic adăugat încă. Setează panourile sus și apasă „＋ Adaugă" la echipamente.</div>'; return; }
+  rows.forEach(r=>{
+    const el=document.createElement('div'); el.className='sysrow';
+    if(r.fixed){
+      el.innerHTML=`<span class="dot" style="background:${r.dot}"></span><span class="nm">${r.nm}</span><span class="mini" style="color:var(--muted);font-size:12px">reglat sus</span>`;
+    }else{
+      el.innerHTML=`<span class="dot" style="background:${r.dot}"></span><span class="nm">${r.nm}</span>
+        <span class="mini"><button data-a="m" data-k="${r.key}">−</button><span class="q">${r.q}</span><button data-a="p" data-k="${r.key}">＋</button>
+        <button class="rm" data-a="x" data-k="${r.key}">✕</button></span>`;
+    }
+    s.appendChild(el);
+  });
+  s.querySelectorAll('button[data-a]').forEach(b=> b.onclick=()=>{
+    const k=b.dataset.k;
+    if(b.dataset.a==='m') state.qty[k]=Math.max(0,state.qty[k]-1);
+    else if(b.dataset.a==='p') state.qty[k]++;
+    else if(b.dataset.a==='x') state.qty[k]=0;
+    scheduleRebuild();
+  });
+}
+
+/* ===== controale panouri ===== */
+function clampInt(v,lo,hi,def){ v=parseInt(v,10); if(isNaN(v)) v=def; return Math.max(lo,Math.min(hi,v)); }
+function setCount(v){ state.panel.count=clampInt(v,0,60,0); $('count').value=state.panel.count; $('countVal').textContent=state.panel.count;
+  if(state.panel.perRow>Math.max(1,state.panel.count)) setPerRow(Math.max(1,state.panel.count)); else scheduleRebuild(); }
+function setPerRow(v){ state.panel.perRow=clampInt(v,1,20,1); $('perRow').value=state.panel.perRow; $('perRowVal').textContent=state.panel.perRow; scheduleRebuild(); }
+function setTilt(v){ state.panel.tilt=clampInt(v,0,60,30); $('tilt').value=state.panel.tilt; $('tiltVal').textContent=state.panel.tilt+'°'; scheduleRebuild(); }
+$('cMinus').onclick=()=>setCount(state.panel.count-1);
+$('cPlus').onclick=()=>setCount(state.panel.count+1);
+$('count').onchange=e=>setCount(e.target.value);
+$('rMinus').onclick=()=>setPerRow(state.panel.perRow-1);
+$('rPlus').onclick=()=>setPerRow(state.panel.perRow+1);
+$('perRow').onchange=e=>setPerRow(e.target.value);
+$('tilt').oninput=e=>setTilt(e.target.value);
+$('orientSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+  [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.panel.orient=b.dataset.o; scheduleRebuild(); });
+$('placeSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+  [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active');
+  state.placement=b.dataset.p; mv.setAttribute('ar-placement', state.placement); });
+
+/* ===== AR / compatibilitate ===== */
+const ua=navigator.userAgent;
+const isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isAndroid=/Android/.test(ua);
+$('platChip').textContent=isIOS?'iPhone / iPad':isAndroid?'Android':'Desktop';
+const arBtn=$('arBtn'), arChip=$('arChip'), compatNote=$('compatNote');
+function refreshAR(){
+  const can=mv.canActivateAR;
+  arChip.textContent=can?'AR disponibil':'AR indisponibil';
+  arChip.classList.toggle('on',can); arChip.classList.toggle('off',!can);
+  arBtn.disabled=!can||!mv.src;
+  if(!can){
+    if(isIOS) compatNote.innerHTML='<b>iPhone:</b> AR doar prin <span class="k">Safari</span> (Quick Look), pe HTTPS.';
+    else if(isAndroid) compatNote.innerHTML='<b>Android:</b> nevoie de <span class="k">Chrome</span> + ARCore, pe HTTPS.';
+    else compatNote.innerHTML='Pe desktop vezi doar previzualizarea 3D. Deschide pe telefon (HTTPS) pentru AR.';
+  }else compatNote.innerHTML='Îndreaptă telefonul spre perete (sau podea), mișcă-l ușor să detecteze suprafața, apoi atinge ca să plasezi. <b>Mărimea rămâne reală.</b>';
+}
+mv.addEventListener('load',refreshAR);
+mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') compatNote.innerHTML='<b>AR nu a pornit.</b> Verifică permisiunea camerei și HTTPS.'; });
+setTimeout(refreshAR,1500);
+arBtn.addEventListener('click',()=>{ try{ mv.activateAR(); }catch(err){ refreshAR(); } });
+
+/* ===== start ===== */
+renderCatalog();
+rebuild();
 </script>
 </body>
 </html>
