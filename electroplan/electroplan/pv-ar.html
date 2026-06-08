@@ -34,7 +34,7 @@ header{padding:16px 18px 6px;display:flex;align-items:baseline;gap:10px;flex-wra
 .brand{font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.06em;font-size:22px}
 .brand b{color:var(--solar)}
 .sub{color:var(--muted);font-size:13px}
-.stage{position:relative;flex:1;min-height:300px;margin:6px 14px;border:1px solid var(--line);
+.stage{position:relative;flex:1;min-height:280px;margin:6px 14px;border:1px solid var(--line);
   border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#0e1420,#0a0e16)}
 model-viewer{width:100%;height:100%;--poster-color:transparent;background:transparent}
 .badge{position:absolute;top:12px;left:12px;z-index:5;display:flex;gap:6px;flex-wrap:wrap}
@@ -77,12 +77,8 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
 .qstep button{width:36px;height:36px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
   border-radius:10px;font-size:19px;font-family:"Chakra Petch";cursor:pointer;line-height:1}
 .qstep .q{min-width:22px;text-align:center;font-family:"Chakra Petch";font-size:16px;color:var(--ink)}
-/* lista sistem (recapitulare) */
-.sys{display:grid;gap:8px}
-.sysrow{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 11px}
-.sysrow .dot{width:11px;height:11px;border-radius:3px;flex:none}
-.sysrow .nm{flex:1;font-size:13px}
-.empty{color:var(--muted);font-size:12.5px;text-align:center;padding:8px;line-height:1.5}
+/* editor perete */
+#wall{width:100%;height:290px;display:block;background:#0a0f1a;border:1px solid var(--line);border-radius:12px;touch-action:none}
 .ar{width:100%;border:0;border-radius:16px;cursor:pointer;padding:16px;
   font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.08em;font-size:16px;
   color:#1a1300;background:linear-gradient(180deg,#ffc24d,var(--solar));box-shadow:0 10px 30px -10px rgba(255,176,32,.55)}
@@ -95,7 +91,7 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
 <body>
 <header>
   <div class="brand">PV<b>·</b>AR</div>
-  <div class="sub">Configurează sistemul și vezi-l la scară reală pe perete</div>
+  <div class="sub">Configurează, aranjează pe perete, vezi în AR la scară reală</div>
 </header>
 
 <div class="stage">
@@ -153,9 +149,12 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
   <div class="section-t">Adaugă echipamente</div>
   <div class="cat" id="catalog"></div>
 
-  <!-- SISTEMUL TĂU -->
-  <div class="section-t">Sistemul tău</div>
-  <div class="sys" id="sysList"></div>
+  <!-- EDITOR PERETE -->
+  <div class="section-t">Aranjează pe perete</div>
+  <div class="ctl" style="padding:10px">
+    <canvas id="wall"></canvas>
+    <p class="note" id="wallHint" style="margin-top:9px">Trage fiecare element ca să-l poziționezi pe perete — stânga/dreapta, sus/jos. Mărimile sunt reale; linia groasă jos = podeaua. Caroiaj = 0,5 m.</p>
+  </div>
 
   <!-- PLASARE -->
   <div class="section-t">Plasare în AR</div>
@@ -171,7 +170,7 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
     <small id="arSmall">sistemul apare la dimensiunea reală</small>
   </button>
 
-  <p class="note">Toate dimensiunile sunt <span class="k">reale</span> (din fișele tehnice) și <b>fixe</b> în AR — fără zoom, ca să vezi exact cum încape pe perete. Panourile sunt opționale: poți porni AR și doar cu invertor + baterie.</p>
+  <p class="note">Dimensiunile sunt <span class="k">reale</span> (din fișele tehnice) și <b>fixe</b> în AR — fără zoom. Aranjarea de pe perete se păstrează exact în AR.</p>
   <p class="note" id="compatNote"></p>
 </div>
 
@@ -179,20 +178,22 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
 import * as THREE from 'three';
 import { GLTFExporter } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/exporters/GLTFExporter.js';
 
-/* ===== dimensiuni reale (metri) — din datasheet, ajustabile ===== */
+/* ===== dimensiuni reale (metri) — din datasheet ===== */
 const PANEL = { L:1.762, W:1.134, T:0.035 };
 const PRODUCTS = {
-  solis:      { name:'Invertor Solis S6 trifazat 10 kW', icon:'🔌', dim:{w:0.596,h:0.496,d:0.23}, color:0xdfe3e8, mount:'wall', dot:'#cfd6df' },
-  g2:         { name:'Baterie Dyness Powerbox G2 · 10,24 kWh', icon:'🔋', dim:{w:0.64,h:0.71,d:0.165}, color:0x1f2a3a, mount:'wall', dot:'#3fa9ff' },
-  powerbrick: { name:'Dyness PowerBrick · ~16 kWh', icon:'🗄️', dim:{w:0.435,h:0.90,d:0.233}, color:0x10151f, mount:'floor', dot:'#7c93b3' },
-  tablou:     { name:'Tablou electric cu siguranțe', icon:'🎛️', dim:{w:0.40,h:0.30,d:0.10}, color:0xeef1f4, mount:'wall', dot:'#ffb020' },
+  solis:      { name:'Invertor Solis S6 trifazat 10 kW', short:'Invertor', icon:'🔌', dim:{w:0.596,h:0.496,d:0.23}, color:0xdfe3e8, edit:'#c4ccd6', mount:'wall' },
+  g2:         { name:'Baterie Dyness Powerbox G2 · 10,24 kWh', short:'Baterie G2', icon:'🔋', dim:{w:0.64,h:0.71,d:0.165}, color:0x1f2a3a, edit:'#33547a', mount:'wall' },
+  powerbrick: { name:'Dyness PowerBrick · ~16 kWh', short:'PowerBrick', icon:'🗄️', dim:{w:0.435,h:0.90,d:0.233}, color:0x10151f, edit:'#28303d', mount:'floor' },
+  tablou:     { name:'Tablou electric cu siguranțe', short:'Tablou', icon:'🎛️', dim:{w:0.40,h:0.30,d:0.10}, color:0xeef1f4, edit:'#d7dde3', mount:'wall' },
 };
-const GAP = 0.02;       // rost panouri
-const ITEM_GAP = 0.18;  // spațiu între echipamente
+const DEF_Y = { solis:1.30, g2:0.55, powerbrick:0.0, tablou:1.60 };
+const GAP = 0.02;
+const WALL = { W:6, H:3 }; // suprafața de lucru a peretelui (m)
 
+let uid=1, sel=null, drag=null;
 const state = {
-  panel:{ count:0, perRow:1, tilt:30, orient:'portret' },
-  qty:{ solis:0, g2:0, powerbrick:0, tablou:0 },
+  panel:{ count:0, perRow:1, tilt:30, orient:'portret', x:-1.6, y:0.30 },
+  items: [],            // {id,type,x,y} — x = centru (m, 0=mijloc), y = baza de la podea (m)
   placement:'wall',
 };
 
@@ -210,13 +211,13 @@ const M = {
 };
 function box(w,h,d,mat){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat); }
 
-/* ===== builders: fiecare întoarce un Group, bază la y=0, spate la z=0, fața spre +Z, centrat pe x ===== */
+/* ===== builders (Group: bază y=0, spate z=0, fața +Z, centrat pe x) ===== */
 function buildPanelArray(p){
   const fx = p.orient==='portret'? PANEL.W : PANEL.L;
   const fz = p.orient==='portret'? PANEL.L : PANEL.W;
   const cols = Math.max(1, Math.min(p.perRow, p.count));
   const rows = Math.ceil(p.count/cols);
-  const totalW = cols*fx+(cols-1)*GAP, totalD = rows*fz+(rows-1)*GAP;
+  const totalW = cols*fx+(cols-1)*GAP;
   const g = new THREE.Group(), tilt = new THREE.Group(); g.add(tilt);
   const fm=M.frame(), cm=M.cell();
   let i=0;
@@ -235,7 +236,6 @@ function buildSolis(d){
   const b=box(d.w,d.h,d.d,M.body(PRODUCTS.solis.color)); b.position.set(0,d.h/2,d.d/2); g.add(b);
   const face=box(d.w*0.86,d.h*0.5,0.012,M.dark()); face.position.set(0,d.h*0.62,d.d+0.006); g.add(face);
   const scr=box(d.w*0.34,d.h*0.14,0.006,M.accent(0x1b9e75)); scr.position.set(0,d.h*0.70,d.d+0.012); g.add(scr);
-  // fante de ventilație jos
   for(let k=-2;k<=2;k++){ const v=box(d.w*0.7,0.01,0.006,M.dark()); v.position.set(0,d.h*0.22+k*0.03,d.d+0.006); g.add(v); }
   return g;
 }
@@ -258,7 +258,6 @@ function buildTablou(d){
   const g=new THREE.Group();
   const encl=box(d.w,d.h,d.d,M.body(PRODUCTS.tablou.color)); encl.position.set(0,d.h/2,d.d/2); g.add(encl);
   const door=box(d.w*0.9,d.h*0.82,0.01,M.body(0xf6f8fa)); door.position.set(0,d.h/2,d.d+0.005); g.add(door);
-  // rând de siguranțe (mini-întrerupătoare) pe DIN
   const rail=box(d.w*0.8,0.02,0.006,M.dark()); rail.position.set(0,d.h*0.5,d.d+0.012); g.add(rail);
   const n=8, bw=d.w*0.8/n;
   for(let k=0;k<n;k++){
@@ -269,45 +268,41 @@ function buildTablou(d){
 }
 const BUILD = { solis:buildSolis, g2:buildG2, powerbrick:buildPowerBrick, tablou:buildTablou };
 
-/* așază un group cu baza la y=0 */
 function seat(g){ g.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(g); g.position.y-=bb.min.y; return g; }
-function widthOf(g){ g.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(g); return bb.max.x-bb.min.x; }
+function sizeOf(g){ g.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(g); return { w:bb.max.x-bb.min.x, h:bb.max.y-bb.min.y }; }
+function panelSize(){ return sizeOf(buildPanelArray(state.panel)); }
 
-/* ===== compunere sistem ===== */
+/* ===== noduri plasabile (panou + fiecare instanță echipament) ===== */
+function nodes(){
+  const out=[];
+  if(state.panel.count>0){ const s=panelSize(); out.push({ key:'panel', ref:state.panel, w:s.w, h:s.h, color:'#16335c', label:`Panouri ×${state.panel.count}` }); }
+  state.items.forEach(it=>{ const p=PRODUCTS[it.type]; out.push({ key:it.id, ref:it, w:p.dim.w, h:p.dim.h, color:p.edit, label:p.short }); });
+  return out;
+}
+const qtyOf = t => state.items.filter(i=>i.type===t).length;
+function addItem(t){
+  const n=qtyOf(t);
+  const x=Math.max(-WALL.W/2+0.4, Math.min(WALL.W/2-0.4, -1.2 + n*0.55));
+  state.items.push({ id:uid++, type:t, x, y:(DEF_Y[t] ?? 0.5) });
+}
+function removeItem(t){ for(let i=state.items.length-1;i>=0;i--){ if(state.items[i].type===t){ if(sel===state.items[i].id) sel=null; state.items.splice(i,1); break; } } }
+
+/* ===== compunere 3D ===== */
 function buildSystem(){
-  const root=new THREE.Group();
-  const items=[];
-  if(state.panel.count>0) items.push({ g:buildPanelArray(state.panel), key:'panel' });
-  ['tablou','solis','g2','powerbrick'].forEach(k=>{
-    for(let i=0;i<state.qty[k];i++) items.push({ g:seat(BUILD[k](PRODUCTS[k].dim)), key:k });
-  });
-  if(!items.length) return { root, totalW:0, count:0 };
-
-  // aliniate într-un rând, baza pe podea/perete, spate la z=0
-  const gaps=ITEM_GAP;
-  const widths=items.map(it=>widthOf(it.g));
-  const totalW=widths.reduce((a,b)=>a+b,0)+gaps*(items.length-1);
-  let cursor=-totalW/2;
-  items.forEach((it,idx)=>{
-    it.g.position.x += cursor + widths[idx]/2;
-    root.add(it.g);
-    cursor += widths[idx]+gaps;
-  });
-  return { root, totalW, count:items.length };
+  const root=new THREE.Group(); let any=false;
+  if(state.panel.count>0){ const g=buildPanelArray(state.panel); g.position.x+=state.panel.x; g.position.y+=state.panel.y; root.add(g); any=true; }
+  state.items.forEach(it=>{ const g=seat(BUILD[it.type](PRODUCTS[it.type].dim)); g.position.x+=it.x; g.position.y+=it.y; root.add(g); any=true; });
+  return { root, any };
 }
 
 async function rebuild(){
-  const { root, totalW } = buildSystem();
-  // info
+  const { root, any } = buildSystem();
   const parts=[];
-  if(state.panel.count>0) parts.push(`${state.panel.count} panou(ri)`);
-  ['solis','g2','powerbrick','tablou'].forEach(k=>{ if(state.qty[k]>0) parts.push(`${state.qty[k]}× ${PRODUCTS[k].name.split(' ').slice(0,2).join(' ')}`); });
-  $('dims').innerHTML = parts.length
-    ? `<b>${parts.join(' · ')}</b><br>Lățime totală sistem: <b>${totalW.toFixed(2)} m</b> · scară reală fixă`
-    : 'Adaugă panouri și/sau echipamente ca să compui sistemul.';
-  renderSys();
-
-  if(totalW===0){ mv.removeAttribute('src'); refreshAR(); return; }
+  if(state.panel.count>0) parts.push(`${state.panel.count} panouri`);
+  ['solis','g2','powerbrick','tablou'].forEach(k=>{ const q=qtyOf(k); if(q>0) parts.push(`${q}× ${PRODUCTS[k].short}`); });
+  $('dims').innerHTML = parts.length ? `<b>${parts.join(' · ')}</b> · scară reală fixă` : 'Adaugă panouri și/sau echipamente, apoi aranjează-le pe perete.';
+  drawWall();
+  if(!any){ mv.removeAttribute('src'); refreshAR(); return; }
   try{
     const glb=await new Promise((res,rej)=> new GLTFExporter().parse(root,res,rej,{binary:true}));
     const blob=new Blob([glb],{type:'model/gltf-binary'});
@@ -315,11 +310,11 @@ async function rebuild(){
     currentURL=URL.createObjectURL(blob); mv.src=currentURL;
   }catch(e){ $('compatNote').innerHTML='<b>Eroare</b> la generarea modelului: '+e.message; }
 }
-function scheduleRebuild(){ clearTimeout(rebuildTimer); rebuildTimer=setTimeout(rebuild,120); }
+function scheduleRebuild(){ clearTimeout(rebuildTimer); rebuildTimer=setTimeout(rebuild,140); }
 
-/* ===== catalog UI cu − [n] + pe fiecare echipament ===== */
+/* ===== catalog cu − [n] + ===== */
 function prodControl(k){
-  const q=state.qty[k];
+  const q=qtyOf(k);
   return q<=0
     ? `<button class="add" data-k="${k}" data-a="add">＋ Adaugă</button>`
     : `<span class="qstep"><button data-k="${k}" data-a="m">−</button><span class="q">${q}</span><button data-k="${k}" data-a="p">＋</button></span>`;
@@ -340,31 +335,54 @@ function updateProd(k){ const b=$('ctl-'+k); if(b) b.innerHTML=prodControl(k); }
 function onCatalogClick(e){
   const b=e.target.closest('button'); if(!b||!b.dataset.k) return;
   const k=b.dataset.k, a=b.dataset.a;
-  if(a==='add'||a==='p') state.qty[k]++;
-  else if(a==='m') state.qty[k]=Math.max(0,state.qty[k]-1);
-  updateProd(k); renderSys(); scheduleRebuild();
+  if(a==='add'||a==='p') addItem(k);
+  else if(a==='m') removeItem(k);
+  updateProd(k); drawWall(); scheduleRebuild();
 }
 
-/* recapitulare (read-only) */
-function renderSys(){
-  const s=$('sysList'); s.innerHTML='';
-  const rows=[];
-  if(state.panel.count>0) rows.push({dot:'#0b1230', nm:`Panouri PV × ${state.panel.count}`});
-  ['solis','g2','powerbrick','tablou'].forEach(k=>{ if(state.qty[k]>0) rows.push({dot:PRODUCTS[k].dot, nm:`${PRODUCTS[k].name} × ${state.qty[k]}`}); });
-  if(!rows.length){ s.innerHTML='<div class="empty">Nimic adăugat încă. Reglează panourile și/sau apasă „＋ Adaugă" la echipamente.<br>Poți porni AR și doar cu invertor + baterie.</div>'; return; }
-  rows.forEach(r=>{
-    const el=document.createElement('div'); el.className='sysrow';
-    el.innerHTML=`<span class="dot" style="background:${r.dot}"></span><span class="nm">${r.nm}</span>`;
-    s.appendChild(el);
+/* ===== editor perete (2D, scară reală) ===== */
+const wc=$('wall'), wx=wc.getContext('2d');
+function fitWall(){ const dpr=devicePixelRatio||1; wc.width=wc.clientWidth*dpr; wc.height=wc.clientHeight*dpr; wx.setTransform(dpr,0,0,dpr,0,0); }
+function map(){ const cw=wc.clientWidth, ch=wc.clientHeight; const s=Math.min(cw/WALL.W,(ch-10)/WALL.H)*0.94; return { cw, ch, s, ox:cw/2, oy:ch-16 }; }
+function rectOf(n,m){ const w=n.w*m.s, h=n.h*m.s; const cx=m.ox+n.ref.x*m.s, by=m.oy-n.ref.y*m.s; return { left:cx-w/2, top:by-h, w, h, by }; }
+function drawWall(){
+  fitWall();
+  const m=map(), cw=m.cw, ch=m.ch;
+  wx.clearRect(0,0,cw,ch);
+  const SX=x=>m.ox+x*m.s, SY=y=>m.oy-y*m.s;
+  // caroiaj
+  wx.strokeStyle='#13233a'; wx.lineWidth=1;
+  for(let gx=-WALL.W/2; gx<=WALL.W/2+0.001; gx+=0.5){ wx.beginPath(); wx.moveTo(SX(gx),SY(0)); wx.lineTo(SX(gx),SY(WALL.H)); wx.stroke(); }
+  for(let gy=0; gy<=WALL.H+0.001; gy+=0.5){ wx.beginPath(); wx.moveTo(SX(-WALL.W/2),SY(gy)); wx.lineTo(SX(WALL.W/2),SY(gy)); wx.stroke(); }
+  // podea
+  wx.strokeStyle='#3b5170'; wx.lineWidth=2.5; wx.beginPath(); wx.moveTo(SX(-WALL.W/2),SY(0)); wx.lineTo(SX(WALL.W/2),SY(0)); wx.stroke();
+  // noduri
+  nodes().forEach(n=>{
+    const r=rectOf(n,m);
+    wx.globalAlpha=0.92; wx.fillStyle=n.color; wx.fillRect(r.left,r.top,r.w,r.h); wx.globalAlpha=1;
+    wx.strokeStyle=(sel===n.key)?'#ffb020':'#5fb6e6'; wx.lineWidth=(sel===n.key)?2.6:1.4; wx.strokeRect(r.left,r.top,r.w,r.h);
+    wx.fillStyle='#0b1220'; wx.font='700 11px "IBM Plex Sans"';
+    if(r.h>18 && r.w>34) wx.fillText(n.label, r.left+5, r.top+15);
   });
 }
+function evt(e){ const r=wc.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
+function pick(px,py){ const m=map(); const ns=nodes(); for(let i=ns.length-1;i>=0;i--){ const r=rectOf(ns[i],m); if(px>=r.left&&px<=r.left+r.w&&py>=r.top&&py<=r.by) return ns[i]; } return null; }
+wc.addEventListener('pointerdown',e=>{ const p=evt(e); const n=pick(p.x,p.y); sel=n?n.key:null; if(n){ drag=n; wc.setPointerCapture(e.pointerId); } drawWall(); });
+wc.addEventListener('pointermove',e=>{ if(!drag) return; const p=evt(e); const m=map();
+  let x=(p.x-m.ox)/m.s; let yb=(m.oy-p.y)/m.s - drag.h/2;
+  x=Math.max(-WALL.W/2+drag.w/2, Math.min(WALL.W/2-drag.w/2, x));
+  yb=Math.max(0, Math.min(WALL.H-drag.h, yb));
+  drag.ref.x=x; drag.ref.y=yb; drawWall(); scheduleRebuild();
+});
+wc.addEventListener('pointerup',()=>{ drag=null; });
+wc.addEventListener('pointercancel',()=>{ drag=null; });
 
 /* ===== controale panouri ===== */
 function clampInt(v,lo,hi,def){ v=parseInt(v,10); if(isNaN(v)) v=def; return Math.max(lo,Math.min(hi,v)); }
 function setCount(v){ state.panel.count=clampInt(v,0,60,0); $('count').value=state.panel.count; $('countVal').textContent=state.panel.count;
-  if(state.panel.perRow>Math.max(1,state.panel.count)) setPerRow(Math.max(1,state.panel.count)); else scheduleRebuild(); }
-function setPerRow(v){ state.panel.perRow=clampInt(v,1,20,1); $('perRow').value=state.panel.perRow; $('perRowVal').textContent=state.panel.perRow; scheduleRebuild(); }
-function setTilt(v){ state.panel.tilt=clampInt(v,0,60,30); $('tilt').value=state.panel.tilt; $('tiltVal').textContent=state.panel.tilt+'°'; scheduleRebuild(); }
+  if(state.panel.perRow>Math.max(1,state.panel.count)) setPerRow(Math.max(1,state.panel.count)); else { drawWall(); scheduleRebuild(); } }
+function setPerRow(v){ state.panel.perRow=clampInt(v,1,20,1); $('perRow').value=state.panel.perRow; $('perRowVal').textContent=state.panel.perRow; drawWall(); scheduleRebuild(); }
+function setTilt(v){ state.panel.tilt=clampInt(v,0,60,30); $('tilt').value=state.panel.tilt; $('tiltVal').textContent=state.panel.tilt+'°'; drawWall(); scheduleRebuild(); }
 $('cMinus').onclick=()=>setCount(state.panel.count-1);
 $('cPlus').onclick=()=>setCount(state.panel.count+1);
 $('count').onchange=e=>setCount(e.target.value);
@@ -373,7 +391,7 @@ $('rPlus').onclick=()=>setPerRow(state.panel.perRow+1);
 $('perRow').onchange=e=>setPerRow(e.target.value);
 $('tilt').oninput=e=>setTilt(e.target.value);
 $('orientSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
-  [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.panel.orient=b.dataset.o; scheduleRebuild(); });
+  [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.panel.orient=b.dataset.o; drawWall(); scheduleRebuild(); });
 $('placeSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
   [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active');
   state.placement=b.dataset.p; mv.setAttribute('ar-placement', state.placement); });
@@ -389,21 +407,23 @@ function refreshAR(){
   arChip.textContent=can?'AR disponibil':'AR indisponibil';
   arChip.classList.toggle('on',can); arChip.classList.toggle('off',!can);
   arBtn.disabled=!can||!mv.getAttribute('src');
-  if(!mv.getAttribute('src')){ compatNote.innerHTML='Adaugă cel puțin un element (panouri sau echipamente) ca să poți deschide AR.'; return; }
+  if(!mv.getAttribute('src')){ compatNote.innerHTML='Adaugă cel puțin un element ca să poți deschide AR.'; return; }
   if(!can){
     if(isIOS) compatNote.innerHTML='<b>iPhone:</b> AR doar prin <span class="k">Safari</span> (Quick Look), pe HTTPS.';
     else if(isAndroid) compatNote.innerHTML='<b>Android:</b> nevoie de <span class="k">Chrome</span> + ARCore, pe HTTPS.';
     else compatNote.innerHTML='Pe desktop vezi doar previzualizarea 3D. Deschide pe telefon (HTTPS) pentru AR.';
-  }else compatNote.innerHTML='Îndreaptă telefonul spre perete (sau podea), mișcă-l ușor să detecteze suprafața, apoi atinge ca să plasezi. <b>Mărimea rămâne reală.</b>';
+  }else compatNote.innerHTML='Îndreaptă telefonul spre perete, mișcă-l ușor să detecteze suprafața, apoi atinge ca să plasezi. <b>Aranjarea și mărimea se păstrează.</b>';
 }
 mv.addEventListener('load',refreshAR);
 mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') compatNote.innerHTML='<b>AR nu a pornit.</b> Verifică permisiunea camerei și HTTPS.'; });
 setTimeout(refreshAR,1500);
 arBtn.addEventListener('click',()=>{ try{ mv.activateAR(); }catch(err){ refreshAR(); } });
+window.addEventListener('resize',drawWall);
 
 /* ===== start ===== */
 renderCatalog();
 $('catalog').addEventListener('click', onCatalogClick);
+drawWall();
 rebuild();
 </script>
 </body>
