@@ -78,7 +78,11 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
   border-radius:10px;font-size:19px;font-family:"Chakra Petch";cursor:pointer;line-height:1}
 .qstep .q{min-width:22px;text-align:center;font-family:"Chakra Petch";font-size:16px;color:var(--ink)}
 /* editor perete */
-#wall{width:100%;height:290px;display:block;background:#0a0f1a;border:1px solid var(--line);border-radius:12px;touch-action:none}
+.wtools{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.wtools .sp{flex:1}
+.wtools button{height:34px;min-width:38px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+  border-radius:9px;font-size:15px;font-family:"Chakra Petch";cursor:pointer;line-height:1;padding:0 9px}
+#wall{width:100%;height:300px;display:block;background:#0a0f1a;border:1px solid var(--line);border-radius:12px;touch-action:none}
 .ar{width:100%;border:0;border-radius:16px;cursor:pointer;padding:16px;
   font-family:"Chakra Petch",sans-serif;font-weight:700;letter-spacing:.08em;font-size:16px;
   color:#1a1300;background:linear-gradient(180deg,#ffc24d,var(--solar));box-shadow:0 10px 30px -10px rgba(255,176,32,.55)}
@@ -152,8 +156,16 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
   <!-- EDITOR PERETE -->
   <div class="section-t">Aranjează pe perete</div>
   <div class="ctl" style="padding:10px">
+    <div class="wtools">
+      <button id="alignBottom" title="Aliniază jos la podea">⤓ jos</button>
+      <button id="alignTop" title="Aliniază sus, la aceeași înălțime">⤒ sus</button>
+      <div class="sp"></div>
+      <button id="zOut" title="Micșorează vederea">−</button>
+      <button id="zReset" title="Resetează vederea">⤢</button>
+      <button id="zIn" title="Mărește vederea">＋</button>
+    </div>
     <canvas id="wall"></canvas>
-    <p class="note" id="wallHint" style="margin-top:9px">Trage fiecare element ca să-l poziționezi pe perete — stânga/dreapta, sus/jos. Mărimile sunt reale; linia groasă jos = podeaua. Caroiaj = 0,5 m.</p>
+    <p class="note" id="wallHint" style="margin-top:9px">Trage fiecare element pe perete. La apropiere, se <b>aliniază automat</b> (ghidaj galben) la marginile / centrul / înălțimea altor produse. Zoom: <b>＋ / −</b> sau prinde cu 2 degete; cu un deget pe gol = muți vederea. Caroiaj = 0,5 m.</p>
   </div>
 
   <!-- PLASARE -->
@@ -170,7 +182,7 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
     <small id="arSmall">sistemul apare la dimensiunea reală</small>
   </button>
 
-  <p class="note">Dimensiunile sunt <span class="k">reale</span> (din fișele tehnice) și <b>fixe</b> în AR — fără zoom. Aranjarea de pe perete se păstrează exact în AR.</p>
+  <p class="note">Dimensiunile sunt <span class="k">reale</span> și <b>fixe</b> în AR — fără zoom pe produse. Aranjarea de pe perete se păstrează exact în AR.</p>
   <p class="note" id="compatNote"></p>
 </div>
 
@@ -188,14 +200,16 @@ const PRODUCTS = {
 };
 const DEF_Y = { solis:1.30, g2:0.55, powerbrick:0.0, tablou:1.60 };
 const GAP = 0.02;
-const WALL = { W:6, H:3 }; // suprafața de lucru a peretelui (m)
+const WALL = { W:6, H:3 };
 
 let uid=1, sel=null, drag=null;
 const state = {
   panel:{ count:0, perRow:1, tilt:30, orient:'portret', x:-1.6, y:0.30 },
-  items: [],            // {id,type,x,y} — x = centru (m, 0=mijloc), y = baza de la podea (m)
+  items: [],
   placement:'wall',
 };
+const view = { z:1, px:0, py:0 };   // zoom + pan editor
+let guides = { gx:null, gy:null };
 
 const $ = id => document.getElementById(id);
 const mv = $('mv');
@@ -211,7 +225,7 @@ const M = {
 };
 function box(w,h,d,mat){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat); }
 
-/* ===== builders (Group: bază y=0, spate z=0, fața +Z, centrat pe x) ===== */
+/* ===== builders ===== */
 function buildPanelArray(p){
   const fx = p.orient==='portret'? PANEL.W : PANEL.L;
   const fz = p.orient==='portret'? PANEL.L : PANEL.W;
@@ -272,7 +286,7 @@ function seat(g){ g.updateMatrixWorld(true); const bb=new THREE.Box3().setFromOb
 function sizeOf(g){ g.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(g); return { w:bb.max.x-bb.min.x, h:bb.max.y-bb.min.y }; }
 function panelSize(){ return sizeOf(buildPanelArray(state.panel)); }
 
-/* ===== noduri plasabile (panou + fiecare instanță echipament) ===== */
+/* ===== noduri plasabile ===== */
 function nodes(){
   const out=[];
   if(state.panel.count>0){ const s=panelSize(); out.push({ key:'panel', ref:state.panel, w:s.w, h:s.h, color:'#16335c', label:`Panouri ×${state.panel.count}` }); }
@@ -294,7 +308,6 @@ function buildSystem(){
   state.items.forEach(it=>{ const g=seat(BUILD[it.type](PRODUCTS[it.type].dim)); g.position.x+=it.x; g.position.y+=it.y; root.add(g); any=true; });
   return { root, any };
 }
-
 async function rebuild(){
   const { root, any } = buildSystem();
   const parts=[];
@@ -340,22 +353,29 @@ function onCatalogClick(e){
   updateProd(k); drawWall(); scheduleRebuild();
 }
 
-/* ===== editor perete (2D, scară reală) ===== */
+/* ===== editor perete (2D, zoom + aliniere) ===== */
 const wc=$('wall'), wx=wc.getContext('2d');
 function fitWall(){ const dpr=devicePixelRatio||1; wc.width=wc.clientWidth*dpr; wc.height=wc.clientHeight*dpr; wx.setTransform(dpr,0,0,dpr,0,0); }
-function map(){ const cw=wc.clientWidth, ch=wc.clientHeight; const s=Math.min(cw/WALL.W,(ch-10)/WALL.H)*0.94; return { cw, ch, s, ox:cw/2, oy:ch-16 }; }
-function rectOf(n,m){ const w=n.w*m.s, h=n.h*m.s; const cx=m.ox+n.ref.x*m.s, by=m.oy-n.ref.y*m.s; return { left:cx-w/2, top:by-h, w, h, by }; }
+function baseScale(){ const cw=wc.clientWidth, ch=wc.clientHeight; return Math.min(cw/WALL.W,(ch-12)/WALL.H)*0.94; }
+function map(){ const cw=wc.clientWidth, ch=wc.clientHeight; const s=baseScale()*view.z; return { cw, ch, s, ox:cw/2+view.px, oy:ch-16+view.py }; }
+function rectOf(n,m){ const w=n.w*m.s, h=n.h*m.s; const cx=m.ox+n.ref.x*m.s, by=m.oy-n.ref.y*m.s; return { left:cx-w/2, top:by-h, w, h, by, cx }; }
 function drawWall(){
   fitWall();
   const m=map(), cw=m.cw, ch=m.ch;
   wx.clearRect(0,0,cw,ch);
   const SX=x=>m.ox+x*m.s, SY=y=>m.oy-y*m.s;
+  wx.save(); wx.beginPath(); wx.rect(0,0,cw,ch); wx.clip();
   // caroiaj
   wx.strokeStyle='#13233a'; wx.lineWidth=1;
   for(let gx=-WALL.W/2; gx<=WALL.W/2+0.001; gx+=0.5){ wx.beginPath(); wx.moveTo(SX(gx),SY(0)); wx.lineTo(SX(gx),SY(WALL.H)); wx.stroke(); }
   for(let gy=0; gy<=WALL.H+0.001; gy+=0.5){ wx.beginPath(); wx.moveTo(SX(-WALL.W/2),SY(gy)); wx.lineTo(SX(WALL.W/2),SY(gy)); wx.stroke(); }
   // podea
   wx.strokeStyle='#3b5170'; wx.lineWidth=2.5; wx.beginPath(); wx.moveTo(SX(-WALL.W/2),SY(0)); wx.lineTo(SX(WALL.W/2),SY(0)); wx.stroke();
+  // ghidaje aliniere
+  wx.strokeStyle='#ffb020'; wx.lineWidth=1.2; wx.setLineDash([5,4]);
+  if(guides.gx!=null){ wx.beginPath(); wx.moveTo(SX(guides.gx),0); wx.lineTo(SX(guides.gx),ch); wx.stroke(); }
+  if(guides.gy!=null){ wx.beginPath(); wx.moveTo(0,SY(guides.gy)); wx.lineTo(cw,SY(guides.gy)); wx.stroke(); }
+  wx.setLineDash([]);
   // noduri
   nodes().forEach(n=>{
     const r=rectOf(n,m);
@@ -364,18 +384,75 @@ function drawWall(){
     wx.fillStyle='#0b1220'; wx.font='700 11px "IBM Plex Sans"';
     if(r.h>18 && r.w>34) wx.fillText(n.label, r.left+5, r.top+15);
   });
+  wx.restore();
 }
-function evt(e){ const r=wc.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
+
+/* aliniere prin „snap" la alte produse + podea + centru */
+function snapDrag(n, x, yb){
+  const thr = 9 / map().s;
+  const others = nodes().filter(o=>o.key!==n.key);
+  let bestX=null, bestY=null;
+  const dxs=[x-n.w/2, x, x+n.w/2];
+  const dys=[yb, yb+n.h/2, yb+n.h];
+  others.forEach(o=>{
+    const oxs=[o.ref.x-o.w/2, o.ref.x, o.ref.x+o.w/2];
+    const oys=[o.ref.y, o.ref.y+o.h/2, o.ref.y+o.h];
+    dxs.forEach(dv=>oxs.forEach(ov=>{ const d=Math.abs(dv-ov); if(d<thr&&(!bestX||d<bestX.d)) bestX={d, shift:ov-dv, line:ov}; }));
+    dys.forEach(dv=>oys.forEach(ov=>{ const d=Math.abs(dv-ov); if(d<thr&&(!bestY||d<bestY.d)) bestY={d, shift:ov-dv, line:ov}; }));
+  });
+  // centru perete (x=0) și podea (y=0)
+  dxs.forEach(dv=>{ const d=Math.abs(dv-0); if(d<thr&&(!bestX||d<bestX.d)) bestX={d, shift:0-dv, line:0}; });
+  { const d=Math.abs(yb-0); if(d<thr&&(!bestY||d<bestY.d)) bestY={d, shift:0-yb, line:0}; }
+  guides.gx = bestX? bestX.line : null;
+  guides.gy = bestY? bestY.line : null;
+  return { x: x+(bestX?bestX.shift:0), yb: yb+(bestY?bestY.shift:0) };
+}
+
+/* pointer: 1 deget pe produs = mut; 1 deget pe gol = pan; 2 degete = zoom */
+const pts=new Map(); let mode=null, panStart=null, pinch0=null;
+const evt=e=>{ const r=wc.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; };
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const mid=(a,b)=>({ x:(a.x+b.x)/2, y:(a.y+b.y)/2 });
 function pick(px,py){ const m=map(); const ns=nodes(); for(let i=ns.length-1;i>=0;i--){ const r=rectOf(ns[i],m); if(px>=r.left&&px<=r.left+r.w&&py>=r.top&&py<=r.by) return ns[i]; } return null; }
-wc.addEventListener('pointerdown',e=>{ const p=evt(e); const n=pick(p.x,p.y); sel=n?n.key:null; if(n){ drag=n; wc.setPointerCapture(e.pointerId); } drawWall(); });
-wc.addEventListener('pointermove',e=>{ if(!drag) return; const p=evt(e); const m=map();
-  let x=(p.x-m.ox)/m.s; let yb=(m.oy-p.y)/m.s - drag.h/2;
-  x=Math.max(-WALL.W/2+drag.w/2, Math.min(WALL.W/2-drag.w/2, x));
-  yb=Math.max(0, Math.min(WALL.H-drag.h, yb));
-  drag.ref.x=x; drag.ref.y=yb; drawWall(); scheduleRebuild();
+wc.addEventListener('pointerdown',e=>{
+  wc.setPointerCapture(e.pointerId); pts.set(e.pointerId, evt(e));
+  if(pts.size===2){ const a=[...pts.values()]; pinch0={ d:dist(a[0],a[1]), m:mid(a[0],a[1]), z:view.z, px:view.px, py:view.py }; mode='pinch'; drag=null; return; }
+  const p=evt(e); const n=pick(p.x,p.y);
+  if(n){ sel=n.key; drag=n; mode='item'; } else { sel=null; drag=null; mode='pan'; panStart={ x:p.x, y:p.y, px:view.px, py:view.py }; }
+  drawWall();
 });
-wc.addEventListener('pointerup',()=>{ drag=null; });
-wc.addEventListener('pointercancel',()=>{ drag=null; });
+wc.addEventListener('pointermove',e=>{
+  if(!pts.has(e.pointerId)) return; pts.set(e.pointerId, evt(e));
+  if(mode==='pinch' && pts.size>=2){
+    const a=[...pts.values()]; const nd=dist(a[0],a[1]); const nm=mid(a[0],a[1]);
+    const cw=wc.clientWidth, ch=wc.clientHeight, s0=baseScale();
+    const oldS=s0*pinch0.z, oldOx=cw/2+pinch0.px, oldOy=ch-16+pinch0.py;
+    const wx0=(pinch0.m.x-oldOx)/oldS, wy0=(oldOy-pinch0.m.y)/oldS;
+    let z=Math.max(0.5,Math.min(8, pinch0.z*(nd/pinch0.d))); const newS=s0*z;
+    view.z=z; view.px=nm.x-cw/2-wx0*newS; view.py=nm.y-(ch-16)+wy0*newS; drawWall(); return;
+  }
+  const p=evt(e);
+  if(mode==='item' && drag){
+    const m=map(); let x=(p.x-m.ox)/m.s; let yb=(m.oy-p.y)/m.s - drag.h/2;
+    x=Math.max(-WALL.W/2+drag.w/2,Math.min(WALL.W/2-drag.w/2,x)); yb=Math.max(0,Math.min(WALL.H-drag.h,yb));
+    const sn=snapDrag(drag,x,yb);
+    sn.x=Math.max(-WALL.W/2+drag.w/2,Math.min(WALL.W/2-drag.w/2,sn.x)); sn.yb=Math.max(0,Math.min(WALL.H-drag.h,sn.yb));
+    drag.ref.x=sn.x; drag.ref.y=sn.yb; drawWall(); scheduleRebuild(); return;
+  }
+  if(mode==='pan' && panStart){ view.px=panStart.px+(p.x-panStart.x); view.py=panStart.py+(p.y-panStart.y); drawWall(); }
+});
+function endPtr(e){ pts.delete(e.pointerId); if(pts.size===0){ mode=null; drag=null; panStart=null; guides={gx:null,gy:null}; drawWall(); } else if(pts.size===1){ mode=null; } }
+wc.addEventListener('pointerup',endPtr); wc.addEventListener('pointercancel',endPtr);
+
+/* zoom + aliniere butoane */
+function zoomBy(f){ const cw=wc.clientWidth, ch=wc.clientHeight, cx=cw/2, cy=ch/2, s0=baseScale();
+  const oldS=s0*view.z, oldOx=cw/2+view.px, oldOy=ch-16+view.py; const wx0=(cx-oldOx)/oldS, wy0=(oldOy-cy)/oldS;
+  let z=Math.max(0.5,Math.min(8,view.z*f)); const newS=s0*z; view.z=z; view.px=cx-cw/2-wx0*newS; view.py=cy-(ch-16)+wy0*newS; drawWall(); }
+$('zIn').onclick=()=>zoomBy(1.25);
+$('zOut').onclick=()=>zoomBy(1/1.25);
+$('zReset').onclick=()=>{ view.z=1; view.px=0; view.py=0; drawWall(); };
+$('alignBottom').onclick=()=>{ nodes().forEach(n=>{ n.ref.y=0; }); drawWall(); scheduleRebuild(); };
+$('alignTop').onclick=()=>{ const ns=nodes(); if(!ns.length) return; const maxTop=Math.max(...ns.map(n=>n.ref.y+n.h)); ns.forEach(n=>{ n.ref.y=Math.max(0,maxTop-n.h); }); drawWall(); scheduleRebuild(); };
 
 /* ===== controale panouri ===== */
 function clampInt(v,lo,hi,def){ v=parseInt(v,10); if(isNaN(v)) v=def; return Math.max(lo,Math.min(hi,v)); }
