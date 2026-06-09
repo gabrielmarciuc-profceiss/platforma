@@ -58,6 +58,32 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 .spinner{display:inline-block;width:24px;height:24px;border:3px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .hint-box{background:#fff8e1;border:0.5px solid #f0d878;padding:8px 12px;border-radius:6px;font-size:11.5px;color:#7a5b00;margin-bottom:10px;}
+
+/* ===== Responsive: mobile / tablet (<=760px) ===== */
+@media(max-width:760px){
+  /* tighter page gutters */
+  body{padding:10px;}
+  /* container full width, smaller inner padding */
+  .app{padding:1rem;border-radius:8px;}
+  /* multi-column form rows collapse to a single column */
+  .row{grid-template-columns:1fr;}
+  /* label + input pairs stack (label above input) */
+  .field,.field.full{grid-template-columns:1fr;align-items:start;}
+  /* prevent iOS zoom on focus + comfortable tap targets */
+  .field input,.field select,.field textarea{font-size:16px;min-height:40px;}
+  /* circuits table scrolls horizontally instead of overflowing the page */
+  .circ-table{display:block;overflow-x:auto;white-space:nowrap;}
+  /* keep the wide column count usable while scrolling */
+  .circ-table thead,.circ-table tbody{display:table;width:100%;min-width:620px;}
+  /* brand bar wraps so the back button never overflows */
+  .brand-bar{flex-wrap:wrap;}
+  /* section title (with add button) wraps */
+  .section-title{flex-wrap:wrap;gap:8px;}
+  /* submit row wraps and buttons stretch full width */
+  .submit-row{flex-direction:column;align-items:stretch;}
+  .submit-row .btn{justify-content:center;width:100%;}
+  #status{margin-left:0;}
+}
 </style>
 </head>
 <body>
