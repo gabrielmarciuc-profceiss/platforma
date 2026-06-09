@@ -179,6 +179,7 @@ const $=id=>document.getElementById(id);
 /* ===== stare ===== */
 const state={system:'mono', mode:'plan'};
 const route={mode:'chain', path:'tavan', shortLight:false};   // mode: chain|each · path: tavan|podea · shortLight: punte directă pe tavan la iluminat
+const listOpen={};   // expand/collapse categorii în listă
 let H=2.6;                                   // înălțime cameră (m)
 const plan={ points:[ {x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3} ], closed:true, openings:[] };
 let planMode='edit', planDrag=-1, planMap={s:1,ox:0,oy:0};
@@ -525,18 +526,21 @@ function renderLists(){ const cl=$('circuitList');
   else { cl.innerHTML=''; circuits.forEach(c=>{ const sz=sizeCircuit(c); const el=document.createElement('div'); el.className='row'; el.innerHTML=`<span class="dot" style="background:${c.color}"></span>C${c.n} ${c.kind==='lumina'?'ilum.':'prize'} · ${Math.round(sz.P)}W → <b style="color:var(--ink)">${sz.breaker}A/${sz.section}mm²</b>${state.system==='tri'?(' · '+c.phase):''}`; cl.appendChild(el); }); }
   const dl=$('devList'); if(!devices.length){ dl.innerHTML='<p class="muted">Nimic plasat.</p>'; return; }
   dl.innerHTML='';
-  devices.forEach(d=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row'; el.style.flexWrap='wrap';
-    if(d.type==='tablou'){ el.innerHTML=`<span class="dot" style="background:#7c93b3"></span><span style="flex:1">Tablou electric</span><button class="x" data-del="${d.id}">✕</button>`; dl.appendChild(el); return; }
-    const kind=ADD[d.type].kind; const ssty='background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px;font-size:11px';
-    const circOpts=circuits.filter(x=>x.kind===kind).map(x=>`<option value="${x.id}" ${x.id===d.circuit?'selected':''}>C${x.n}</option>`).join('')||'<option value="">—</option>';
+  const buildRow=(d)=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row'; el.style.flexWrap='wrap';
+    if(d.type==='tablou'){ el.innerHTML=`<span class="dot" style="background:#7c93b3"></span><span style="flex:1">Tablou electric</span><button class="x" data-del="${d.id}">✕</button>`; return el; }
+    const ssty='background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px;font-size:11px';
     const myKind=ADD[d.type].kind; const srcSel=d.source||{kind:'panel'};
+    const circOpts=circuits.filter(x=>x.kind===myKind).map(x=>`<option value="${x.id}" ${x.id===d.circuit?'selected':''}>C${x.n}</option>`).join('')||'<option value="">—</option>';
     const dozOk=dozas.filter(z=>{ const k=dozaKind(z); return k===null||k===myKind; });
     const srcOpts=`<option value="panel" ${srcSel.kind==='panel'?'selected':''}>Tablou</option>`+dozOk.map(z=>`<option value="doza:${z.id}" ${(srcSel.kind==='doza'&&srcSel.id===z.id)?'selected':''}>Doza ${z.n}</option>`).join('')+devices.filter(x=>x.id!==d.id&&x.type!=='tablou'&&ADD[x.type].kind===myKind).map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${(x.name||ADD[x.type].label).replace(/"/g,'&quot;')}</option>`).join('');
     const load=(d.type==='bec'||d.type==='priza');
     el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
       +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursă</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select>`
       +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto;width:54px"> W`:'')+`</div>`;
-    dl.appendChild(el); });
+    return el; };
+  [['tablou','Tablou'],['intrerupator','Întrerupătoare'],['bec','Becuri / spoturi'],['priza','Prize']].forEach(([tp,tl])=>{ const list=devices.filter(d=>d.type===tp); if(!list.length) return; const open=listOpen[tp]!==false;
+    const hd=document.createElement('div'); hd.className='row'; hd.style.cssText='cursor:pointer;background:#16233a'; hd.innerHTML=`<span style="flex:1;font-family:Chakra Petch;font-size:12px;letter-spacing:.04em">${open?'▾':'▸'} ${tl} (${list.length})</span>`; hd.onclick=()=>{ listOpen[tp]=!open; renderLists(); }; dl.appendChild(hd);
+    if(open) list.forEach(d=> dl.appendChild(buildRow(d))); });
   dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
   dl.querySelectorAll('[data-nm]').forEach(inp=> inp.oninput=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.nm,10)); if(d){ d.name=inp.value; updateDevLabel(d); } });
   dl.querySelectorAll('[data-pw]').forEach(inp=> inp.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.pw,10)); if(d){ d.power=Math.max(0,parseInt(inp.value,10)||0); renderLists(); } });
