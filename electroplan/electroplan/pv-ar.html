@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PV·AR — Configurator sistem fotovoltaic în AR</title>
+<title>PV·AR — Configurator sistem fotovoltaic in AR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -95,17 +95,17 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
 <body>
 <header>
   <div class="brand">PV<b>·</b>AR</div>
-  <div class="sub">Configurează, aranjează pe perete, vezi în AR la scară reală</div>
+  <div class="sub">Configureaza, aranjeaza pe perete, vezi in AR la scara reala</div>
 </header>
 
 <div class="stage">
   <div class="badge">
-    <span class="chip" id="platChip">platformă…</span>
+    <span class="chip" id="platChip">platforma…</span>
     <span class="chip" id="arChip">AR…</span>
-    <span class="chip on">scară reală</span>
+    <span class="chip on">scara reala</span>
   </div>
   <model-viewer id="mv"
-    alt="Sistem fotovoltaic 3D la scară reală"
+    alt="Sistem fotovoltaic 3D la scara reala"
     camera-controls disable-zoom touch-action="pan-y"
     shadow-intensity="1" exposure="1" environment-image="neutral"
     ar ar-modes="webxr scene-viewer quick-look"
@@ -118,9 +118,9 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
 <div class="controls">
 
   <!-- PANOURI PV -->
-  <div class="section-t">Panouri fotovoltaice <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(opțional)</span></div>
+  <div class="section-t">Panouri fotovoltaice <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(optional)</span></div>
   <div class="ctl">
-    <div class="lab">Număr panouri <b id="countVal">0</b></div>
+    <div class="lab">Numar panouri <b id="countVal">0</b></div>
     <div class="stepper">
       <button id="cMinus">−</button>
       <input id="count" type="number" inputmode="numeric" min="0" max="60" value="0">
@@ -129,7 +129,7 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
   </div>
   <div class="row2">
     <div class="ctl">
-      <div class="lab">Pe rând <b id="perRowVal">1</b></div>
+      <div class="lab">Pe rand <b id="perRowVal">1</b></div>
       <div class="stepper">
         <button id="rMinus">−</button>
         <input id="perRow" type="number" inputmode="numeric" min="1" max="20" value="1">
@@ -145,31 +145,31 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
     </div>
   </div>
   <div class="ctl">
-    <div class="lab">Unghi înclinare panouri <b id="tiltVal">30°</b></div>
+    <div class="lab">Unghi inclinare panouri <b id="tiltVal">30°</b></div>
     <input id="tilt" type="range" min="0" max="60" step="1" value="30">
   </div>
 
   <!-- CATALOG ECHIPAMENTE -->
-  <div class="section-t">Adaugă echipamente</div>
+  <div class="section-t">Adauga echipamente</div>
   <div class="cat" id="catalog"></div>
 
   <!-- EDITOR PERETE -->
-  <div class="section-t">Aranjează pe perete</div>
+  <div class="section-t">Aranjeaza pe perete</div>
   <div class="ctl" style="padding:10px">
     <div class="wtools">
-      <button id="alignBottom" title="Aliniază jos la podea">⤓ jos</button>
-      <button id="alignTop" title="Aliniază sus, la aceeași înălțime">⤒ sus</button>
+      <button id="alignBottom" title="Aliniaza jos la podea">⤓ jos</button>
+      <button id="alignTop" title="Aliniaza sus, la aceeasi inaltime">⤒ sus</button>
       <div class="sp"></div>
-      <button id="zOut" title="Micșorează vederea">−</button>
-      <button id="zReset" title="Resetează vederea">⤢</button>
-      <button id="zIn" title="Mărește vederea">＋</button>
+      <button id="zOut" title="Micsoreaza vederea">−</button>
+      <button id="zReset" title="Reseteaza vederea">⤢</button>
+      <button id="zIn" title="Mareste vederea">＋</button>
     </div>
     <canvas id="wall"></canvas>
-    <p class="note" id="wallHint" style="margin-top:9px">Trage fiecare element pe perete. La apropiere, se <b>aliniază automat</b> (ghidaj galben) la marginile / centrul / înălțimea altor produse. Zoom: <b>＋ / −</b> sau prinde cu 2 degete; cu un deget pe gol = muți vederea. Caroiaj = 0,5 m.</p>
+    <p class="note" id="wallHint" style="margin-top:9px">Trage fiecare element pe perete. La apropiere, se <b>aliniaza automat</b> (ghidaj galben) la marginile / centrul / inaltimea altor produse. Zoom: <b>＋ / −</b> sau prinde cu 2 degete; cu un deget pe gol = muti vederea. Caroiaj = 0,5 m.</p>
   </div>
 
   <!-- PLASARE -->
-  <div class="section-t">Plasare în AR</div>
+  <div class="section-t">Plasare in AR</div>
   <div class="ctl">
     <div class="seg" id="placeSeg">
       <button data-p="wall" class="active">Pe perete</button>
@@ -178,11 +178,11 @@ input[type=range]{width:100%;accent-color:var(--solar);height:28px}
   </div>
 
   <button class="ar" id="arBtn">
-    DESCHIDE ÎN AR
-    <small id="arSmall">sistemul apare la dimensiunea reală</small>
+    DESCHIDE IN AR
+    <small id="arSmall">sistemul apare la dimensiunea reala</small>
   </button>
 
-  <p class="note">Dimensiunile sunt <span class="k">reale</span> și <b>fixe</b> în AR — fără zoom pe produse. Aranjarea de pe perete se păstrează exact în AR.</p>
+  <p class="note">Dimensiunile sunt <span class="k">reale</span> si <b>fixe</b> in AR — fara zoom pe produse. Aranjarea de pe perete se pastreaza exact in AR.</p>
   <p class="note" id="compatNote"></p>
 </div>
 
@@ -196,7 +196,7 @@ const PRODUCTS = {
   solis:      { name:'Invertor Solis S6 trifazat 10 kW', short:'Invertor', icon:'🔌', dim:{w:0.596,h:0.496,d:0.23}, color:0xdfe3e8, edit:'#c4ccd6', mount:'wall' },
   g2:         { name:'Baterie Dyness Powerbox G2 · 10,24 kWh', short:'Baterie G2', icon:'🔋', dim:{w:0.64,h:0.71,d:0.165}, color:0x1f2a3a, edit:'#33547a', mount:'wall' },
   powerbrick: { name:'Dyness PowerBrick · ~16 kWh', short:'PowerBrick', icon:'🗄️', dim:{w:0.435,h:0.90,d:0.233}, color:0x10151f, edit:'#28303d', mount:'floor' },
-  tablou:     { name:'Tablou electric cu siguranțe', short:'Tablou', icon:'🎛️', dim:{w:0.40,h:0.30,d:0.10}, color:0xeef1f4, edit:'#d7dde3', mount:'wall' },
+  tablou:     { name:'Tablou electric cu sigurante', short:'Tablou', icon:'🎛️', dim:{w:0.40,h:0.30,d:0.10}, color:0xeef1f4, edit:'#d7dde3', mount:'wall' },
 };
 const DEF_Y = { solis:1.30, g2:0.55, powerbrick:0.0, tablou:1.60 };
 const GAP = 0.02;
@@ -313,7 +313,7 @@ async function rebuild(){
   const parts=[];
   if(state.panel.count>0) parts.push(`${state.panel.count} panouri`);
   ['solis','g2','powerbrick','tablou'].forEach(k=>{ const q=qtyOf(k); if(q>0) parts.push(`${q}× ${PRODUCTS[k].short}`); });
-  $('dims').innerHTML = parts.length ? `<b>${parts.join(' · ')}</b> · scară reală fixă` : 'Adaugă panouri și/sau echipamente, apoi aranjează-le pe perete.';
+  $('dims').innerHTML = parts.length ? `<b>${parts.join(' · ')}</b> · scara reala fixa` : 'Adauga panouri si/sau echipamente, apoi aranjeaza-le pe perete.';
   drawWall();
   if(!any){ mv.removeAttribute('src'); hasModel=false; refreshAR(); return; }
   try{
@@ -329,7 +329,7 @@ function scheduleRebuild(){ clearTimeout(rebuildTimer); rebuildTimer=setTimeout(
 function prodControl(k){
   const q=qtyOf(k);
   return q<=0
-    ? `<button class="add" data-k="${k}" data-a="add">＋ Adaugă</button>`
+    ? `<button class="add" data-k="${k}" data-a="add">＋ Adauga</button>`
     : `<span class="qstep"><button data-k="${k}" data-a="m">−</button><span class="q">${q}</span><button data-k="${k}" data-a="p">＋</button></span>`;
 }
 function renderCatalog(){
@@ -400,7 +400,7 @@ function snapDrag(n, x, yb){
     dxs.forEach(dv=>oxs.forEach(ov=>{ const d=Math.abs(dv-ov); if(d<thr&&(!bestX||d<bestX.d)) bestX={d, shift:ov-dv, line:ov}; }));
     dys.forEach(dv=>oys.forEach(ov=>{ const d=Math.abs(dv-ov); if(d<thr&&(!bestY||d<bestY.d)) bestY={d, shift:ov-dv, line:ov}; }));
   });
-  // centru perete (x=0) și podea (y=0)
+  // centru perete (x=0) si podea (y=0)
   dxs.forEach(dv=>{ const d=Math.abs(dv-0); if(d<thr&&(!bestX||d<bestX.d)) bestX={d, shift:0-dv, line:0}; });
   { const d=Math.abs(yb-0); if(d<thr&&(!bestY||d<bestY.d)) bestY={d, shift:0-yb, line:0}; }
   guides.gx = bestX? bestX.line : null;
@@ -484,15 +484,15 @@ function refreshAR(){
   arChip.textContent=can?'AR disponibil':'AR indisponibil';
   arChip.classList.toggle('on',can); arChip.classList.toggle('off',!can);
   arBtn.disabled=!can||!hasModel;
-  if(!hasModel){ compatNote.innerHTML='Adaugă cel puțin un element (panou sau echipament) ca să poți deschide AR.'; return; }
+  if(!hasModel){ compatNote.innerHTML='Adauga cel putin un element (panou sau echipament) ca sa poti deschide AR.'; return; }
   if(!can){
     if(isIOS) compatNote.innerHTML='<b>iPhone:</b> AR doar prin <span class="k">Safari</span> (Quick Look), pe HTTPS.';
     else if(isAndroid) compatNote.innerHTML='<b>Android:</b> nevoie de <span class="k">Chrome</span> + ARCore, pe HTTPS.';
     else compatNote.innerHTML='Pe desktop vezi doar previzualizarea 3D. Deschide pe telefon (HTTPS) pentru AR.';
-  }else compatNote.innerHTML='Îndreaptă telefonul spre perete, mișcă-l ușor să detecteze suprafața, apoi atinge ca să plasezi. <b>Aranjarea și mărimea se păstrează.</b>';
+  }else compatNote.innerHTML='Indreapta telefonul spre perete, misca-l usor sa detecteze suprafata, apoi atinge ca sa plasezi. <b>Aranjarea si marimea se pastreaza.</b>';
 }
 mv.addEventListener('load',refreshAR);
-mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') compatNote.innerHTML='<b>AR nu a pornit.</b> Verifică permisiunea camerei și HTTPS.'; });
+mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') compatNote.innerHTML='<b>AR nu a pornit.</b> Verifica permisiunea camerei si HTTPS.'; });
 setTimeout(refreshAR,1500);
 arBtn.addEventListener('click',()=>{ try{ mv.activateAR(); }catch(err){ refreshAR(); } });
 window.addEventListener('resize',drawWall);
@@ -503,5 +503,6 @@ $('catalog').addEventListener('click', onCatalogClick);
 drawWall();
 rebuild();
 </script>
+<script src="../../assets/no-diacritics.js"></script>
 </body>
 </html>

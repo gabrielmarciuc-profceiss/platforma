@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>ElectroPlan AR · montaj cu realitate augmentată</title>
+<title>ElectroPlan AR · montaj cu realitate augmentata</title>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#070b12;--panel:#0f1622;--line:#22304a;--ink:#e7eef8;--muted:#8696b0;
@@ -66,50 +66,50 @@ canvas#plan{width:100%;height:230px;background:#0a0f1a;border:1px solid var(--li
 <div id="app">
   <header>
     <div class="brand">Electro<b>Plan</b> AR</div>
-    <div class="sub">Montaj aparataj prin realitate augmentată · Etapa 2</div>
+    <div class="sub">Montaj aparataj prin realitate augmentata · Etapa 2</div>
   </header>
   <div class="screen" id="setup">
     <div id="compat"></div>
 
     <div class="step" id="s1">
-      <h2><span class="n">1</span>Selectează harta</h2>
-      <p class="muted">Încarcă fișierul JSON exportat din editor (planul + dispozitivele + traseele).</p>
-      <label class="btn" style="margin-top:8px">📂 Încarcă plan (.json)
+      <h2><span class="n">1</span>Selecteaza harta</h2>
+      <p class="muted">Incarca fisierul JSON exportat din editor (planul + dispozitivele + traseele).</p>
+      <label class="btn" style="margin-top:8px">📂 Incarca plan (.json)
         <input id="map" type="file" accept=".json" hidden></label>
       <p class="muted" id="mapInfo" style="margin-top:8px"></p>
     </div>
 
     <div class="step" id="s2">
       <h2><span class="n">2</span>Puncte de reper pe plan</h2>
-      <p class="muted">Atinge pe plan 2 colțuri ușor de regăsit în realitate. Le vei atinge fizic în AR. (Atinge aproape de un colț — se prinde automat.)</p>
+      <p class="muted">Atinge pe plan 2 colturi usor de regasit in realitate. Le vei atinge fizic in AR. (Atinge aproape de un colt — se prinde automat.)</p>
       <canvas id="plan"></canvas>
       <div class="refrow">
         <div class="refchip" id="rc1">Reper 1: —</div>
         <div class="refchip" id="rc2">Reper 2: —</div>
       </div>
-      <button class="btn" id="resetRef" style="margin-top:8px">↺ Resetează reperele</button>
+      <button class="btn" id="resetRef" style="margin-top:8px">↺ Reseteaza reperele</button>
     </div>
 
     <div class="step" id="s3">
-      <h2><span class="n">3</span>Pornește AR + calibrare</h2>
-      <p class="muted">În AR: te plimbi prin apartament pentru scanare, apoi atingi cele 2 repere și introduci distanțele reale (orizontal + vertical) măsurate cu ruleta.</p>
-      <button class="btn primary" id="startAR" style="margin-top:8px" disabled>▶ PORNEȘTE AR</button>
+      <h2><span class="n">3</span>Porneste AR + calibrare</h2>
+      <p class="muted">In AR: te plimbi prin apartament pentru scanare, apoi atingi cele 2 repere si introduci distantele reale (orizontal + vertical) masurate cu ruleta.</p>
+      <button class="btn primary" id="startAR" style="margin-top:8px" disabled>▶ PORNESTE AR</button>
     </div>
   </div>
 </div>
 
 <!-- AR overlay -->
 <div id="overlay">
-  <button id="exitAR">✕ Ieși</button>
+  <button id="exitAR">✕ Iesi</button>
   <div id="prompt"><div class="t" id="pt">—</div><div class="d" id="pd"></div></div>
   <div class="quality" id="quality" style="display:none"></div>
   <button class="tapbtn" id="tapbtn" style="display:none">Gata</button>
   <div class="numpad" id="numpad">
-    <label id="npLabel">Distanța reală (cm)</label>
+    <label id="npLabel">Distanta reala (cm)</label>
     <input id="npVal" type="number" inputmode="decimal" placeholder="ex. 400">
     <div class="row">
-      <button class="btn" id="npCancel">Înapoi</button>
-      <button class="btn primary" id="npOk">Confirmă</button>
+      <button class="btn" id="npCancel">Inapoi</button>
+      <button class="btn primary" id="npOk">Confirma</button>
     </div>
   </div>
   <div id="toggles">
@@ -132,10 +132,10 @@ const $=id=>document.getElementById(id);
 // ---- compatibility check ----
 (async()=>{
   const c=$('compat');
-  if(!('xr' in navigator)){c.className='bad';c.innerHTML='⚠ Acest browser nu suportă WebXR. Deschide pe <b>Android + Chrome</b>, prin <b>HTTPS</b>. Pe iPhone AR-ul în browser nu este disponibil.';return;}
+  if(!('xr' in navigator)){c.className='bad';c.innerHTML='⚠ Acest browser nu suporta WebXR. Deschide pe <b>Android + Chrome</b>, prin <b>HTTPS</b>. Pe iPhone AR-ul in browser nu este disponibil.';return;}
   let ok=false;try{ok=await navigator.xr.isSessionSupported('immersive-ar');}catch(e){}
   if(ok){c.className='ok';c.textContent='✓ AR disponibil pe acest dispozitiv.';}
-  else{c.className='bad';c.innerHTML='⚠ AR (immersive-ar) indisponibil. Necesită Android + Chrome + ARCore, servit prin HTTPS.';}
+  else{c.className='bad';c.innerHTML='⚠ AR (immersive-ar) indisponibil. Necesita Android + Chrome + ARCore, servit prin HTTPS.';}
 })();
 
 // ---- load plan ----
@@ -143,7 +143,7 @@ $('map').addEventListener('change',ev=>{
   const f=ev.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{plan=JSON.parse(r.result);factor=(plan.meta&&plan.meta.units_per_mm)||1;
     const nd=(plan.devices||[]).length,nr=(plan.routes||[]).length;
-    $('mapInfo').textContent=`✓ ${nd} dispozitive · ${nr} trasee încărcate.`;
+    $('mapInfo').textContent=`✓ ${nd} dispozitive · ${nr} trasee incarcate.`;
     $('s1').classList.add('done');drawPlan();maybeEnable();}catch(e){$('mapInfo').textContent='JSON invalid.';}};
   r.readAsText(f);
 });
@@ -226,14 +226,14 @@ function cleanup(){renderer.setAnimationLoop(null);overlay.classList.remove('on'
 
 // stage machine
 function setStage(s){stage=s;const t=$('pt'),d=$('pd');$('tapbtn').style.display='none';$('numpad').classList.remove('on');
-  if(s==='scan'){t.textContent='Scanează apartamentul';d.textContent='Plimbă-te încet prin toate camerele, ține telefonul spre pereți și podea. Apoi apasă „Gata".';$('tapbtn').textContent='Gata';$('tapbtn').style.display='block';}
-  else if(s==='calibH1'){t.textContent='Calibrare · Reper 1';d.textContent='Vizează colțul reper 1 (cercul albastru), pe podea, și atinge ecranul.';}
-  else if(s==='calibH2'){t.textContent='Calibrare · Reper 2';d.textContent='Vizează colțul reper 2 și atinge ecranul.';}
-  else if(s==='askH'){t.textContent='Distanța orizontală reală';d.textContent='Măsoară cu ruleta între cele 2 repere și introdu valoarea în cm.';openNum('Distanța reper1–reper2 (cm)',suggestH());}
-  else if(s==='calibV1'){t.textContent='Calibrare verticală · jos';d.textContent='Vizează un punct pe podea (lângă un perete) și atinge ecranul.';}
-  else if(s==='calibV2'){t.textContent='Calibrare verticală · sus';d.textContent='Vizează un punct mai sus pe acel perete și atinge ecranul.';}
-  else if(s==='askV'){t.textContent='Distanța verticală reală';d.textContent='Înălțimea reală între cele 2 puncte verticale, în cm.';openNum('Înălțime jos→sus (cm)','');}
-  else if(s==='live'){t.textContent='Montaj activ';d.textContent='Dispozitivele sunt afișate. Folosește bifele din dreapta.';$('toggles').classList.add('on');showQuality();}
+  if(s==='scan'){t.textContent='Scaneaza apartamentul';d.textContent='Plimba-te incet prin toate camerele, tine telefonul spre pereti si podea. Apoi apasa „Gata".';$('tapbtn').textContent='Gata';$('tapbtn').style.display='block';}
+  else if(s==='calibH1'){t.textContent='Calibrare · Reper 1';d.textContent='Vizeaza coltul reper 1 (cercul albastru), pe podea, si atinge ecranul.';}
+  else if(s==='calibH2'){t.textContent='Calibrare · Reper 2';d.textContent='Vizeaza coltul reper 2 si atinge ecranul.';}
+  else if(s==='askH'){t.textContent='Distanta orizontala reala';d.textContent='Masoara cu ruleta intre cele 2 repere si introdu valoarea in cm.';openNum('Distanta reper1–reper2 (cm)',suggestH());}
+  else if(s==='calibV1'){t.textContent='Calibrare verticala · jos';d.textContent='Vizeaza un punct pe podea (langa un perete) si atinge ecranul.';}
+  else if(s==='calibV2'){t.textContent='Calibrare verticala · sus';d.textContent='Vizeaza un punct mai sus pe acel perete si atinge ecranul.';}
+  else if(s==='askV'){t.textContent='Distanta verticala reala';d.textContent='Inaltimea reala intre cele 2 puncte verticale, in cm.';openNum('Inaltime jos→sus (cm)','');}
+  else if(s==='live'){t.textContent='Montaj activ';d.textContent='Dispozitivele sunt afisate. Foloseste bifele din dreapta.';$('toggles').classList.add('on');showQuality();}
 }
 function suggestH(){if(!refA||!refB)return '';const dx=(refB.x-refA.x)*factor,dy=(refB.y-refA.y)*factor;return Math.round(Math.hypot(dx,dy)/10).toString();}
 
@@ -323,8 +323,8 @@ function applyLayers(){group.children.forEach(o=>{const l=o.userData.layer;
 
 function showQuality(){const q=$('quality');q.style.display='block';
   const errPct=calib.measuredH&&calib.rulerH?((Math.abs(calib.measuredH-calib.rulerH)/calib.rulerH)*100):0;
-  q.innerHTML=`AR măsurat: ${(calib.measuredH||0).toFixed(2)} m · ruletă: ${(calib.rulerH||0).toFixed(2)} m<br>`+
-    `Δ scară AR: <b style="color:${errPct>4?'#f87171':'#34d399'}">${errPct.toFixed(1)}%</b> · scară V: ${(calib.scaleV||1).toFixed(2)}×`;
+  q.innerHTML=`AR masurat: ${(calib.measuredH||0).toFixed(2)} m · ruleta: ${(calib.rulerH||0).toFixed(2)} m<br>`+
+    `Δ scara AR: <b style="color:${errPct>4?'#f87171':'#34d399'}">${errPct.toFixed(1)}%</b> · scara V: ${(calib.scaleV||1).toFixed(2)}×`;
 }
 
 // render loop
@@ -339,5 +339,6 @@ function loop(t,frame){
   renderer.render(scene,camera);
 }
 </script>
+<script src="../../assets/no-diacritics.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buletin Priză de Pământ · PROFCEISS</title>
+<title>Buletin Priza de Pamant · PROFCEISS</title>
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <meta name="theme-color" content="#1D9E75">
@@ -52,18 +52,18 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
     <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
     <div class="meta">
       <div class="name">PROFCEISS</div>
-      <div class="sub">Buletin priză de pământ · generare rapidă</div>
+      <div class="sub">Buletin priza de pamant · generare rapida</div>
     </div>
-    <a class="back-btn" href="../">← Înapoi</a>
+    <a class="back-btn" href="../">← Inapoi</a>
   </div>
-  <h1>Buletin verificare priză de pământ (PRAM)</h1>
-  <p class="subtitle">Completează datele, apoi apasă „Generează PDF". Documentul respectă cerințele I7-2011 / SR EN 61557.</p>
+  <h1>Buletin verificare priza de pamant (PRAM)</h1>
+  <p class="subtitle">Completeaza datele, apoi apasa „Genereaza PDF". Documentul respecta cerintele I7-2011 / SR EN 61557.</p>
 
   <div class="section">
     <div class="section-title">Identificare buletin</div>
     <div class="row">
-      <div class="field"><label>Număr buletin</label><input type="text" id="f_nr" placeholder="ex: 1234 / 2026"></div>
-      <div class="field"><label>Data verificării</label><input type="date" id="f_data"></div>
+      <div class="field"><label>Numar buletin</label><input type="text" id="f_nr" placeholder="ex: 1234 / 2026"></div>
+      <div class="field"><label>Data verificarii</label><input type="date" id="f_data"></div>
     </div>
   </div>
 
@@ -72,14 +72,14 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
     <div class="row">
       <div class="field"><label>Nume Beneficiar</label><input type="text" id="f_nume" placeholder="Ionescu Popescu"></div>
       <div class="field"><label>POD</label><input type="text" id="f_pod" placeholder="RO001E12345678"></div>
-      <div class="field full"><label>Adresa instalației</label><input type="text" id="f_adresa" placeholder="Strada ..., nr. ..., loc. ..., jud. ..."></div>
+      <div class="field full"><label>Adresa instalatiei</label><input type="text" id="f_adresa" placeholder="Strada ..., nr. ..., loc. ..., jud. ..."></div>
       <div class="field"><label>Telefon</label><input type="text" id="f_telefon" placeholder="0722 222 222"></div>
-      <div class="field"><label>Tip instalație</label>
+      <div class="field"><label>Tip instalatie</label>
         <select id="f_tip_instalatie">
-          <option>Locuință individuală</option>
-          <option>Bloc / scară</option>
-          <option>Cladire comercială</option>
-          <option>Hală industrială</option>
+          <option>Locuinta individuala</option>
+          <option>Bloc / scara</option>
+          <option>Cladire comerciala</option>
+          <option>Hala industriala</option>
           <option>Sistem fotovoltaic prosumator</option>
           <option>Altul</option>
         </select>
@@ -88,43 +88,43 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
   </div>
 
   <div class="section">
-    <div class="section-title">Caracteristici priză de pământ</div>
+    <div class="section-title">Caracteristici priza de pamant</div>
     <div class="row">
-      <div class="field"><label>Tip priză</label>
+      <div class="field"><label>Tip priza</label>
         <select id="f_tip_priza">
-          <option>Artificială</option>
-          <option>Naturală</option>
-          <option>Mixtă (artificială + naturală)</option>
+          <option>Artificiala</option>
+          <option>Naturala</option>
+          <option>Mixta (artificiala + naturala)</option>
         </select>
       </div>
       <div class="field"><label>Material electrod</label>
         <select id="f_material">
-          <option>Țeavă oțel zincat</option>
-          <option>Bandă oțel zincat</option>
+          <option>Teava otel zincat</option>
+          <option>Banda otel zincat</option>
           <option>Cupru masiv</option>
-          <option>Oțel cuprat (Copperbond)</option>
+          <option>Otel cuprat (Copperbond)</option>
         </select>
       </div>
-      <div class="field"><label>Număr electrozi</label><input type="number" id="f_nr_electrozi" min="1" value="3"></div>
+      <div class="field"><label>Numar electrozi</label><input type="number" id="f_nr_electrozi" min="1" value="3"></div>
       <div class="field"><label>Lungime electrod (m)</label><input type="text" id="f_lung_electrod" value="1.5"></div>
-      <div class="field"><label>Adâncime îngropare (m)</label><input type="text" id="f_adancime" value="0.8"></div>
+      <div class="field"><label>Adancime ingropare (m)</label><input type="text" id="f_adancime" value="0.8"></div>
       <div class="field"><label>Conductor PE / BEP</label><input type="text" id="f_conductor_pe" value="Cu 16 mmp"></div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">Măsurători efectuate</div>
+    <div class="section-title">Masuratori efectuate</div>
     <div class="row">
-      <div class="field"><label>Rezistența dispersie (Ω)</label><input type="text" id="f_rezistenta" placeholder="ex: 3.2" value="3.2"></div>
-      <div class="field"><label>Valoare admisibilă (Ω)</label><input type="text" id="f_admisibil" value="≤ 4 Ω (I7-2011 art. 5.2.4.1)"></div>
+      <div class="field"><label>Rezistenta dispersie (Ω)</label><input type="text" id="f_rezistenta" placeholder="ex: 3.2" value="3.2"></div>
+      <div class="field"><label>Valoare admisibila (Ω)</label><input type="text" id="f_admisibil" value="≤ 4 Ω (I7-2011 art. 5.2.4.1)"></div>
       <div class="field"><label>Continuitate PE</label>
         <select id="f_continuitate">
-          <option>Conform — verificată pe toate circuitele</option>
+          <option>Conform — verificata pe toate circuitele</option>
           <option>Neconform</option>
-          <option>Parțial conform</option>
+          <option>Partial conform</option>
         </select>
       </div>
-      <div class="field"><label>Test diferențial (RCD)</label>
+      <div class="field"><label>Test diferential (RCD)</label>
         <select id="f_test_rcd">
           <option>Conform — deconectare < 30 ms</option>
           <option>Neconform</option>
@@ -142,9 +142,9 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
         </select>
       </div>
       <div class="field"><label>Nr. certificat etalonare</label><input type="text" id="f_etalonare" placeholder="ex: 12345/2025"></div>
-      <div class="field full"><label>Condiții meteo</label><input type="text" id="f_meteo" value="Sol uscat, T = +18°C, fără precipitații în ultimele 48h"></div>
-      <div class="field full"><label>Observații / Concluzie</label>
-        <textarea id="f_obs" placeholder="Concluzie verificare...">Instalația de legare la pământ corespunde normativelor în vigoare și este aptă pentru exploatare în siguranță.</textarea>
+      <div class="field full"><label>Conditii meteo</label><input type="text" id="f_meteo" value="Sol uscat, T = +18°C, fara precipitatii in ultimele 48h"></div>
+      <div class="field full"><label>Observatii / Concluzie</label>
+        <textarea id="f_obs" placeholder="Concluzie verificare...">Instalatia de legare la pamant corespunde normativelor in vigoare si este apta pentru exploatare in siguranta.</textarea>
       </div>
     </div>
   </div>
@@ -152,24 +152,24 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
   <div class="section">
     <div class="section-title">Executant verificare</div>
     <div class="row">
-      <div class="field"><label>Firma executantă</label><input type="text" id="f_firma" value="PROFCEISS ELECTRIC S.R.L."></div>
-      <div class="field"><label>ANRE firmă</label><input type="text" id="f_anre_firma" value="Atestat A3, D1, E1, E2"></div>
+      <div class="field"><label>Firma executanta</label><input type="text" id="f_firma" value="PROFCEISS ELECTRIC S.R.L."></div>
+      <div class="field"><label>ANRE firma</label><input type="text" id="f_anre_firma" value="Atestat A3, D1, E1, E2"></div>
       <div class="field"><label>Verificator (nume)</label><input type="text" id="f_verificator" placeholder="Numele persoanei autorizate"></div>
       <div class="field"><label>ANRE verificator</label><input type="text" id="f_anre_pers" placeholder="ex: IIB nr. 12345/2025"></div>
     </div>
   </div>
 
   <div class="submit-row">
-    <button type="button" class="btn btn-create" onclick="generatePDF()">📋 Generează PDF</button>
+    <button type="button" class="btn btn-create" onclick="generatePDF()">📋 Genereaza PDF</button>
     <button type="button" class="btn btn-reset" onclick="if(confirm('Resetezi formularul?')) location.reload()">Reset</button>
-    <span id="status">Completează datele, apoi apasă „Generează PDF".</span>
+    <span id="status">Completeaza datele, apoi apasa „Genereaza PDF".</span>
   </div>
 </div>
 
 <div class="loading" id="loading"><div class="box"><div class="spinner"></div><div>Generez PDF-ul...</div></div></div>
 
 <script>
-function noDiac(s){return String(s==null?'':s).replace(/[ăâ]/g,'a').replace(/[ĂÂ]/g,'A').replace(/î/g,'i').replace(/Î/g,'I').replace(/[șş]/g,'s').replace(/[ȘŞ]/g,'S').replace(/[țţ]/g,'t').replace(/[ȚŢ]/g,'T').replace(/[‐-―]/g,'-').replace(/[‘’‚‛]/g,"'").replace(/[“”„‟]/g,'"').replace(/…/g,'...').replace(/•/g,'·').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/Ω/g,'Ohm').replace(/²/g,'2').replace(/³/g,'3').replace(/×/g,'x').replace(/°/g,'deg ').replace(/[\u{1F300}-\u{1F9FF}]/gu,'').replace(/[^\x00-\xFF]/g,'?');}
+function noDiac(s){return String(s==null?'':s).replace(/[aa]/g,'a').replace(/[AA]/g,'A').replace(/i/g,'i').replace(/I/g,'I').replace(/[ss]/g,'s').replace(/[SS]/g,'S').replace(/[tt]/g,'t').replace(/[TT]/g,'T').replace(/[‐-―]/g,'-').replace(/[‘’‚‛]/g,"'").replace(/[“”„‟]/g,'"').replace(/…/g,'...').replace(/•/g,'·').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/Ω/g,'Ohm').replace(/²/g,'2').replace(/³/g,'3').replace(/×/g,'x').replace(/°/g,'deg ').replace(/[\u{1F300}-\u{1F9FF}]/gu,'').replace(/[^\x00-\xFF]/g,'?');}
 if(typeof PDFLib!=='undefined'){if(PDFLib.PDFPage&&PDFLib.PDFPage.prototype.drawText){const o=PDFLib.PDFPage.prototype.drawText;PDFLib.PDFPage.prototype.drawText=function(t,p){return o.call(this,noDiac(t),p);};}[PDFLib.PDFFont,PDFLib.PDFStandardFont,PDFLib.PDFCustomFont].forEach(c=>{if(!c||!c.prototype)return;['widthOfTextAtSize','encodeText','embedText'].forEach(m=>{if(typeof c.prototype[m]==='function'){const o=c.prototype[m];c.prototype[m]=function(t,...r){return o.call(this,noDiac(t),...r);};}});});}
 
 const v=id=>document.getElementById(id)?.value||'';
@@ -194,7 +194,7 @@ async function generatePDF(){
     const page=out.addPage([595,842]); // A4
     const {width,height}=page.getSize();
 
-    // Header bandă
+    // Header banda
     page.drawRectangle({x:0,y:height-70,width,height:70,color:rgb(0.11,0.16,0.29)});
     page.drawText('PROFCEISS ELECTRIC S.R.L.',{x:40,y:height-30,size:14,font:fontBold,color:rgb(1,1,1)});
     page.drawText(v('f_anre_firma'),{x:40,y:height-50,size:9,font,color:rgb(0.85,0.85,0.85)});
@@ -213,11 +213,11 @@ async function generatePDF(){
     page.drawText(sub,{x:(width-subW)/2,y,size:10,font:fontItalic,color:rgb(0.3,0.3,0.3)});
     y-=30;
 
-    // Nr buletin + data (în antet)
+    // Nr buletin + data (in antet)
     page.drawText('Nr. '+v('f_nr')+'   ·   Data verificarii: '+v('f_data'),{x:40,y,size:10,font:fontBold});
     y-=22;
 
-    // Helper pentru titluri secțiuni
+    // Helper pentru titluri sectiuni
     const drawSection=t=>{
       page.drawRectangle({x:40,y:y-4,width:515,height:18,color:rgb(0.96,0.62,0.19)});
       page.drawText(t,{x:48,y:y+1,size:10,font:fontBold,color:rgb(1,1,1)});
@@ -319,6 +319,7 @@ async function generatePDF(){
 }
 </script>
 <script>window.PROFCEISS_PROJECT={app:'buletin-priza-pamant',label:'Buletin'};</script>
+<script src="../assets/no-diacritics.js"></script>
 <script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>

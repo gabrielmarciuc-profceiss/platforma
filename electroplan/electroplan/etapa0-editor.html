@@ -70,16 +70,16 @@ label.fld{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
 <body>
 <header>
   <div class="brand">Electro<b>Plan</b></div>
-  <div class="sub">Plan DXF → dispozitive · trasee · înălțimi → bază de date JSON &nbsp;(Etapa 0)</div>
+  <div class="sub">Plan DXF → dispozitive · trasee · inaltimi → baza de date JSON &nbsp;(Etapa 0)</div>
 </header>
 
 <div class="wrap">
   <div id="stage">
     <canvas id="cv"></canvas>
     <div class="fab">
-      <button class="btn" id="fit">⤢ Încadrează</button>
+      <button class="btn" id="fit">⤢ Incadreaza</button>
     </div>
-    <div class="hud" id="hud">Încarcă un DXF ca să începi.</div>
+    <div class="hud" id="hud">Incarca un DXF ca sa incepi.</div>
   </div>
 
   <aside id="panel">
@@ -89,7 +89,7 @@ label.fld{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
       <h3>Plan</h3>
       <div class="row">
         <label class="btn amber" style="flex:1;justify-content:center">
-          📂 Încarcă DXF
+          📂 Incarca DXF
           <input id="dxf" type="file" accept=".dxf" hidden>
         </label>
       </div>
@@ -103,20 +103,20 @@ label.fld{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
     </div>
 
     <div class="sec">
-      <h3>Unealtă</h3>
+      <h3>Unealta</h3>
       <div class="grid2">
-        <button class="btn active" data-mode="select" id="mSelect">▣ Selectează</button>
+        <button class="btn active" data-mode="select" id="mSelect">▣ Selecteaza</button>
         <button class="btn" data-mode="add" id="mAdd">＋ Dispozitiv</button>
         <button class="btn" data-mode="route" id="mRoute">〰 Traseu</button>
-        <button class="btn" data-mode="delete" id="mDelete">🗑 Șterge</button>
+        <button class="btn" data-mode="delete" id="mDelete">🗑 Sterge</button>
       </div>
 
       <div id="addBox" style="display:none">
         <label class="fld">Tip dispozitiv</label>
         <select id="subType"></select>
-        <label class="fld">Înălțime montaj (cm)</label>
+        <label class="fld">Inaltime montaj (cm)</label>
         <input id="addH" type="number" step="1" value="30">
-        <p class="muted" style="margin-top:7px">Atinge planul ca să plasezi.</p>
+        <p class="muted" style="margin-top:7px">Atinge planul ca sa plasezi.</p>
       </div>
 
       <div id="routeBox" style="display:none">
@@ -124,27 +124,27 @@ label.fld{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
         <input id="rName" type="text" placeholder="ex. C1 prize living">
         <div class="row" style="margin-top:7px">
           <button class="btn" id="rStart" style="flex:1">● Traseu nou</button>
-          <button class="btn" id="rEnd" style="flex:1">✔ Termină</button>
+          <button class="btn" id="rEnd" style="flex:1">✔ Termina</button>
         </div>
-        <p class="muted" style="margin-top:7px">Atinge punct cu punct pe traseu; „Termină" îl închide.</p>
+        <p class="muted" style="margin-top:7px">Atinge punct cu punct pe traseu; „Termina" il inchide.</p>
       </div>
     </div>
 
     <div class="sec" id="editBox" style="display:none">
       <h3>Dispozitiv selectat</h3>
       <div class="row"><span class="tag" id="selTag"></span></div>
-      <label class="fld">Înălțime (cm)</label>
+      <label class="fld">Inaltime (cm)</label>
       <input id="selH" type="number" step="1">
-      <label class="fld">Etichetă (opțional)</label>
-      <input id="selLabel" type="text" placeholder="ex. priză frigider">
+      <label class="fld">Eticheta (optional)</label>
+      <input id="selLabel" type="text" placeholder="ex. priza frigider">
       <div class="row" style="margin-top:9px">
-        <button class="btn" id="selSave" style="flex:1">Salvează</button>
-        <button class="btn" id="selDel" style="flex:1;border-color:#5b2740">Șterge</button>
+        <button class="btn" id="selSave" style="flex:1">Salveaza</button>
+        <button class="btn" id="selDel" style="flex:1;border-color:#5b2740">Sterge</button>
       </div>
     </div>
 
     <div class="sec">
-      <h3>Straturi afișate</h3>
+      <h3>Straturi afisate</h3>
       <div class="toggle on" data-layer="aparataj"><span class="dot" style="background:var(--aparataj)"></span><span class="nm">Aparataj electric</span><span class="sw"></span></div>
       <div class="toggle on" data-layer="doza"><span class="dot" style="background:var(--doza)"></span><span class="nm">Doze</span><span class="sw"></span></div>
       <div class="toggle on" data-layer="circuite"><span class="dot" style="background:var(--circuit)"></span><span class="nm">Circuite</span><span class="sw"></span></div>
@@ -152,11 +152,11 @@ label.fld{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
 
     <div class="sec">
       <h3>Circuite</h3>
-      <div class="list" id="routeList"><p class="muted">Niciun traseu încă.</p></div>
+      <div class="list" id="routeList"><p class="muted">Niciun traseu inca.</p></div>
     </div>
 
     <div class="sec">
-      <h3>Bază de date</h3>
+      <h3>Baza de date</h3>
       <div class="grid2">
         <button class="btn" id="exp">⬇ Export JSON</button>
         <label class="btn" style="justify-content:center">⬆ Import<input id="imp" type="file" accept=".json" hidden></label>
@@ -169,12 +169,12 @@ label.fld{display:block;font-size:11px;color:var(--muted);margin:8px 0 3px}
 <script>
 // ---------- state ----------
 const SUBTYPES=[
-  {sub:'priza',      label:'Priză',          cat:'aparataj', h:30,  letter:'P'},
-  {sub:'priza_blat', label:'Priză blat',     cat:'aparataj', h:110, letter:'P'},
-  {sub:'intrerupator',label:'Întrerupător',  cat:'aparataj', h:105, letter:'Î'},
+  {sub:'priza',      label:'Priza',          cat:'aparataj', h:30,  letter:'P'},
+  {sub:'priza_blat', label:'Priza blat',     cat:'aparataj', h:110, letter:'P'},
+  {sub:'intrerupator',label:'Intrerupator',  cat:'aparataj', h:105, letter:'I'},
   {sub:'tablou',     label:'Tablou electric',cat:'aparataj', h:150, letter:'T'},
-  {sub:'doza_der',   label:'Doză derivație', cat:'doza',     h:220, letter:'D'},
-  {sub:'doza_ap',    label:'Doză aparat',    cat:'doza',     h:105, letter:'d'},
+  {sub:'doza_der',   label:'Doza derivatie', cat:'doza',     h:220, letter:'D'},
+  {sub:'doza_ap',    label:'Doza aparat',    cat:'doza',     h:105, letter:'d'},
 ];
 const CATCOLOR={aparataj:'#ffb020',doza:'#34d399'};
 const ROUTE_COLORS=['#46b4ff','#f59e0b','#a78bfa','#fb7185','#34d399','#22d3ee'];
@@ -384,7 +384,7 @@ function startRoute(){const nm=document.getElementById('rName').value.trim()||('
 document.getElementById('rStart').onclick=()=>{if(curRoute&&curRoute.pts.length>1)routes.push(curRoute);startRoute();draw();};
 document.getElementById('rEnd').onclick=()=>{if(curRoute&&curRoute.pts.length>1){routes.push(curRoute);}curRoute=null;refreshRoutes();refreshDB();draw();};
 function refreshRoutes(){const el=document.getElementById('routeList');
-  if(!routes.length){el.innerHTML='<p class="muted">Niciun traseu încă.</p>';return;}
+  if(!routes.length){el.innerHTML='<p class="muted">Niciun traseu inca.</p>';return;}
   el.innerHTML='';routes.forEach(r=>{const d=document.createElement('div');d.className='litem';
     d.innerHTML=`<span class="dot" style="width:10px;height:10px;border-radius:2px;background:${r.color}"></span><span>${r.name} · ${r.pts.length} pct</span><button class="x">×</button>`;
     d.querySelector('.x').onclick=()=>{routes=routes.filter(x=>x!==r);refreshRoutes();refreshDB();draw();};
@@ -398,7 +398,7 @@ document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
   document.getElementById('addBox').style.display=mode==='add'?'block':'none';
   document.getElementById('routeBox').style.display=mode==='route'?'block':'none';
   if(mode!=='route'&&curRoute){if(curRoute.pts.length>1)routes.push(curRoute);curRoute=null;refreshRoutes();draw();}
-  hud.textContent={select:'Selectează/mută planul; atinge un dispozitiv ca să-l editezi.',add:'Alege tipul și atinge planul.',route:'Atinge punct cu punct traseul circuitului.',delete:'Atinge un dispozitiv sau nod de traseu ca să-l ștergi.'}[mode];
+  hud.textContent={select:'Selecteaza/muta planul; atinge un dispozitiv ca sa-l editezi.',add:'Alege tipul si atinge planul.',route:'Atinge punct cu punct traseul circuitului.',delete:'Atinge un dispozitiv sau nod de traseu ca sa-l stergi.'}[mode];
 });
 document.querySelectorAll('.toggle').forEach(t=>t.onclick=()=>{
   const k=t.dataset.layer;layers[k]=!layers[k];t.classList.toggle('on',layers[k]);draw();});
@@ -408,11 +408,11 @@ document.getElementById('dxf').addEventListener('change',ev=>{
   const f=ev.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{geom=parseDXF(rd.result);geom.bbox=computeBBox(geom);
     const n=geom.lines.length+geom.polylines.length+geom.circles.length+geom.arcs.length;
-    document.getElementById('planInfo').textContent=`${n} entități · ${geom.texts.length} texte`;
+    document.getElementById('planInfo').textContent=`${n} entitati · ${geom.texts.length} texte`;
     fitView();
     if(geom.bbox){const u=parseFloat(document.getElementById('units').value);
       const wm=((geom.bbox.mxx-geom.bbox.mnx)*u/1000).toFixed(2), hm=((geom.bbox.mxy-geom.bbox.mny)*u/1000).toFixed(2);
-      hud.textContent=`Plan încărcat · ~${wm} × ${hm} m`;}
+      hud.textContent=`Plan incarcat · ~${wm} × ${hm} m`;}
   };rd.readAsText(f);
 });
 document.getElementById('units').addEventListener('change',()=>{if(geom.bbox){const u=parseFloat(document.getElementById('units').value);
@@ -429,7 +429,7 @@ document.getElementById('imp').addEventListener('change',ev=>{
   const f=ev.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{try{const d=JSON.parse(rd.result);geom=d.geometry||geom;if(!geom.bbox)geom.bbox=computeBBox(geom);
     devices=d.devices||[];routes=d.routes||[];if(d.meta&&d.meta.units_per_mm)document.getElementById('units').value=String(d.meta.units_per_mm);
-    refreshRoutes();refreshDB();fitView();hud.textContent='Bază de date importată.';}catch(err){alert('JSON invalid');}};
+    refreshRoutes();refreshDB();fitView();hud.textContent='Baza de date importata.';}catch(err){alert('JSON invalid');}};
   rd.readAsText(f);
 });
 function refreshDB(){document.getElementById('dbInfo').textContent=`${devices.length} dispozitive · ${routes.length} trasee`;}
@@ -440,5 +440,6 @@ document.getElementById('mobileToggle').onclick=()=>document.getElementById('pan
 new ResizeObserver(resize).observe(cv.parentElement);
 resize();
 </script>
+<script src="../../assets/no-diacritics.js"></script>
 </body>
 </html>

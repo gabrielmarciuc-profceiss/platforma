@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Editor Schemă Bloc — Sistem Fotovoltaic</title>
+<title>Editor Schema Bloc — Sistem Fotovoltaic</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; background: #f0f2f5; color: #111; }
@@ -108,7 +108,7 @@
   body.mode-1string .s2-only { display: none; }
 
   /* ── Print styles ──────────────────────────────────────────────────────
-     Ascund toolbar/side-panel/tip-uri; afișez doar SVG-ul centrat, A3 landscape. */
+     Ascund toolbar/side-panel/tip-uri; afisez doar SVG-ul centrat, A3 landscape. */
   @media print {
     @page { size: A3 landscape; margin: 10mm; }
     body { background: white !important; }
@@ -124,7 +124,7 @@
 <body class="mode-trifazat mode-2string">
 
 <div id="toolbar">
-  <h1>⚡ Editor Schemă Bloc — Sistem Fotovoltaic</h1>
+  <h1>⚡ Editor Schema Bloc — Sistem Fotovoltaic</h1>
 
   <div class="mode-toggle">
     <span>Bransament:</span>
@@ -144,14 +144,14 @@
     <button onclick="zoom(0.1)">+</button>
     <button onclick="resetZoom()">↺</button>
   </div>
-  <button class="green" onclick="downloadSVG()">⬇ Descarcă SVG</button>
+  <button class="green" onclick="downloadSVG()">⬇ Descarca SVG</button>
   <button onclick="downloadPNG()">⬇ Export PNG</button>
   <button onclick="window.print()" style="background:#854F0B;">🖨 Print</button>
-  <a href="../" style="background:#444;color:#fff;padding:6px 14px;border-radius:4px;font-size:12px;font-weight:bold;text-decoration:none;">← Înapoi la instrumente</a>
+  <a href="../" style="background:#444;color:#fff;padding:6px 14px;border-radius:4px;font-size:12px;font-weight:bold;text-decoration:none;">← Inapoi la instrumente</a>
 </div>
 
 <div class="tip">
-  💡 <strong>Editare:</strong> Click pe orice text din schemă, sau folosește panoul lateral. Enter / click în afară pentru confirmare. Toggle <strong>Monofazat/Trifazat</strong> schimbă automat topologia.
+  💡 <strong>Editare:</strong> Click pe orice text din schema, sau foloseste panoul lateral. Enter / click in afara pentru confirmare. Toggle <strong>Monofazat/Trifazat</strong> schimba automat topologia.
 </div>
 
 <div id="main">
@@ -162,7 +162,7 @@
   </div>
 
   <div id="side-panel">
-    <h2>Câmpuri editabile</h2>
+    <h2>Campuri editabile</h2>
 
     <div class="section-title">Beneficiar / Proiect</div>
     <div class="field-group"><label>Beneficiar</label><input type="text" data-sel="beneficiar"/></div>
@@ -173,7 +173,7 @@
     <div class="field-group"><label>Proiectat</label><input type="text" data-sel="proiectat"/></div>
     <div class="field-group"><label>Desenat</label><input type="text" data-sel="desenat"/></div>
     <div class="field-group"><label>Data</label><input type="text" data-sel="data-proj"/></div>
-    <div class="field-group"><label>Putere instalată</label><input type="text" data-sel="putere-instalata"/></div>
+    <div class="field-group"><label>Putere instalata</label><input type="text" data-sel="putere-instalata"/></div>
 
     <div class="section-title">BMP existent</div>
     <div class="field-group"><label>Titlu BMP</label><input type="text" data-sel="bmp-titlu"/></div>
@@ -181,32 +181,32 @@
 
     <div class="section-title">TEG</div>
     <div class="field-group"><label>Titlu TEG</label><input type="text" data-sel="teg-titlu"/></div>
-    <div class="field-group"><label>Siguranță generală TEG</label><input type="text" data-sel="teg-sig"/></div>
+    <div class="field-group"><label>Siguranta generala TEG</label><input type="text" data-sel="teg-sig"/></div>
 
-    <div class="section-title">Siguranță 20A intrare PV</div>
+    <div class="section-title">Siguranta 20A intrare PV</div>
     <div class="field-group"><label>Tip / Putere</label><input type="text" data-sel="sig20-titlu"/></div>
-    <div class="field-group"><label>Configurație</label><input type="text" data-sel="sig20-config"/></div>
+    <div class="field-group"><label>Configuratie</label><input type="text" data-sel="sig20-config"/></div>
 
     <div class="section-title">Smart Meter</div>
     <div class="field-group"><label>Brand</label><input type="text" data-sel="sm-brand"/></div>
     <div class="field-group"><label>Detalii</label><input type="text" data-sel="sm-detalii"/></div>
 
     <div class="section-title">Componenta OD</div>
-    <div class="field-group"><label>Siguranță OD</label><input type="text" data-sel="od-sig"/></div>
+    <div class="field-group"><label>Siguranta OD</label><input type="text" data-sel="od-sig"/></div>
 
-    <div class="section-title">Siguranță 20A (după OD)</div>
+    <div class="section-title">Siguranta 20A (dupa OD)</div>
     <div class="field-group"><label>Valoare</label><input type="text" data-sel="sig20b-titlu"/></div>
 
     <div class="section-title">AC SPD</div>
     <div class="field-group"><label>Brand / Model</label><input type="text" data-sel="acspd-model"/></div>
 
-    <div class="section-title">Diferențial</div>
+    <div class="section-title">Diferential</div>
     <div class="field-group"><label>Valoare</label><input type="text" data-sel="dif-titlu"/></div>
 
     <div class="section-title">Invertor</div>
     <div class="field-group"><label>Tip invertor</label><input type="text" data-sel="inv-tip"/></div>
     <div class="field-group"><label>Model invertor</label><input type="text" data-sel="inv-model"/></div>
-    <div class="field-group"><label>Specificații</label><input type="text" data-sel="inv-spec"/></div>
+    <div class="field-group"><label>Specificatii</label><input type="text" data-sel="inv-spec"/></div>
     <div class="field-group"><label>Serial Number</label><input type="text" data-sel="inv-sn"/></div>
 
     <div class="section-title">Baterie</div>
@@ -228,7 +228,7 @@
 
     <div class="section-title">Cabluri AC</div>
     <div class="field-group"><label>Cablu BMP→TEG</label><input type="text" data-sel="cablu-bmp"/></div>
-    <div class="field-group"><label>Cablu către invertor</label><input type="text" data-sel="cablu-inv"/></div>
+    <div class="field-group"><label>Cablu catre invertor</label><input type="text" data-sel="cablu-inv"/></div>
   </div>
 </div>
 
@@ -255,9 +255,9 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
 
   <text x="650" y="32" text-anchor="middle" font-size="20" font-weight="bold">SCHEMA BLOC PANOURI FOTOVOLTAICE</text>
   <line x1="40" y1="44" x2="1260" y2="44" stroke="#999" stroke-width="0.8"/>
-  <text x="20" y="65" font-size="11" font-weight="bold" class="trifazat-only">REȚEA TRIFAZATĂ 400 V</text>
+  <text x="20" y="65" font-size="11" font-weight="bold" class="trifazat-only">RETEA TRIFAZATA 400 V</text>
   <text x="20" y="79" font-size="10" class="trifazat-only">L1 / L2 / L3 / N</text>
-  <text x="20" y="65" font-size="11" font-weight="bold" class="mono-only">REȚEA MONOFAZATĂ 230 V</text>
+  <text x="20" y="65" font-size="11" font-weight="bold" class="mono-only">RETEA MONOFAZATA 230 V</text>
   <text x="20" y="79" font-size="10" class="mono-only">L / N</text>
 
   <!-- BMP -->
@@ -310,11 +310,11 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
   <text class="mono-only" x="305" y="331" font-size="9" font-weight="bold" fill="#444">L</text>
   <text class="mono-only" x="305" y="346" font-size="9" font-weight="bold" fill="#444">N</text>
 
-  <!-- Siguranță 20A intrare PV -->
+  <!-- Siguranta 20A intrare PV -->
   <rect class="box" x="510" y="300" width="170" height="100"/>
-  <text x="595" y="322" text-anchor="middle" font-weight="bold" font-size="13" data-id="sig20-titlu">SIGURANȚĂ 20A</text>
+  <text x="595" y="322" text-anchor="middle" font-weight="bold" font-size="13" data-id="sig20-titlu">SIGURANTA 20A</text>
   <text x="595" y="342" text-anchor="middle" font-weight="bold" font-size="12" data-id="sig20-config">3P+N · TRIFAZAT</text>
-  <!-- Mini simboluri poli (sub text, fără să acopere informația) -->
+  <!-- Mini simboluri poli (sub text, fara sa acopere informatia) -->
   <g class="trifazat-only">
     <rect class="brk" x="538" y="362" width="12" height="12"/>
     <rect class="brk" x="568" y="362" width="12" height="12"/>
@@ -346,7 +346,7 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
   <line class="wire trifazat-only" x1="230" y1="395" x2="240" y2="385"/>
   <rect class="brk" x="258" y="395" width="24" height="22"/>
   <line class="wire" x1="270" y1="395" x2="280" y2="385"/>
-  <text x="210" y="450" text-anchor="middle" font-size="10" font-weight="bold" data-id="teg-sig">Siguranță 3P+N / 25A</text>
+  <text x="210" y="450" text-anchor="middle" font-size="10" font-weight="bold" data-id="teg-sig">Siguranta 3P+N / 25A</text>
 
   <!-- TEG → consumer -->
   <line class="wire" x1="140" y1="417" x2="140" y2="525"/>
@@ -388,7 +388,7 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
     <rect class="brk" x="113" y="686" width="24" height="18"/>
     <text x="148" y="696" font-weight="bold">C5</text>
     <text x="148" y="708" font-size="9">C20-1P+N · 30mA → Prize</text>
-    <!-- C6 (only trifazat — prize 3F, ultimul ca să nu ramaie gol la mono) -->
+    <!-- C6 (only trifazat — prize 3F, ultimul ca sa nu ramaie gol la mono) -->
     <rect class="brk trifazat-only" x="113" y="713" width="24" height="18"/>
     <text x="148" y="723" font-weight="bold" class="trifazat-only">C6</text>
     <text x="148" y="735" font-size="9" class="trifazat-only">C20-3P+N · 30mA → Prize 3F</text>
@@ -401,7 +401,7 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
   <text x="595" y="488" text-anchor="middle" font-weight="bold" font-size="13" data-id="sm-brand">GOODWE</text>
   <text x="595" y="508" text-anchor="middle" font-size="10" data-id="sm-detalii">3-fazat · 400 V</text>
   <text x="595" y="524" text-anchor="middle" font-size="9" font-style="italic" fill="#555">monitorizare prosumator</text>
-  <text x="595" y="541" text-anchor="middle" font-size="9" font-style="italic" fill="#c0392b">(intrări CT ←)</text>
+  <text x="595" y="541" text-anchor="middle" font-size="9" font-style="italic" fill="#c0392b">(intrari CT ←)</text>
 
   <!-- CT signal cables -->
   <polyline class="sig-ct" points="155,265 470,265 470,480 510,480"/>
@@ -429,9 +429,9 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
   <line class="wire" x1="640" y1="720" x2="640" y2="755"/>
   <line class="wire mono-only" x1="560" y1="720" x2="560" y2="755"/>
 
-  <!-- Sig 20A după OD -->
+  <!-- Sig 20A dupa OD -->
   <rect class="box" x="490" y="755" width="200" height="50"/>
-  <text x="590" y="778" text-anchor="middle" font-weight="bold" font-size="13" data-id="sig20b-titlu">SIGURANȚĂ 20A</text>
+  <text x="590" y="778" text-anchor="middle" font-weight="bold" font-size="13" data-id="sig20b-titlu">SIGURANTA 20A</text>
   <text x="590" y="795" text-anchor="middle" font-size="10" class="trifazat-only">3P+N</text>
   <text x="590" y="795" text-anchor="middle" font-size="10" class="mono-only">1P+N</text>
 
@@ -454,7 +454,7 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
 
   <!-- Diferential -->
   <rect class="box" x="490" y="920" width="200" height="60"/>
-  <text x="590" y="940" text-anchor="middle" font-weight="bold" font-size="11">ÎNTRERUPĂTOR DIFERENȚIAL</text>
+  <text x="590" y="940" text-anchor="middle" font-weight="bold" font-size="11">INTRERUPATOR DIFERENTIAL</text>
   <text x="590" y="958" text-anchor="middle" font-weight="bold" font-size="13" data-id="dif-titlu">20 A · Id = 30 mA</text>
 
   <line class="wire trifazat-only" x1="540" y1="980" x2="540" y2="1130"/>
@@ -523,7 +523,7 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
   <!-- DC SPD PV1 -->
   <rect class="box" x="740" y="615" width="170" height="50"/>
   <text x="825" y="635" text-anchor="middle" font-weight="bold" font-size="11">DC SPD (PV1)</text>
-  <text x="825" y="652" text-anchor="middle" font-size="9">Descărcător supratensiune</text>
+  <text x="825" y="652" text-anchor="middle" font-size="9">Descarcator supratensiune</text>
   <line class="wire-dc-pos" x1="770" y1="665" x2="770" y2="1130"/>
   <line class="wire-dc-neg" x1="890" y1="665" x2="890" y2="1130"/>
 
@@ -536,14 +536,14 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
     <line class="wire-dc-neg" x1="1060" y1="590" x2="1060" y2="615"/>
     <rect class="box" x="930" y="615" width="170" height="50"/>
     <text x="1015" y="635" text-anchor="middle" font-weight="bold" font-size="11">DC SPD (PV2)</text>
-    <text x="1015" y="652" text-anchor="middle" font-size="9">Descărcător supratensiune</text>
+    <text x="1015" y="652" text-anchor="middle" font-size="9">Descarcator supratensiune</text>
     <line class="wire-dc-pos" x1="940" y1="665" x2="940" y2="1130"/>
     <line class="wire-dc-neg" x1="1060" y1="665" x2="1060" y2="1130"/>
   </g>
 
   <!-- Comm cable -->
   <polyline class="sig-comm" points="680,510 720,510 720,1130"/>
-  <text x="725" y="700" font-size="10" font-weight="bold" fill="#2e7d32">Cablu comunicație</text>
+  <text x="725" y="700" font-size="10" font-weight="bold" fill="#2e7d32">Cablu comunicatie</text>
   <text x="725" y="714" font-size="9" font-style="italic" fill="#555">Smart Meter ↔ Invertor</text>
 
   <!-- Invertor -->
@@ -572,16 +572,16 @@ const svgSource = `<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="
   <text x="630" y="1525" text-anchor="middle" font-weight="bold" font-size="15">EXECUTARE SISTEM FOTOVOLTAIC — SCHEMA BLOC</text>
   <line x1="60" y1="1535" x2="1200" y2="1535" stroke="black" stroke-width="0.5"/>
   <text x="65" y="1555" font-size="11" font-weight="bold">Beneficiar:</text>
-  <text x="170" y="1555" font-size="11" data-id="beneficiar">POPESCU DANIELA-ȘTEFANIA</text>
+  <text x="170" y="1555" font-size="11" data-id="beneficiar">POPESCU DANIELA-STEFANIA</text>
   <text x="65" y="1575" font-size="10" font-weight="bold">Adresa:</text>
-  <text x="170" y="1575" font-size="10" data-id="adresa">str. Povernei nr. 11A, Mogoșoaia, jud. Ilfov, 077135</text>
+  <text x="170" y="1575" font-size="10" data-id="adresa">str. Povernei nr. 11A, Mogosoaia, jud. Ilfov, 077135</text>
   <text x="65" y="1595" font-size="10" font-weight="bold">POD:</text>
   <text x="170" y="1595" font-size="10" font-weight="bold" data-id="pod">RO001E401026205</text>
   <text x="65" y="1615" font-size="10" font-weight="bold">Prestator:</text>
   <text x="170" y="1615" font-size="10" data-id="prestator">PROFCEISS ELECTRIC SRL</text>
   <text x="65" y="1635" font-size="10" font-weight="bold">ANRE:</text>
   <text x="170" y="1635" font-size="10" data-id="anre">21840/12.06.2024, 21841/12.06.2024</text>
-  <text x="65" y="1655" font-size="10" font-weight="bold">Putere instalată:</text>
+  <text x="65" y="1655" font-size="10" font-weight="bold">Putere instalata:</text>
   <text x="200" y="1655" font-size="10" font-weight="bold" data-id="putere-instalata">11,04 kWp</text>
   <text x="780" y="1555" font-size="11" font-weight="bold">Proiectat:</text>
   <text x="880" y="1555" font-size="11" data-id="proiectat">Sorin Profir</text>
@@ -604,7 +604,7 @@ function initEditor() {
   const svgEl = wrapper.querySelector('svg');
   if (!svgEl) {
     console.error('SVG failed to render. Check console for errors.');
-    wrapper.innerHTML = '<div style="padding:20px;color:red;">Eroare la randarea SVG. Deschideți consola browserului (F12) pentru detalii.</div>';
+    wrapper.innerHTML = '<div style="padding:20px;color:red;">Eroare la randarea SVG. Deschideti consola browserului (F12) pentru detalii.</div>';
     return;
   }
   svgEl.style.display = 'block';
@@ -664,11 +664,11 @@ function initEditor() {
         applyDefaults({
           'bmp-titlu': 'BMP 32A EXISTENT',
           'bmp-detalii': 'Contor monofazat',
-          'sig20-titlu': 'SIGURANȚĂ 20A',
+          'sig20-titlu': 'SIGURANTA 20A',
           'sig20-config': '1P+N · MONOFAZAT',
           'sm-detalii': 'monofazat · 230 V',
           'teg-titlu': 'TEG 32A',
-          'teg-sig': 'Siguranță 1P+N / 32A',
+          'teg-sig': 'Siguranta 1P+N / 32A',
           'inv-tip': 'INVERTOR HIBRID',
           'inv-model': 'GoodWe GW5K-DT',
           'inv-spec': '5 kW · Monofazat · Hibrid'
@@ -677,11 +677,11 @@ function initEditor() {
         applyDefaults({
           'bmp-titlu': 'BMP 25A EXISTENT',
           'bmp-detalii': 'Contor trifazat',
-          'sig20-titlu': 'SIGURANȚĂ 20A',
+          'sig20-titlu': 'SIGURANTA 20A',
           'sig20-config': '3P+N · TRIFAZAT',
           'sm-detalii': '3-fazat · 400 V',
           'teg-titlu': 'TEG 25A',
-          'teg-sig': 'Siguranță 3P+N / 25A',
+          'teg-sig': 'Siguranta 3P+N / 25A',
           'inv-tip': 'INVERTOR HIBRID',
           'inv-model': 'GoodWe GW10K-ET-20',
           'inv-spec': '10 kW · Trifazat · Hibrid'
@@ -808,7 +808,7 @@ function downloadPNG() {
 }
 
 window.addEventListener('load', initEditor);
-window.PROFCEISS_PROJECT={app:'schema-bloc',label:'Schemă',
+window.PROFCEISS_PROJECT={app:'schema-bloc',label:'Schema',
   getState(){ var svg=document.querySelector('#svg-wrapper svg'); var m={}; if(svg) svg.querySelectorAll('text[data-id]').forEach(function(t){ m[t.getAttribute('data-id')]=t.textContent; }); return { texts:m, mode:(document.querySelector('input[name=mode]:checked')||{}).value, strings:(document.querySelector('input[name=strings]:checked')||{}).value }; },
   setState(s){ if(!s) return;
     if(s.mode){ var rm=document.querySelector('input[name=mode][value="'+s.mode+'"]'); if(rm && !rm.checked){ rm.checked=true; rm.dispatchEvent(new Event('change',{bubbles:true})); } }
@@ -817,6 +817,7 @@ window.PROFCEISS_PROJECT={app:'schema-bloc',label:'Schemă',
   }
 };
 </script>
+<script src="../assets/no-diacritics.js"></script>
 <script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>

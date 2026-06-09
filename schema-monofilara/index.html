@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Editor Schemă Monofilară — Instalație de Utilizare</title>
+<title>Editor Schema Monofilara — Instalatie de Utilizare</title>
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <meta name="theme-color" content="#1D9E75">
@@ -68,15 +68,15 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
 <body>
 
 <div id="toolbar">
-  <h1>⚡ Editor Schemă Monofilară</h1>
+  <h1>⚡ Editor Schema Monofilara</h1>
   <div class="mode-toggle">
-    <span>Branșament:</span>
+    <span>Bransament:</span>
     <label id="lbl-mono"><input type="radio" name="branch" value="mono"> Monofazat</label>
     <label id="lbl-tri" class="active"><input type="radio" name="branch" value="tri" checked> Trifazat</label>
   </div>
   <div class="mode-toggle">
     <span>Sistem PV:</span>
-    <label id="lbl-nopv" class="active"><input type="radio" name="pv" value="no" checked> Fără</label>
+    <label id="lbl-nopv" class="active"><input type="radio" name="pv" value="no" checked> Fara</label>
     <label id="lbl-pv"><input type="radio" name="pv" value="yes"> Cu sistem fotovoltaic</label>
   </div>
   <div class="zoom-controls">
@@ -92,45 +92,45 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
 </div>
 
 <div class="tip">
-  💡 Editezi câmpurile în panoul din stânga. Schema se actualizează automat. Apoi exporți SVG/PNG sau printezi (A3 landscape).
+  💡 Editezi campurile in panoul din stanga. Schema se actualizeaza automat. Apoi exporti SVG/PNG sau printezi (A3 landscape).
 </div>
 
 <div id="main">
   <div id="side-panel">
 
-    <h2>Antet schemă</h2>
+    <h2>Antet schema</h2>
     <div class="field-group"><label>Titlul schemei</label><input type="text" id="f_titlu" value="SCHEMA ELECTRICA MONOFILARA - INSTALATIE DE UTILIZARE"></div>
     <div class="field-group"><label>Beneficiar</label><input type="text" id="f_beneficiar" value="IONESCU POPESCU"></div>
-    <div class="field-group"><label>Adresa instalație</label><input type="text" id="f_adresa" value="Adresa de consum"></div>
+    <div class="field-group"><label>Adresa instalatie</label><input type="text" id="f_adresa" value="Adresa de consum"></div>
     <div class="field-group"><label>POD</label><input type="text" id="f_pod" value="RO001E12345678"></div>
-    <div class="field-group"><label>Putere instalată</label><input type="text" id="f_putere" value="20 kW"></div>
+    <div class="field-group"><label>Putere instalata</label><input type="text" id="f_putere" value="20 kW"></div>
 
-    <div class="section-title"><span>Sursă & Întrerupător general</span></div>
-    <div class="field-group"><label>Sursă (BMP / contor de la OD)</label><input type="text" id="f_sursa" value="BMP EXISTENT - Disjunctor 40A 4P"></div>
-    <div class="field-group"><label>Cablu coloană principală</label><input type="text" id="f_cablu_col" value="CYY-F 5x6 mmp"></div>
-    <div class="field-group"><label>Întrerupător general TGD</label><input type="text" id="f_ig" value="INTRERUPATOR GENERAL 40A 4P"></div>
-    <div class="field-group"><label>Diferențial general</label><input type="text" id="f_diferential_gen" value="DIFERENTIAL 63A / 30mA"></div>
+    <div class="section-title"><span>Sursa & Intrerupator general</span></div>
+    <div class="field-group"><label>Sursa (BMP / contor de la OD)</label><input type="text" id="f_sursa" value="BMP EXISTENT - Disjunctor 40A 4P"></div>
+    <div class="field-group"><label>Cablu coloana principala</label><input type="text" id="f_cablu_col" value="CYY-F 5x6 mmp"></div>
+    <div class="field-group"><label>Intrerupator general TGD</label><input type="text" id="f_ig" value="INTRERUPATOR GENERAL 40A 4P"></div>
+    <div class="field-group"><label>Diferential general</label><input type="text" id="f_diferential_gen" value="DIFERENTIAL 63A / 30mA"></div>
 
     <div class="section-title">
       <span>Circuite din TGD</span>
-      <button type="button" class="add-btn" onclick="addCircuit()">+ Adaugă</button>
+      <button type="button" class="add-btn" onclick="addCircuit()">+ Adauga</button>
     </div>
     <div id="circuits-container"></div>
 
-    <div class="section-title"><span>Împământare (priza de pământ)</span></div>
-    <div class="field-group"><label>Tip priză pământ</label>
+    <div class="section-title"><span>Impamantare (priza de pamant)</span></div>
+    <div class="field-group"><label>Tip priza pamant</label>
       <input type="text" id="f_priza_tip" value="Priza de pamant artificiala">
     </div>
-    <div class="field-group"><label>Rezistență dispersie (Ω) — măsurată</label>
+    <div class="field-group"><label>Rezistenta dispersie (Ω) — masurata</label>
       <input type="text" id="f_priza_rez" value="R ≤ 4 Ohm (conform I7-2011)">
     </div>
-    <div class="field-group"><label>Conductor PE / centură de echipotențializare</label>
+    <div class="field-group"><label>Conductor PE / centura de echipotentializare</label>
       <input type="text" id="f_priza_pe" value="Cu 16 mm² (PE) + BEP 25 mm²">
     </div>
 
     <div class="section-title" id="pv-section-title" style="display:none;"><span>⚡ Sistem fotovoltaic</span></div>
     <div id="pv-section" style="display:none;">
-      <div class="field-group"><label>Putere PV instalată (kWp)</label><input type="text" id="f_pv_putere" value="11,04 kWp"></div>
+      <div class="field-group"><label>Putere PV instalata (kWp)</label><input type="text" id="f_pv_putere" value="11,04 kWp"></div>
       <div class="field-group"><label>Nr. panouri × putere</label><input type="text" id="f_pv_panouri" value="24 × 460Wp Jinko Neo"></div>
       <div class="field-group"><label>Model invertor</label><input type="text" id="f_pv_invertor" value="GoodWe GW10K-ET-20 (10 kW Hibrid)"></div>
       <div class="field-group" style="margin-bottom:10px;">
@@ -143,18 +143,18 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
         <label>Model baterie</label>
         <input type="text" id="f_pv_baterie" value="GoodWe LX A5.0-30 · 10,24 kWh">
       </div>
-      <div class="field-group"><label>Protecție DC</label>
+      <div class="field-group"><label>Protectie DC</label>
         <input type="text" id="f_pv_dc" value="Sep. fuzibili 2×16A + DC SPD Tip 2">
       </div>
-      <div class="field-group"><label>BMPT (Bloc Măsură + Protecție Trifazată)</label>
+      <div class="field-group"><label>BMPT (Bloc Masura + Protectie Trifazata)</label>
         <input type="text" id="f_pv_bmpt" value="BMPT 25A 4P + contor energie">
-        <span class="hint">Dispozitiv între punctul de conectare și protecția AC a invertorului</span>
+        <span class="hint">Dispozitiv intre punctul de conectare si protectia AC a invertorului</span>
       </div>
       <div class="field-group"><label>Smart Meter</label>
         <input type="text" id="f_pv_meter" value="GoodWe GM3000 (RS485)">
-        <span class="hint">Conectat la TC-uri pentru măsurarea exportului</span>
+        <span class="hint">Conectat la TC-uri pentru masurarea exportului</span>
       </div>
-      <div class="field-group"><label>Protecție AC</label>
+      <div class="field-group"><label>Protectie AC</label>
         <input type="text" id="f_pv_ac" value="Sig. 20A + AC SPD Tip 2 + Diferential 30mA">
       </div>
       <div class="field-group"><label>Cablu DC</label>
@@ -168,7 +168,7 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;color:#111;}
     <div class="section-title"><span>Cartouche</span></div>
     <div class="field-group"><label>Proiectant</label><input type="text" id="f_proiectant" value="POPESCU ION"></div>
     <div class="field-group"><label>ANRE proiectant</label><input type="text" id="f_anre" value="IIB nr. 12345/2024"></div>
-    <div class="field-group"><label>Firma executantă</label><input type="text" id="f_firma" value="PROFCEISS ELECTRIC SRL"></div>
+    <div class="field-group"><label>Firma executanta</label><input type="text" id="f_firma" value="PROFCEISS ELECTRIC SRL"></div>
     <div class="field-group"><label>Data</label><input type="text" id="f_data" value="DD.MM.AAAA"></div>
   </div>
 
@@ -213,7 +213,7 @@ function renderCircuits() {
         </select>
       </div>
       <div class="circ-row">
-        <input class="dest" type="text" placeholder="Descriere funcționalitate (ex: cuptor, iluminat 1, priza auto, sauna...)" value="${escapeAttr(cir.dest)}" oninput="updCirc(${i},'dest',this.value)" title="Editabil — scrii orice descriere a circuitului">
+        <input class="dest" type="text" placeholder="Descriere functionalitate (ex: cuptor, iluminat 1, priza auto, sauna...)" value="${escapeAttr(cir.dest)}" oninput="updCirc(${i},'dest',this.value)" title="Editabil — scrii orice descriere a circuitului">
       </div>
       <div class="circ-row">
         <input type="text" placeholder="Siguranta (ex: C16-2P+N)" value="${escapeAttr(cir.sig)}" oninput="updCirc(${i},'sig',this.value)">
@@ -272,15 +272,15 @@ function buildSVG() {
   const cn = Math.max(circuits.length, 1);
   const margin = 50;
   const leftPad = 100;            // spatiu la stanga primului circuit
-  // circStep va fi calculat ADAPTIV mai jos (după ce știm rightPad și drawingW țintă)
+  // circStep va fi calculat ADAPTIV mai jos (dupa ce stim rightPad si drawingW tinta)
 
-  // ── Pre-calculează lățimile reale ale blocului PV (text-aware) ────────
-  // IMPORTANT: calculăm întotdeauna pvDims (chiar și fără PV) ca să rezervăm
-  // spațiul mereu — pagina rămâne aceeași dimensiune indiferent de toggle PV.
+  // ── Pre-calculeaza latimile reale ale blocului PV (text-aware) ────────
+  // IMPORTANT: calculam intotdeauna pvDims (chiar si fara PV) ca sa rezervam
+  // spatiul mereu — pagina ramane aceeasi dimensiune indiferent de toggle PV.
   const autoW = (text, fontSize, padding, minW) => Math.max(minW, Math.ceil(String(text).length * fontSize * 0.55) + padding * 2);
   const pvDims = { acW: 0, invW: 0, dcW: 0, batW: 0, bmptW: 0, meterW: 0, strBlockW: 0, leftHalf: 0, rightHalf: 0 };
   // Padding mic + minimums mici = boxuri strict adaptate la text
-  // Folosim valorile câmpurilor (sau placeholderii implicit din input) chiar și când PV e off
+  // Folosim valorile campurilor (sau placeholderii implicit din input) chiar si cand PV e off
   pvDims.bmptW  = autoW(val('f_pv_bmpt'),     9,   6, autoW('BMPT',         9,   6, 130));
   pvDims.acW    = autoW(val('f_pv_ac'),       9,   6, autoW('PROTECTIE AC', 9,   6, 130));
   pvDims.invW   = autoW(val('f_pv_invertor'), 10,  8, autoW('INVERTOR',     11,  8, 150));
@@ -292,20 +292,20 @@ function buildSVG() {
   pvDims.leftHalf  = colMaxHalf + 12;
   pvDims.rightHalf = colMaxHalf + 12 + (pvDims.batW > 0 ? (14 + pvDims.batW + 12) : 0);
 
-  // Spațiu la dreapta ultimului circuit — REZERVAT MEREU pentru PV
-  // (chiar și când e off, ca să nu se redimensioneze pagina la fiecare toggle)
+  // Spatiu la dreapta ultimului circuit — REZERVAT MEREU pentru PV
+  // (chiar si cand e off, ca sa nu se redimensioneze pagina la fiecare toggle)
   const circuitLabelHalfW = 60;
   const pvSafetyGap = 70;
   const pvRightMargin = margin + 10;
   const smartMeterChannelW = pvDims.meterW + 30;
   const rightPad = circuitLabelHalfW + pvSafetyGap + smartMeterChannelW + pvDims.leftHalf + pvDims.rightHalf + pvRightMargin;
 
-  // ── Compresie ADAPTIVĂ a circuitelor — pagina rămâne FIXĂ ────────────
-  // Circuitele se restrâng automat să încapă pe foaie până la o densitate minimă.
-  // Pagina se extinde DOAR dacă chiar și la distanța minimă circuitele nu mai au loc.
-  const circStepMax = 130;  // distanță ideală între circuite
-  const circStepMin = 35;   // distanță minimă (sub asta începe să se extindă pagina)
-  // Lățime țintă FIXĂ a foii (acomodează ~6 circuite la step ideal + tot blocul PV)
+  // ── Compresie ADAPTIVA a circuitelor — pagina ramane FIXA ────────────
+  // Circuitele se restrang automat sa incapa pe foaie pana la o densitate minima.
+  // Pagina se extinde DOAR daca chiar si la distanta minima circuitele nu mai au loc.
+  const circStepMax = 130;  // distanta ideala intre circuite
+  const circStepMin = 35;   // distanta minima (sub asta incepe sa se extinda pagina)
+  // Latime tinta FIXA a foii (acomodeaza ~6 circuite la step ideal + tot blocul PV)
   const reservedCircuits = 6;
   const targetDrawingW = Math.max(1300, leftPad + (reservedCircuits - 1) * circStepMax + rightPad);
 
@@ -316,12 +316,12 @@ function buildSVG() {
   } else {
     const availForCircuits = targetDrawingW - leftPad - rightPad;
     circStep = availForCircuits / (cn - 1);
-    if (circStep > circStepMax) circStep = circStepMax;        // nu prea mult spațiu între ele
+    if (circStep > circStepMax) circStep = circStepMax;        // nu prea mult spatiu intre ele
     if (circStep < circStepMin) {
-      circStep = circStepMin;                                  // limită minimă de citibilitate
+      circStep = circStepMin;                                  // limita minima de citibilitate
       drawingW = leftPad + (cn - 1) * circStep + rightPad;     // doar acum extindem pagina
     } else {
-      drawingW = targetDrawingW;                               // foaia rămâne fixă
+      drawingW = targetDrawingW;                               // foaia ramane fixa
     }
   }
 
@@ -332,7 +332,7 @@ function buildSVG() {
   const yWires1Start = y;          // BMP coboara
   y += 50;
   const yPVjunction = y;           // Punct conectare PV (cu TCs)
-  y += 60;                         // spațiu rezervat MEREU (consistent on/off PV)
+  y += 60;                         // spatiu rezervat MEREU (consistent on/off PV)
   const yIG = y; y += 70;          // Intrerupator general
   const yDif = y; y += 60;         // Diferential
   const yBusbar = y; y += 30;      // Busbar distributor
@@ -344,16 +344,16 @@ function buildSVG() {
   y += cartoucheH + 30;
   const totalH = y + margin;
 
-  // Centru schemă = poziția ULTIMULUI circuit (sub diferential)
-  // Ultimul circuit la lastCircX, celelalte spre stânga
+  // Centru schema = pozitia ULTIMULUI circuit (sub diferential)
+  // Ultimul circuit la lastCircX, celelalte spre stanga
   const lastCircX = drawingW - rightPad;
   const firstCircX = lastCircX - (cn - 1) * circStep;
   const cx = lastCircX;
 
-  // Centrul coloanei PV — calculat să respecte constrângerea de zero suprapunere (după canal Smart Meter)
+  // Centrul coloanei PV — calculat sa respecte constrangerea de zero suprapunere (dupa canal Smart Meter)
   const pvCenter = pvOn ? (lastCircX + circuitLabelHalfW + pvSafetyGap + smartMeterChannelW + pvDims.leftHalf) : 0;
 
-  // Centrul canalului Smart Meter (între ultimul circuit și coloana PV)
+  // Centrul canalului Smart Meter (intre ultimul circuit si coloana PV)
   const smartMeterCenterX = pvOn ? (lastCircX + circuitLabelHalfW + pvSafetyGap + smartMeterChannelW/2) : 0;
 
   // Layout AC entry — 4 (sau 2) puncte separate pe topul BMPT, distribuite frumos
@@ -361,7 +361,7 @@ function buildSVG() {
   const acEntrySpacing = 10;
   const acEntryStartX = pvCenter - ((numAcWires - 1) * acEntrySpacing) / 2;
   const pvTopY = yIG;
-  const bmptTopY = pvTopY + 24; // unde începe boxul BMPT (după titlu + info kWp)
+  const bmptTopY = pvTopY + 24; // unde incepe boxul BMPT (dupa titlu + info kWp)
 
   // Pozitii fire pe verticala (faze + N + PE)
   const wireXs = [];
@@ -413,7 +413,7 @@ function buildSVG() {
 
   // ── PUNCT CONECTARE PV + TC-uri + Smart Meter ──────────────────────
   if (pvOn) {
-    // TC-uri (Bobine Curent) pe fiecare fază
+    // TC-uri (Bobine Curent) pe fiecare faza
     const tcY = yPVjunction + 5;
     const tcPhases = isTri ? 3 : 1;
     wireXs.slice(0, tcPhases).forEach((wx, i) => {
@@ -421,7 +421,7 @@ function buildSVG() {
       svg += `<text x="${wx}" y="${tcY + 16}" text-anchor="middle" font-size="8" font-weight="bold" fill="#c0392b">CT${i+1}</text>`;
     });
 
-    // SMART METER — chenar în canalul lateral dintre coloana principală și PV, la nivelul TC-urilor
+    // SMART METER — chenar in canalul lateral dintre coloana principala si PV, la nivelul TC-urilor
     const meterW = pvDims.meterW;
     const meterH = 28;
     const meterX = smartMeterCenterX - meterW/2;
@@ -431,8 +431,8 @@ function buildSVG() {
     svg += `<text x="${smartMeterCenterX}" y="${meterY + 23}" text-anchor="middle" font-size="8">${esc(val('f_pv_meter'))}</text>`;
     svg += `<text x="${meterX - 2}" y="${meterY - 3}" text-anchor="end" font-size="7.5" font-style="italic" fill="#854F0B">RS485 ← TC-uri</text>`;
 
-    // Cabluri RS485 (linie punctată subțire) de la fiecare TC la Smart Meter
-    // Routing Manhattan: stub orizontal scurt → vertical la nivelul intrării meter → orizontal lung
+    // Cabluri RS485 (linie punctata subtire) de la fiecare TC la Smart Meter
+    // Routing Manhattan: stub orizontal scurt → vertical la nivelul intrarii meter → orizontal lung
     const meterInY = meterY + meterH/2;
     wireXs.slice(0, tcPhases).forEach((wx, i) => {
       const tcRight = wx + 9;
@@ -449,18 +449,18 @@ function buildSVG() {
     });
     svg += `<text x="${cx - srcW/2 - 10}" y="${jY + 4}" text-anchor="end" font-size="9.5" font-weight="bold" fill="#1B2A4A">Punct conectare PV →</text>`;
 
-    // Rutare ELEGANTĂ a fiecărui fir spre BMPT — fiecare la propriul nivel orizontal
+    // Rutare ELEGANTA a fiecarui fir spre BMPT — fiecare la propriul nivel orizontal
     // pentru a fi vizibil individual (Manhattan: down → horizontal → down)
     wireXs.forEach((wx, i) => {
       const horizY = jY + 6 + i * 8;            // nivel orizontal separat per fir
-      const entryX = acEntryStartX + i * acEntrySpacing; // intrare separată în BMPT
-      // 1. coborâre verticală din junction la nivelul orizontal
+      const entryX = acEntryStartX + i * acEntrySpacing; // intrare separata in BMPT
+      // 1. coborare verticala din junction la nivelul orizontal
       svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${jY}" x2="${wx}" y2="${horizY}"/>`;
       // 2. mers orizontal spre intrarea PV
       svg += `<line class="wire wire-${wireLabels[i]}" x1="${wx}" y1="${horizY}" x2="${entryX}" y2="${horizY}"/>`;
-      // 3. coborâre la topul BMPT
+      // 3. coborare la topul BMPT
       svg += `<line class="wire wire-${wireLabels[i]}" x1="${entryX}" y1="${horizY}" x2="${entryX}" y2="${bmptTopY}"/>`;
-      // Etichetă fază lângă intrarea BMPT
+      // Eticheta faza langa intrarea BMPT
       svg += `<text x="${entryX}" y="${bmptTopY - 2}" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#666">${wireLabels[i]}</text>`;
     });
   }
@@ -539,7 +539,7 @@ function buildSVG() {
 
     // Cod circuit
     svg += `<text x="${ccx}" y="${circAreaStart + 12}" text-anchor="middle" font-size="11" font-weight="bold" fill="#1B2A4A">${esc(c.cod)}</text>`;
-    // Siguranță (simbol IEC profesional: rectangle + linie oblica contact + curba arc)
+    // Siguranta (simbol IEC profesional: rectangle + linie oblica contact + curba arc)
     const bx = ccx - 12, by = circAreaStart + 18, bw = 24, bh = 26;
     svg += `<rect class="brk" x="${bx}" y="${by}" width="${bw}" height="${bh}"/>`;
     // Linie verticala (axa) prin mijloc
@@ -557,7 +557,7 @@ function buildSVG() {
     const yAfterBrk = circAreaStart + 60;
     svg += `<line class="wire wire-${phaseColorPick}" x1="${ccx-5}" y1="${yAfterBrk}" x2="${ccx-5}" y2="${yAfterBrk + 12}"/>`;
     svg += `<line class="wire wire-N" x1="${ccx+5}" y1="${yAfterBrk}" x2="${ccx+5}" y2="${yAfterBrk + 12}"/>`;
-    // Diferențial (daca există)
+    // Diferential (daca exista)
     if (c.dif && c.dif !== '-' && c.dif.trim() !== '') {
       svg += `<rect class="dif" x="${ccx - 24}" y="${yAfterBrk + 12}" width="48" height="18"/>`;
       svg += `<text x="${ccx}" y="${yAfterBrk + 25}" text-anchor="middle" font-size="8" font-weight="bold">${esc(c.dif)}</text>`;
@@ -568,25 +568,25 @@ function buildSVG() {
     svg += `<text x="${ccx}" y="${yAfterBrk + 56}" text-anchor="middle" font-size="8" fill="#555">${esc(truncate(c.cablu, 20))}</text>`;
     // Faza
     svg += `<text x="${ccx}" y="${yAfterBrk + 68}" text-anchor="middle" font-size="8" font-weight="bold" fill="${phaseColor === 'L1' ? '#c0392b' : phaseColor === 'L2' ? '#d4a017' : '#2471a3'}">${esc(phase)}</text>`;
-    // Destinație (descrierea funcționalității — câmp editabil)
+    // Destinatie (descrierea functionalitatii — camp editabil)
     svg += `<text x="${ccx}" y="${yAfterBrk + 84}" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#1B2A4A">${esc(truncate(c.dest, 18))}</text>`;
   });
 
-  // ── CONDUCTOR PE & PRIZA PAMANT (traseu evidențiat continuu) ──────
+  // ── CONDUCTOR PE & PRIZA PAMANT (traseu evidentiat continuu) ──────
   const peBarY = yPE;
-  // PE-ul pornește DIN bara N (ultimul fir din busbar - jos de tot) și coboară la stânga
+  // PE-ul porneste DIN bara N (ultimul fir din busbar - jos de tot) si coboara la stanga
   const peStartY = yBusbar + (totalWires - 1) * 5; // pe ultimul fir N
-  const peJunctionX = busL - 15; // punct de plecare PE (înainte de busbar)
-  // Linie orizontală de la N busbar la punctul PE (junction)
+  const peJunctionX = busL - 15; // punct de plecare PE (inainte de busbar)
+  // Linie orizontala de la N busbar la punctul PE (junction)
   svg += `<line class="wire wire-PE" x1="${peJunctionX}" y1="${peStartY}" x2="${peJunctionX}" y2="${peStartY}" stroke-width="2"/>`;
   // Conductor PE coboara
   svg += `<line class="wire wire-PE" x1="${peJunctionX}" y1="${peStartY}" x2="${peJunctionX}" y2="${peBarY}" stroke-width="2.5"/>`;
   // Eticheta PE pe traseu
   svg += `<text x="${peJunctionX + 5}" y="${peBarY - 8}" font-size="9" font-weight="bold" fill="#1a7a3a">PE: ${esc(val('f_priza_pe'))}</text>`;
-  // Bara PE (centură de echipotențializare) — linie continuă verde groasă
+  // Bara PE (centura de echipotentializare) — linie continua verde groasa
   svg += `<line class="wire wire-PE" x1="${margin}" y1="${peBarY}" x2="${drawingW - margin}" y2="${peBarY}" stroke-width="3" stroke-dasharray="0"/>`;
   svg += `<rect x="${margin}" y="${peBarY - 4}" width="${drawingW - 2*margin}" height="8" fill="none" stroke="#1a7a3a" stroke-width="1.5"/>`;
-  svg += `<text x="${margin + 8}" y="${peBarY - 8}" font-size="10" font-weight="bold" fill="#1a7a3a">⏚ BARĂ PE — Centură de echipotențializare</text>`;
+  svg += `<text x="${margin + 8}" y="${peBarY - 8}" font-size="10" font-weight="bold" fill="#1a7a3a">⏚ BARA PE — Centura de echipotentializare</text>`;
   // Junction la conexiunea PE-bus
   svg += `<circle cx="${peJunctionX}" cy="${peBarY}" r="3" fill="#1a7a3a"/>`;
   // Priza pamant — coboara de pe bara PE, in centrul schemei
@@ -601,14 +601,14 @@ function buildSVG() {
   svg += `<text x="${pgX}" y="${yGround + 32}" text-anchor="middle" font-size="10" font-weight="bold" fill="#1a7a3a">${esc(val('f_priza_tip'))}</text>`;
   svg += `<text x="${pgX}" y="${yGround + 44}" text-anchor="middle" font-size="9" fill="#555">${esc(val('f_priza_rez'))}</text>`;
 
-  // ── BLOC PV (in dreapta, daca e activ) — coloană verticală cu cablaje vizibile ─
+  // ── BLOC PV (in dreapta, daca e activ) — coloana verticala cu cablaje vizibile ─
   if (pvOn) {
     // Titlu + info kWp deasupra coloanei
     svg += `<text x="${pvCenter}" y="${pvTopY - 10}" text-anchor="middle" font-weight="bold" font-size="12" fill="#854F0B">⚡ SISTEM FOTOVOLTAIC</text>`;
     const pvInfoText = `${val('f_pv_putere')} · ${val('f_pv_panouri')}`;
     svg += `<text x="${pvCenter}" y="${pvTopY + 16}" text-anchor="middle" font-size="9.5" font-weight="bold">${esc(pvInfoText)}</text>`;
 
-    // ── 1. BMPT (Bloc Măsură + Protecție Trifazată) ─────────────────
+    // ── 1. BMPT (Bloc Masura + Protectie Trifazata) ─────────────────
     const bmptW = pvDims.bmptW, bmptH = 26;
     const bmptY = bmptTopY; // intrare AC sus
     svg += `<rect class="box-imp" x="${pvCenter - bmptW/2}" y="${bmptY}" width="${bmptW}" height="${bmptH}" rx="2"/>`;
@@ -646,7 +646,7 @@ function buildSVG() {
     svg += `<text x="${pvCenter}" y="${invY + 16}" text-anchor="middle" font-weight="bold" font-size="11">INVERTOR</text>`;
     svg += `<text x="${pvCenter}" y="${invY + 31}" text-anchor="middle" font-size="9.5">${esc(val('f_pv_invertor'))}</text>`;
 
-    // ── 4. BATERIE (lateral dreapta de invertor, dacă e bifată) ──
+    // ── 4. BATERIE (lateral dreapta de invertor, daca e bifata) ──
     if (isChecked('f_pv_baterie_on')) {
       const batText = val('f_pv_baterie');
       const batW = pvDims.batW;
@@ -681,26 +681,26 @@ function buildSVG() {
     py += dcH;
 
     // ── conector DC: PROTECTIE DC (bottom) → STRINGS (top) ──
-    // Stringurile sunt 2 boxuri; DC+ pleacă de la stânga (string 1), DC− de la dreapta (string 2)
+    // Stringurile sunt 2 boxuri; DC+ pleaca de la stanga (string 1), DC− de la dreapta (string 2)
     const strW = 64, strH = 32, strGap = 14;
     const strBlockW = strW * 2 + strGap;
     const strStartX = pvCenter - strBlockW/2;
     const str1CenterX = strStartX + strW/2;
     const str2CenterX = strStartX + strW + strGap + strW/2;
-    const dcBranchY = py + 10;            // nivel orizontal unde se ramifică DC+/DC−
-    const strTopY = dcBranchY + 8;        // unde începe boxul stringurilor
+    const dcBranchY = py + 10;            // nivel orizontal unde se ramifica DC+/DC−
+    const strTopY = dcBranchY + 8;        // unde incepe boxul stringurilor
 
-    // Coborâre scurtă verticală DC+ și DC−
+    // Coborare scurta verticala DC+ si DC−
     svg += `<line class="wire-dc-pos" x1="${dcPosX}" y1="${py}" x2="${dcPosX}" y2="${dcBranchY}"/>`;
     svg += `<line class="wire-dc-neg" x1="${dcNegX}" y1="${py}" x2="${dcNegX}" y2="${dcBranchY}"/>`;
     // Orizontale: DC+ spre str1, DC− spre str2
     svg += `<line class="wire-dc-pos" x1="${dcPosX}" y1="${dcBranchY}" x2="${str1CenterX}" y2="${dcBranchY}"/>`;
     svg += `<line class="wire-dc-neg" x1="${dcNegX}" y1="${dcBranchY}" x2="${str2CenterX}" y2="${dcBranchY}"/>`;
-    // Verticale: ramurile coboară până la stringuri
+    // Verticale: ramurile coboara pana la stringuri
     svg += `<line class="wire-dc-pos" x1="${str1CenterX}" y1="${dcBranchY}" x2="${str1CenterX}" y2="${strTopY}"/>`;
     svg += `<line class="wire-dc-neg" x1="${str2CenterX}" y1="${dcBranchY}" x2="${str2CenterX}" y2="${strTopY}"/>`;
 
-    // Etichetă cablu DC pe traseu
+    // Eticheta cablu DC pe traseu
     svg += `<text x="${pvCenter}" y="${dcBranchY - 3}" text-anchor="middle" font-size="8" font-style="italic" fill="#555">${esc(val('f_pv_cabluDC'))}</text>`;
 
     // ── 6. STRINGS PV1 + PV2 ────────────────────────────────────────
@@ -712,7 +712,7 @@ function buildSVG() {
     svg += `<text x="${str2CenterX}" y="${strTopY + 26}" text-anchor="middle" font-size="7.5" fill="#fff">panouri</text>`;
     py = strTopY + strH + 6;
 
-    // PE conectat la masă PV (linie verde subțire spre bara PE)
+    // PE conectat la masa PV (linie verde subtire spre bara PE)
     svg += `<line class="wire wire-PE" x1="${pvCenter}" y1="${py}" x2="${pvCenter}" y2="${peBarY}" stroke-width="1.2"/>`;
 
     // Container PV — aliniat pe extentul real (asimetric pentru baterie)
@@ -722,7 +722,7 @@ function buildSVG() {
     const pvContH = py - pvContY + 4;
     svg += `<rect x="${pvContX}" y="${pvContY}" width="${pvContW}" height="${pvContH}" fill="none" stroke="#F9A630" stroke-width="1.8" stroke-dasharray="6,3" rx="6"/>`;
   }
-  // Când PV e dezactivat: zona din dreapta rămâne pur și simplu albă (foaie goală)
+  // Cand PV e dezactivat: zona din dreapta ramane pur si simplu alba (foaie goala)
 
   // ── CARTOUCHE jos ──────────────────────────────────────────────────
   const cartY = totalH - cartoucheH - margin;
@@ -854,7 +854,7 @@ function importFromHash() {
         cod: c.cod || 'C', dest: c.dest || '', sig: c.sig || '', cablu: c.cablu || '', dif: c.dif || '30mA', faza: c.faza || 'L1'
       }));
     }
-  } catch (e) { /* ignoră date invalide */ }
+  } catch (e) { /* ignora date invalide */ }
 }
 
 window.addEventListener('load', () => {
@@ -864,11 +864,12 @@ window.addEventListener('load', () => {
   toggleBaterieGroup();
   rebuild();
 });
-window.PROFCEISS_PROJECT={app:'schema-monofilara',label:'Schemă',
+window.PROFCEISS_PROJECT={app:'schema-monofilara',label:'Schema',
   getState(){ return { circuits:circuits.map(c=>({...c})) }; },
   setState(s){ if(s&&s.circuits){ circuits=s.circuits.map(c=>({...c})); if(typeof renderCircuits==='function') renderCircuits(); if(typeof rebuild==='function') rebuild(); } }
 };
 </script>
+<script src="../assets/no-diacritics.js"></script>
 <script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>
