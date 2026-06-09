@@ -9,7 +9,7 @@
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
 <style>
-:root{--bg:#0b0f17;--panel:#121826;--panel2:#0c1220;--line:#22304a;--ink:#e7eef8;--muted:#8696b0;--solar:#ffb020;--pv:#46b4ff;--good:#34d399;--bad:#f87171}
+:root{--bg:#eef3f9;--panel:#ffffff;--panel2:#f1f6fc;--line:#d2dce8;--ink:#1d2b44;--muted:#5d6b82;--solar:#d98200;--pv:#1c7bd6;--good:#1a8a4f;--bad:#c0392b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;display:flex;flex-direction:column;height:100%}
@@ -19,16 +19,16 @@ header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-
 .hint{color:var(--muted);font-size:12px}
 .sysseg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;margin-left:auto}
 .sysseg button{border:0;background:transparent;color:var(--muted);font-family:"Chakra Petch";font-weight:600;font-size:12px;padding:7px 12px;border-radius:7px;cursor:pointer}
-.sysseg button.on{background:#16233a;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(255,176,32,.4)}
+.sysseg button.on{background:#dfeaf7;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(217,130,0,.45)}
 .main{flex:1;display:flex;min-height:0}
 .canvaswrap{flex:1;position:relative;min-width:0;background:
-  radial-gradient(1100px 700px at 72% -12%, rgba(63,169,255,.12), transparent 60%),
-  radial-gradient(900px 600px at -8% 112%, rgba(255,176,32,.09), transparent 55%),
-  linear-gradient(160deg,#11203a 0%, #16233a 45%, #0e1626 100%)}
-#wmark{position:absolute;right:16px;bottom:12px;z-index:1;pointer-events:none;font-family:"Chakra Petch";font-weight:700;letter-spacing:.2em;font-size:24px;color:rgba(255,255,255,.07)}
+  radial-gradient(1100px 700px at 72% -12%, rgba(63,169,255,.10), transparent 60%),
+  radial-gradient(900px 600px at -8% 112%, rgba(255,176,32,.07), transparent 55%),
+  linear-gradient(160deg,#e3ebf4 0%, #eaf0f7 50%, #f3f6fb 100%)}
+#wmark{position:absolute;right:16px;bottom:12px;z-index:1;pointer-events:none;font-family:"Chakra Petch";font-weight:700;letter-spacing:.2em;font-size:24px;color:rgba(27,42,68,.08)}
 .canvaswrap canvas{display:block;width:100%;height:100%}
 #planCanvas{background:transparent}
-.hud{position:absolute;background:rgba(7,11,18,.82);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12px;color:var(--muted);backdrop-filter:blur(6px)}
+.hud{position:absolute;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12px;color:var(--muted);backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(40,60,90,.08)}
 #mode{top:10px;left:10px;max-width:70%}
 #mode b{color:var(--solar)}
 #legend{bottom:10px;left:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11.5px}
@@ -38,21 +38,21 @@ aside{width:300px;flex:none;border-left:1px solid var(--line);background:var(--p
 .sec h3{margin:0 0 9px;font-family:"Chakra Petch";font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .btn{display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:10px;padding:11px 8px;font-size:12.5px;font-family:inherit;cursor:pointer;transition:.15s}
-.btn:hover{border-color:#3b5170}
+.btn:hover{border-color:var(--pv)}
 .btn.on{border-color:var(--solar);box-shadow:inset 0 0 0 1px rgba(255,176,32,.45)}
 .btn.full{width:100%}
 .btn.act{background:linear-gradient(180deg,#ffc24d,var(--solar));color:#1a1300;border:0;font-family:"Chakra Petch";font-weight:700;letter-spacing:.03em}
-.btn.gen{background:#16233a;border-color:#2a3c5a}
+.btn.gen{background:#eaf1fb;border-color:#cdd9ea}
 .wallrow,.oprow{display:grid;gap:6px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 8px;margin-bottom:7px}
 .wallrow{grid-template-columns:auto 78px 1fr auto}
 .oprow{grid-template-columns:1fr auto}
 .wallrow .idx{font-family:"Chakra Petch";color:var(--muted);font-size:12px;width:18px}
-input,select{background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px;font-size:12.5px;font-family:inherit;width:100%}
+input,select{background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px;font-size:12.5px;font-family:inherit;width:100%}
 .x{cursor:pointer;color:var(--muted);background:none;border:0;font-size:15px}
 .list{display:flex;flex-direction:column;gap:6px}
 .row{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px}
 .row .dot{width:11px;height:11px;border-radius:3px;flex:none}
-.row .pw{width:60px;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 5px;font-size:12px;font-family:"Chakra Petch";text-align:right}
+.row .pw{width:60px;background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 5px;font-size:12px;font-family:"Chakra Petch";text-align:right}
 .muted{color:var(--muted);font-size:11.5px;line-height:1.5}
 label.fld{display:block;font-size:11px;color:var(--muted);margin:0 0 4px}
 .overlay{position:fixed;inset:0;background:rgba(4,7,12,.74);display:none;align-items:center;justify-content:center;z-index:50;padding:18px}
@@ -162,7 +162,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
       <button class="btn gen full" id="genTut">🎓 Tutorial cablare</button>
       <button class="btn gen full" id="genPanel">🗄️ Schema tablou electric</button>
       <button class="btn gen full" id="genPDF">📄 Export PDF schiță (2D + 3D)</button>
-      <button class="btn gen full" id="genCheck" style="background:#1a3a2a;border-color:#2a5c3f">🩺 Verifică instalația (asistent)</button>
+      <button class="btn gen full" id="genCheck" style="background:#e3f5ea;border-color:#bfe3cc">🩺 Verifică instalația (asistent)</button>
     </div></div>
   </aside>
 </div>
@@ -219,12 +219,12 @@ function drawPlan(){
   const pad=60, s=Math.min((W-2*pad)/Math.max(0.5,mxx-mnx),(Hh-2*pad)/Math.max(0.5,mxz-mnz));
   const ox=W/2-((mnx+mxx)/2)*s, oy=Hh/2+((mnz+mxz)/2)*s; planMap={s,ox,oy};
   const X=x=>ox+x*s, Y=z=>oy-z*s;
-  px.strokeStyle='#13233a'; px.lineWidth=1;
+  px.strokeStyle='#cdd8e6'; px.lineWidth=1;
   for(let gx=Math.floor(mnx)-1;gx<=Math.ceil(mxx)+1;gx+=0.5){ px.beginPath(); px.moveTo(X(gx),0); px.lineTo(X(gx),Hh); px.stroke(); }
   for(let gz=Math.floor(mnz)-1;gz<=Math.ceil(mxz)+1;gz+=0.5){ px.beginPath(); px.moveTo(0,Y(gz)); px.lineTo(W,Y(gz)); px.stroke(); }
-  px.strokeStyle='#5fb6e6'; px.lineWidth=3; px.lineJoin='round';
+  px.strokeStyle='#1c7bd6'; px.lineWidth=4; px.lineJoin='round';
   out.forEach(e=>{ px.beginPath(); px.moveTo(X(e.p1.x),Y(e.p1.z)); px.lineTo(X(e.p2.x),Y(e.p2.z)); px.stroke(); });
-  px.fillStyle='#cfe0f2'; px.font='600 12px "IBM Plex Sans"'; px.textAlign='center';
+  px.fillStyle='#1b2a44'; px.font='700 12px "IBM Plex Sans"'; px.textAlign='center';
   out.forEach(e=>{ const mx=(e.p1.x+e.p2.x)/2, mz=(e.p1.z+e.p2.z)/2; const len=Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100); px.fillText(`${len} cm`, X(mx), Y(mz)-6); });
   pts.forEach((p,i)=>{ px.fillStyle=(i===0&&planMode==='draw')?'#34d399':'#ffb020'; px.beginPath(); px.arc(X(p.x),Y(p.z),6,0,7); px.fill(); });
   plan.openings.forEach(o=>{ const e=out[o.wall]; if(!e) return; const dirx=(e.p2.x-e.p1.x), dirz=(e.p2.z-e.p1.z); const L=Math.hypot(dirx,dirz)||1; const ux=dirx/L, uz=dirz/L;
@@ -306,8 +306,8 @@ function buildRoom3D(){
   const {v,out}=edges(); const c=centroid();
   // podea + tavan (formă poligon)
   const shape=new THREE.Shape(); v.slice(0,-1).forEach((p,i)=> i?shape.lineTo(p.x,p.z):shape.moveTo(p.x,p.z)); shape.closePath();
-  const floor=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0x1a2233,roughness:.95,side:THREE.DoubleSide})); floor.rotation.x=Math.PI/2; floor.userData={kind:'floor'}; roomGroup.add(floor); surfaces.push(floor);
-  const ceil=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0x141b2a,roughness:.95,transparent:true,opacity:.45,side:THREE.DoubleSide})); ceil.rotation.x=Math.PI/2; ceil.position.y=H; ceil.userData={kind:'ceiling'}; roomGroup.add(ceil); surfaces.push(ceil);
+  const floor=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0xdbe4f0,roughness:.95,side:THREE.DoubleSide})); floor.rotation.x=Math.PI/2; floor.userData={kind:'floor'}; roomGroup.add(floor); surfaces.push(floor);
+  const ceil=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0xeef3f9,roughness:.95,transparent:true,opacity:.35,side:THREE.DoubleSide})); ceil.rotation.x=Math.PI/2; ceil.position.y=H; ceil.userData={kind:'ceiling'}; roomGroup.add(ceil); surfaces.push(ceil);
   // pereți cu goluri
   out.forEach(e=>{
     const p1=new THREE.Vector3(e.p1.x,0,e.p1.z), p2=new THREE.Vector3(e.p2.x,0,e.p2.z);
@@ -321,7 +321,7 @@ function buildRoom3D(){
     ops.forEach(o=>{ if(o.type==='usa') addFill(p1,dir,nrm,o,0x6b4a2f,1); else if(o.type==='fereastra') addFill(p1,dir,nrm,o,0x9fd2ff,0.45); });
   });
   // structură groasă: stâlpi în colțuri + grinzi sus/jos
-  const frameMat=new THREE.MeshStandardMaterial({color:0x33476a,roughness:.85});
+  const frameMat=new THREE.MeshStandardMaterial({color:0x8593ad,roughness:.8});
   const beam=(p1,p2,th)=>{ const dir=new THREE.Vector3().subVectors(p2,p1); const len=dir.length(); if(len<0.001) return; const m=new THREE.Mesh(new THREE.BoxGeometry(len,th,th), frameMat); m.position.copy(p1).addScaledVector(dir,0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), dir.clone().normalize()); roomGroup.add(m); };
   v.slice(0,-1).forEach(c2=>{ beam(new THREE.Vector3(c2.x,0,c2.z), new THREE.Vector3(c2.x,H,c2.z), 0.12); });
   out.forEach(e=>{ beam(new THREE.Vector3(e.p1.x,0,e.p1.z), new THREE.Vector3(e.p2.x,0,e.p2.z), 0.09); beam(new THREE.Vector3(e.p1.x,H,e.p1.z), new THREE.Vector3(e.p2.x,H,e.p2.z), 0.09); });
@@ -333,10 +333,10 @@ function buildRoom3D(){
 function addPanel(p1,dir,nrm,u0,u1,v0,v1,wall){
   const w=u1-u0, h=v1-v0; if(w<=0.001||h<=0.001) return;
   const uc=(u0+u1)/2, vc=(v0+v1)/2;
-  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshStandardMaterial({color:0x223049,roughness:.9,transparent:true,opacity:.24,side:THREE.DoubleSide}));
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshStandardMaterial({color:0xaebfd6,roughness:.9,transparent:true,opacity:.30,side:THREE.DoubleSide}));
   const pos=p1.clone().add(dir.clone().multiplyScalar(uc)); pos.y=vc; m.position.copy(pos); m.lookAt(pos.clone().add(nrm));
   m.userData={kind:'wall',wall,normal:nrm.clone()}; roomGroup.add(m); surfaces.push(m);
-  const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({color:0x3b5170})); e.position.copy(m.position); e.quaternion.copy(m.quaternion); roomGroup.add(e);
+  const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({color:0x7488a6})); e.position.copy(m.position); e.quaternion.copy(m.quaternion); roomGroup.add(e);
 }
 function addFill(p1,dir,nrm,o,color,opacity){
   const w=o.w, h=o.head-o.sill; const uc=o.pos+o.w/2, vc=(o.sill+o.head)/2;
@@ -369,7 +369,7 @@ async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.use
   if(doza){ if(route.mode==='chain' && (type==='priza'||type==='bec')){ const sib=devices.filter(x=>x.type===type&&x.doza===doza&&x.circuit===circuit); source=sib.length?{kind:'dev',id:sib[sib.length-1].id}:{kind:'doza',id:doza}; } else source={kind:'doza',id:doza}; }
   const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
   const subName = type==='intrerupator' ? ({simplu:'Întrerupător',scara:'Cap-scară',cruce:'Cap-cruce'}[addSub]||'Întrerupător') : ADD[type].label;
-  const dev={id:uid++,type,circuit,doza,source,sub:(type==='intrerupator'?addSub:undefined),power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind,name:subName+' '+(devices.filter(x=>x.type===type).length+1)}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
+  const dev={id:uid++,type,circuit,doza,source,sub:(type==='intrerupator'?addSub:undefined),route:'sus',power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind,name:subName+' '+(devices.filter(x=>x.type===type).length+1)}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
   updateDevLabel(dev);
   renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id)); }
 function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit); const col=cc?new THREE.Color(cc.color):new THREE.Color(0xcfd6df); const g=new THREE.Group();
@@ -388,7 +388,11 @@ function addOpeningAt(type,hit){ const ud=hit.object.userData; if(ud.kind!=='wal
   const along=Math.max(0,Math.min(L,hit.point.clone().sub(p1).dot(dir))); const d=OPEN_DEF[type]; const w=Math.min(d.w,L); const pos=Math.max(0,Math.min(Math.max(0,L-w),along-w/2));
   const op={type,wall:ud.wall,pos,w,sill:d.sill,head:Math.min(d.head,H)}; plan.openings.push(op); buildRoom3D(); renderWires(); renderRoomList();
   pushHistory(()=>{ const i=plan.openings.indexOf(op); if(i>=0){ plan.openings.splice(i,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
-function placeFurniture(type,hit){ const f=FURN[type]; const m=new THREE.Mesh(new THREE.BoxGeometry(f.w,f.h,f.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); const p=hit.point.clone(); p.y=f.h/2; m.position.copy(p); scene.add(m); const pr={id:uid++,type,mesh:m,label:f.label,kind:'prop'}; props.push(pr); m.userData={el:'prop',id:pr.id}; renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
+function placeFurniture(type,hit){ const f=FURN[type]; const dim={w:f.w,h:f.h,d:f.d}; const m=new THREE.Mesh(new THREE.BoxGeometry(dim.w,dim.h,dim.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); const p=hit.point.clone(); p.y=dim.h/2; m.position.copy(p); scene.add(m); const pr={id:uid++,type,mesh:m,label:f.label,kind:'prop',dim}; props.push(pr); m.userData={el:'prop',id:pr.id}; renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
+function editFurniture(id){ const pr=props.find(p=>p.id===id); if(!pr||!pr.dim) return; const d=pr.dim;
+  openModal(`<button class="close" id="mClose">✕</button><h2>Editează ${pr.label}</h2><label class="fld">Lățime (cm)</label><input id="fW" type="number" value="${Math.round(d.w*100)}"><label class="fld" style="margin-top:8px">Înălțime (cm)</label><input id="fH" type="number" value="${Math.round(d.h*100)}"><label class="fld" style="margin-top:8px">Adâncime (cm)</label><input id="fD" type="number" value="${Math.round(d.d*100)}"><div class="dl"><button class="btn act" id="fApply">Aplică</button></div>`);
+  $('mClose').onclick=closeModal;
+  $('fApply').onclick=()=>{ d.w=Math.max(0.05,(parseInt($('fW').value,10)||50)/100); d.h=Math.max(0.05,(parseInt($('fH').value,10)||50)/100); d.d=Math.max(0.05,(parseInt($('fD').value,10)||50)/100); const keep=pr.mesh.position.clone(); keep.y=d.h/2; pr.mesh.geometry.dispose(); pr.mesh.geometry=new THREE.BoxGeometry(d.w,d.h,d.d); pr.mesh.position.copy(keep); closeModal(); }; }
 function placeDoza(hit){ const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03));
   const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); scene.add(g);
   const dz={id:uid++,n,pos:p.clone(),mesh:g,source:{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); renderLists(); renderWires(); pushHistory(()=>removeDoza(dz.id)); }
@@ -416,7 +420,7 @@ function renderWiresThrottled(){ if(wireTO) return; wireTO=setTimeout(()=>{ wire
 function segDist(px,pz,x1,z1,x2,z2){ const dx=x2-x1,dz=z2-z1; const L2=dx*dx+dz*dz||1; let t=((px-x1)*dx+(pz-z1)*dz)/L2; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-(x1+t*dx),pz-(z1+t*dz)); }
 function distToWalls(p){ const {out}=edges(); let m=1e9; out.forEach(e=>{ m=Math.min(m,segDist(p.x,p.z,e.p1.x,e.p1.z,e.p2.x,e.p2.z)); }); return m; }
 function updateMeasure(el){ const p=elPos(el); const dw=Math.round(distToWalls(p)*100);
-  const inp='width:58px;text-align:right;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px 5px;font-size:12px';
+  const inp='width:58px;text-align:right;background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px 5px;font-size:12px';
   $('measure').innerHTML=`<b>${elLabel(el)}</b> — trage, sau scrie + Enter<br>perete: ${dw} cm`+
     `<span style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;justify-content:flex-end"><span style="font-size:11px">podea</span><input id="mFloor" type="number" value="${Math.round(p.y*100)}" style="${inp}"><span style="font-size:11px">tavan</span><input id="mCeil" type="number" value="${Math.round((H-p.y)*100)}" style="${inp}"></span>`;
   const f=$('mFloor'), c=$('mCeil'); if(f) f.onchange=()=>setElY(el,(parseInt(f.value,10)||0)/100); if(c) c.onchange=()=>setElY(el,H-(parseInt(c.value,10)||0)/100); }
@@ -434,8 +438,9 @@ function editOpening(idx){ const o=plan.openings[idx]; if(!o) return; const win=
 function removeProp(id){ const i=props.findIndex(p=>p.id===id); if(i<0) return; scene.remove(props[i].mesh); props.splice(i,1); renderRoomList(); }
 function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[...dozas.map(z=>({k:'doza',id:z.id,label:'Doza '+z.n,col:'#f2c14e'})), ...props.map(p=>({k:'prop',id:p.id,label:p.label,col:'#7c93b3'})), ...plan.openings.map((o,i)=>({k:'op',idx:i,label:OPEN_DEF[o.type].label+' (P'+(o.wall+1)+')',col:'#7c93b3'}))];
   if(!items.length){ el.innerHTML='<p class="muted">Nimic.</p>'; return; } el.innerHTML='';
-  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns=''; if(it.k==='op') btns+=`<button class="x" data-ek="${it.idx}" title="Editează dimensiuni">✎</button>`; btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='op'?it.idx:it.id}">✕</button>`; d.innerHTML=`<span class="dot" style="background:${it.col}"></span>${it.label}${btns}`; el.appendChild(d); });
+  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns=''; if(it.k==='op') btns+=`<button class="x" data-ek="${it.idx}" title="Editează dimensiuni">✎</button>`; if(it.k==='prop') btns+=`<button class="x" data-fe="${it.id}" title="Editează dimensiuni">✎</button>`; btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='op'?it.idx:it.id}">✕</button>`; d.innerHTML=`<span class="dot" style="background:${it.col}"></span>${it.label}${btns}`; el.appendChild(d); });
   el.querySelectorAll('[data-ek]').forEach(b=> b.onclick=()=>editOpening(parseInt(b.dataset.ek,10)));
+  el.querySelectorAll('[data-fe]').forEach(b=> b.onclick=()=>editFurniture(parseInt(b.dataset.fe,10)));
   el.querySelectorAll('[data-rk]').forEach(b=> b.onclick=()=>{ const k=b.dataset.rk, ri=parseInt(b.dataset.ri,10); if(k==='prop') removeProp(ri); else if(k==='doza') removeDoza(ri); else { plan.openings.splice(ri,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
 
 /* ===== circuit modal ===== */
@@ -550,18 +555,18 @@ function renderLists(){ const cl=$('circuitList');
   dl.innerHTML='';
   const buildRow=(d)=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row'; el.style.flexWrap='wrap';
     if(d.type==='tablou'){ el.innerHTML=`<span class="dot" style="background:#7c93b3"></span><span style="flex:1">Tablou electric</span><button class="x" data-del="${d.id}">✕</button>`; return el; }
-    const ssty='background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px;font-size:11px';
+    const ssty='background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px;font-size:11px';
     const myKind=ADD[d.type].kind; const srcSel=d.source||{kind:'panel'};
     const circOpts=circuits.filter(x=>x.kind===myKind).map(x=>`<option value="${x.id}" ${x.id===d.circuit?'selected':''}>C${x.n}</option>`).join('')||'<option value="">—</option>';
     const dozOk=dozas.filter(z=>{ const k=dozaKind(z); return k===null||k===myKind; });
     const srcOpts=`<option value="panel" ${srcSel.kind==='panel'?'selected':''}>Tablou</option>`+dozOk.map(z=>`<option value="doza:${z.id}" ${(srcSel.kind==='doza'&&srcSel.id===z.id)?'selected':''}>Doza ${z.n}</option>`).join('')+devices.filter(x=>x.id!==d.id&&x.type!=='tablou'&&ADD[x.type].kind===myKind).map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${(x.name||ADD[x.type].label).replace(/"/g,'&quot;')}</option>`).join('');
     const load=(d.type==='bec'||d.type==='priza');
-    el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
-      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursă</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="0" ${!d.direct?'selected':''}>perimetru</option><option value="1" ${d.direct?'selected':''}>direct</option></select>`
+    el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
+      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursă</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="sus" ${(d.route||'sus')==='sus'?'selected':''}>pe sus</option><option value="podea" ${d.route==='podea'?'selected':''}>pe podea</option><option value="direct" ${d.route==='direct'?'selected':''}>punte</option></select>`
       +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto;width:54px"> W`:'')+`</div>`;
     return el; };
   [['tablou','Tablou'],['intrerupator','Întrerupătoare'],['bec','Becuri / spoturi'],['priza','Prize']].forEach(([tp,tl])=>{ const list=devices.filter(d=>d.type===tp); if(!list.length) return; const open=listOpen[tp]!==false;
-    const hd=document.createElement('div'); hd.className='row'; hd.style.cssText='cursor:pointer;background:#16233a'; hd.innerHTML=`<span style="flex:1;font-family:Chakra Petch;font-size:12px;letter-spacing:.04em">${open?'▾':'▸'} ${tl} (${list.length})</span>`; hd.onclick=()=>{ listOpen[tp]=!open; renderLists(); }; dl.appendChild(hd);
+    const hd=document.createElement('div'); hd.className='row'; hd.style.cssText='cursor:pointer;background:#e3ecf7'; hd.innerHTML=`<span style="flex:1;font-family:Chakra Petch;font-size:12px;letter-spacing:.04em">${open?'▾':'▸'} ${tl} (${list.length})</span>`; hd.onclick=()=>{ listOpen[tp]=!open; renderLists(); }; dl.appendChild(hd);
     if(open) list.forEach(d=> dl.appendChild(buildRow(d))); });
   dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
   dl.querySelectorAll('[data-nm]').forEach(inp=> inp.oninput=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.nm,10)); if(d){ d.name=inp.value; updateDevLabel(d); } });
@@ -575,7 +580,7 @@ function renderLists(){ const cl=$('circuitList');
         if(!confirm(`Atenție: „${d.name}" e pe circuit C${cn?cn.n:'?'}, iar sursa „${sd.name}" e pe C${scn?scn.n:'?'}.\nPuntea le leagă electric — trebuie să fie pe ACELAȘI circuit.\n\nOK = le pun pe C${scn?scn.n:'?'} (al sursei).\nAnulează = nu fac puntea.`)){ renderLists(); return; } }
       d.source={kind:'dev',id:did}; if(sd) d.circuit=sd.circuit; }
     updateDevLabel(d); renderWires(); renderLists(); });
-  dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.direct=(sel.value==='1'); renderWires(); } }); }
+  dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.route=sel.value; renderWires(); } }); }
 function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; const fb=devices[i].source||{kind:'panel'}; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); devices.forEach(d=>{ if(d.source&&d.source.kind==='dev'&&d.source.id===id) d.source={...fb}; }); renderWires(); renderLists(); }
 
 /* ===== generatoare ===== */
