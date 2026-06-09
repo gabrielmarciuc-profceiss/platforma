@@ -545,7 +545,7 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
 
 /* ===== dimensionare ===== */
 function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>s+(d.power||0),0); }
-function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const auto=STD.find(s=>s>=need)||40; const breaker=c.breakerOverride||auto; return {P,I,breaker,section:SECT[breaker],auto}; }
+function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const auto=STD.find(s=>s>=need)||40; const autoSection=SECT[auto]||'2,5'; const section=c.section||autoSection; const cap=AMP[section]||16; let breaker=c.breakerOverride||auto; if(breaker>cap) breaker=STD.filter(s=>s<=cap).pop()||cap; return {P,I,breaker,section,cap,auto,autoSection}; }
 function condRad(c){ const sec=c?sizeCircuit(c).section:'1,5'; return ({'1,5':0.004,'2,5':0.008,'4':0.010,'6':0.012,'10':0.015})[sec]||0.006; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0;
   devices.filter(d=>d.circuit===c.id && d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); L+=routeLen(d.pos, sp, d.route||'sus'); });
@@ -668,13 +668,18 @@ function genPanel(){
     <select id="edMainPoles" style="${ist};width:auto">${[['mono','Monofazat 1P+N'],['tetra','Tetrapolar 4P']].map(p=>`<option value="${p[0]}" ${p[0]===mp?'selected':''}>${p[1]}</option>`).join('')}</select>
     <select id="edMainA" style="${ist};width:auto">${MAINSTD.map(a=>`<option value="${a}" ${a===main.main?'selected':''}>${a}A</option>`).join('')}</select>
     <span class="muted">+ RCD 30mA · recomandat auto: ${main.auto}A</span></div>`;
-  const tblRows=cs.map(c=>{ const sz=sizeCircuit(c); const over=c.breakerOverride&&c.breakerOverride!==sz.auto; return `<tr><td>${c.cod||('C'+c.n)} · ${c.kind==='lumina'?'ilum.':'prize'}${tri?(' · '+c.phase):''}</td><td><select data-edbr="${c.id}" style="${ist};width:auto">${STD.map(a=>`<option value="${a}" ${a===sz.breaker?'selected':''}>${a}A</option>`).join('')}</select></td><td>${sz.section} mm²</td><td class="muted" style="font-size:11px">auto ${sz.auto}A · ${Math.round(sz.P)}W${over?' · <span style="color:#d98200">manual</span>':''}</td></tr>`; }).join('');
-  const tbl=`<table style="margin-top:10px"><thead><tr><th>Circuit</th><th>Siguranță</th><th>Cablu</th><th></th></tr></thead><tbody>${tblRows}</tbody></table>`;
+  const tblRows=cs.map(c=>{ const sz=sizeCircuit(c); const over=c.breakerOverride&&c.breakerOverride!==sz.auto;
+    const secOpts=SECTIONS.map(s=>`<option value="${s}" ${s===sz.section?'selected':''}>${s} mm² (max ${AMP[s]}A)</option>`).join('');
+    const brOpts=STD.filter(a=>a<=sz.cap).map(a=>`<option value="${a}" ${a===sz.breaker?'selected':''}>${a}A</option>`).join('');
+    const ovr=sz.I>sz.breaker?`<span style="color:#c0392b">⚠ ${Math.round(sz.I)}A consum > ${sz.breaker}A</span>`:`OK ${Math.round(sz.I)}A`;
+    return `<tr><td>${c.cod||('C'+c.n)} · ${c.kind==='lumina'?'ilum.':'prize'}${tri?(' · '+c.phase):''}<br><span class="muted" style="font-size:11px">${Math.round(sz.P)}W</span></td><td><select data-edsec="${c.id}" style="${ist};width:auto">${secOpts}</select></td><td><select data-edbr="${c.id}" style="${ist};width:auto">${brOpts}</select></td><td class="muted" style="font-size:11px">≤${sz.cap}A · auto ${sz.auto}A${over?' · <span style="color:#d98200">manual</span>':''}<br>${ovr}</td></tr>`; }).join('');
+  const tbl=`<table style="margin-top:10px"><thead><tr><th>Circuit</th><th>Cablu</th><th>Siguranță</th><th>Verificare</th></tr></thead><tbody>${tblRows}</tbody></table><div class="muted" style="font-size:11px;margin-top:4px">Regula: siguranța nu poate depăși secțiunea cablului. Mărește întâi cablul ca să poți pune o siguranță peste 16A.</div>`;
   const recHtml=`<div style="margin-top:10px;padding:10px 12px;border:1px solid #bcd0ea;background:#eef5fd;border-radius:8px;font-size:13px;line-height:1.5">📦 <b>Tablou recomandat: ${rec.pick} module</b> (≈ ${rec.rows} ${rec.rows===1?'rând':'rânduri'}). Folosite acum ~${rec.used} module (siguranțe + general + RCD); cu <b>25% rezervă</b> pentru viitoare circuite → minim ${rec.need} module.</div>`;
   openModal(`<button class="close" id="mClose">✕</button><h2>🗄️ Editor tablou electric</h2>${ctrl}<div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div>${recHtml}${tbl}<div class="dl"><button class="btn act" id="dlPanel">⬇ Descarcă schema (SVG)</button></div>`);
   $('mClose').onclick=closeModal; $('dlPanel').onclick=()=>download('schema-tablou.svg',s);
   $('edMainPoles').onchange=e=>{ state.mainPoles=e.target.value; state.mainOverride=null; genPanel(); };
   $('edMainA').onchange=e=>{ state.mainOverride=parseInt(e.target.value,10); genPanel(); };
+  document.querySelectorAll('[data-edsec]').forEach(sel=> sel.onchange=()=>{ const c=circuits.find(x=>x.id===parseInt(sel.dataset.edsec,10)); if(c){ c.section=sel.value; const cap=AMP[c.section]||16; if(c.breakerOverride&&c.breakerOverride>cap) c.breakerOverride=STD.filter(s=>s<=cap).pop()||cap; renderWires(); renderLists(); genPanel(); } });
   document.querySelectorAll('[data-edbr]').forEach(sel=> sel.onchange=()=>{ const c=circuits.find(x=>x.id===parseInt(sel.dataset.edbr,10)); if(c){ c.breakerOverride=parseInt(sel.value,10); renderWires(); renderLists(); genPanel(); } });
 }
 function loadJsPDF(){ return new Promise((res,rej)=>{ if(window.jspdf&&window.jspdf.jsPDF){ res(window.jspdf); return; } const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; sc.onload=()=>res(window.jspdf); sc.onerror=()=>rej(new Error('jsPDF')); document.head.appendChild(sc); }); }
