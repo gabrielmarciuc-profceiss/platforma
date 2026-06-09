@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Configurator electrică · cameră 3D</title>
+<title>Configurator electrică · plan 2D → 3D</title>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
@@ -21,15 +21,15 @@ header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-
 .sysseg button{border:0;background:transparent;color:var(--muted);font-family:"Chakra Petch";font-weight:600;font-size:12px;padding:7px 12px;border-radius:7px;cursor:pointer}
 .sysseg button.on{background:#16233a;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(255,176,32,.4)}
 .main{flex:1;display:flex;min-height:0}
-#view{flex:1;position:relative;min-width:0}
-#view canvas{display:block;width:100%;height:100%}
-#mode{position:absolute;top:10px;left:10px;background:rgba(7,11,18,.8);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12.5px;color:var(--muted);backdrop-filter:blur(6px);max-width:75%}
+.canvaswrap{flex:1;position:relative;min-width:0}
+.canvaswrap canvas{display:block;width:100%;height:100%}
+#planCanvas{background:#0a0f1a}
+.hud{position:absolute;background:rgba(7,11,18,.82);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12px;color:var(--muted);backdrop-filter:blur(6px)}
+#mode{top:10px;left:10px;max-width:70%}
 #mode b{color:var(--solar)}
-#legend{position:absolute;bottom:10px;left:10px;background:rgba(7,11,18,.8);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:11.5px;color:var(--muted);backdrop-filter:blur(6px);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-#legend b{color:var(--ink)}
-#legend span{display:flex;align-items:center;gap:5px}
-#legend i{width:14px;height:4px;border-radius:2px;display:inline-block}
-aside{width:288px;flex:none;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;overflow-y:auto}
+#legend{bottom:10px;left:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11.5px}
+#legend b{color:var(--ink)} #legend span{display:flex;align-items:center;gap:5px} #legend i{width:14px;height:4px;border-radius:2px;display:inline-block}
+aside{width:300px;flex:none;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;overflow-y:auto}
 .sec{padding:12px 13px;border-bottom:1px solid var(--line)}
 .sec h3{margin:0 0 9px;font-family:"Chakra Petch";font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -39,86 +39,111 @@ aside{width:288px;flex:none;border-left:1px solid var(--line);background:var(--p
 .btn.full{width:100%}
 .btn.act{background:linear-gradient(180deg,#ffc24d,var(--solar));color:#1a1300;border:0;font-family:"Chakra Petch";font-weight:700;letter-spacing:.03em}
 .btn.gen{background:#16233a;border-color:#2a3c5a}
+.wallrow,.oprow{display:grid;gap:6px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 8px;margin-bottom:7px}
+.wallrow{grid-template-columns:auto 78px 1fr auto}
+.oprow{grid-template-columns:1fr auto}
+.wallrow .idx{font-family:"Chakra Petch";color:var(--muted);font-size:12px;width:18px}
+input,select{background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px;font-size:12.5px;font-family:inherit;width:100%}
+.x{cursor:pointer;color:var(--muted);background:none;border:0;font-size:15px}
 .list{display:flex;flex-direction:column;gap:6px}
 .row{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px}
 .row .dot{width:11px;height:11px;border-radius:3px;flex:none}
-.row .x{margin-left:auto;cursor:pointer;color:var(--muted);background:none;border:0;font-size:15px}
 .row .pw{width:60px;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 5px;font-size:12px;font-family:"Chakra Petch";text-align:right}
 .muted{color:var(--muted);font-size:11.5px;line-height:1.5}
+label.fld{display:block;font-size:11px;color:var(--muted);margin:0 0 4px}
 .overlay{position:fixed;inset:0;background:rgba(4,7,12,.74);display:none;align-items:center;justify-content:center;z-index:50;padding:18px}
 .overlay.on{display:flex}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:700px;width:100%;max-height:88vh;overflow:auto;padding:18px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:720px;width:100%;max-height:88vh;overflow:auto;padding:18px}
 .modal h2{font-family:"Chakra Petch";font-size:16px;margin:0 0 12px}
 .modal .close{float:right;cursor:pointer;color:var(--muted);background:none;border:0;font-size:20px}
-.cbtns{display:flex;flex-direction:column;gap:9px;margin-top:6px}
-.cbtns .btn{padding:13px;font-size:14px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+.cbtns{display:flex;flex-direction:column;gap:9px;margin-top:6px}.cbtns .btn{padding:13px;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:13px} th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
 th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
-.tut{font-size:13.5px;line-height:1.6}
-.tut h4{font-family:"Chakra Petch";margin:14px 0 5px;color:var(--solar)}
+.tut{font-size:13.5px;line-height:1.6}.tut h4{font-family:"Chakra Petch";margin:14px 0 5px;color:var(--solar)}
 .tut .warn{background:#2a1316;border:1px solid #5b2740;border-radius:9px;padding:10px;color:#f4b6b6;margin:10px 0}
 .dl{margin-top:14px}
-#drawer{display:none;position:sticky;top:0;width:100%;background:var(--panel);border:0;border-bottom:1px solid var(--line);color:var(--ink);padding:12px;font-family:"Chakra Petch";letter-spacing:.06em;font-size:12px;cursor:pointer}
-@media(max-width:760px){ aside{position:fixed;inset:auto 0 0 0;height:52vh;width:100%;border-left:0;border-top:1px solid var(--line);transform:translateY(calc(100% - 44px));transition:.25s;z-index:20;border-radius:14px 14px 0 0} aside.open{transform:translateY(0)} #drawer{display:block} }
+.hidden{display:none!important}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">Configurator <b>electrică</b></div>
-  <div class="hint">Drag = rotește · scroll = zoom · alege un element apoi click pe perete/tavan</div>
-  <div class="sysseg" id="sysSeg">
-    <button data-sys-seg="mono">Monofazat</button>
-    <button data-sys-seg="tri">Trifazat</button>
-  </div>
+  <div class="hint" id="topHint">Pasul 1 — desenează planul camerei în cm</div>
+  <button class="btn" id="toggleView" style="padding:7px 12px;flex:none">⇆ 2D / 3D</button>
+  <button class="btn" id="undoBtn" style="padding:7px 12px;flex:none">↩ Undo</button>
+  <div class="sysseg" id="sysSeg"><button data-sys-seg="mono">Monofazat</button><button data-sys-seg="tri">Trifazat</button></div>
 </header>
 
 <div class="main">
-  <div id="view">
-    <div id="mode">Sistem: <b id="sysLabel">—</b>. Alege un element din dreapta, apoi <b>click pe un perete</b> sau pe tavan.</div>
-    <div id="legend">
-      <b>Conductori:</b>
-      <span><i style="background:#c2772e"></i>fază</span>
-      <span><i style="background:#2f6fd0"></i>nul</span>
-      <span><i style="background:#cdbb00"></i>împământare</span>
-      <span><i style="background:#aab4c2"></i>fază comutată</span>
-    </div>
+  <div class="canvaswrap" id="canvaswrap">
+    <canvas id="planCanvas"></canvas>
+    <div class="hud" id="mode">Definește pereții în dreapta (lungime în cm + cotitură). Apasă <b>Ridică 3D</b> când e gata.</div>
+    <div class="hud hidden" id="legend"><b>Fire:</b><span><i style="background:#e23b3b"></i>fază</span><span><i style="background:#2f6fd0"></i>nul</span><span><i style="background:#e6d200"></i>împământare</span><span><i style="background:#9aa3ad"></i>comutată</span><span style="opacity:.7">· 3~ L1/L2/L3:</span><span><i style="background:#e23b3b"></i></span><span><i style="background:#8a5a2b"></i></span><span><i style="background:#9aa3ad"></i></span></div>
   </div>
-  <aside id="panel">
-    <button id="drawer">≡ PANOU</button>
 
+  <!-- PANOU PLAN -->
+  <aside id="planPanel">
     <div class="sec">
-      <h3>Adaugă elemente</h3>
+      <h3>Pereți (în ordine)</h3>
+      <div id="wallRows"></div>
+      <button class="btn full" id="addWall">＋ Adaugă perete</button>
+      <p class="muted" id="planStatus" style="margin-top:8px"></p>
+    </div>
+    <div class="sec">
+      <h3>Înălțime cameră</h3>
+      <div style="display:flex;align-items:center;gap:8px"><input id="height" type="number" min="200" max="400" value="260" style="width:90px"> <span class="muted">cm</span></div>
+    </div>
+    <div class="sec">
+      <h3>Goluri · uși · ferestre</h3>
+      <div id="opRows"></div>
+      <button class="btn full" id="addOp">＋ Adaugă gol/ușă/fereastră</button>
+    </div>
+    <div class="sec">
+      <button class="btn act full" id="raise">⬆ Ridică planul în 3D</button>
+    </div>
+  </aside>
+
+  <!-- PANOU 3D -->
+  <aside id="elecPanel" class="hidden">
+    <div class="sec">
+      <button class="btn full" id="backPlan">← Înapoi la plan</button>
+    </div>
+    <div class="sec">
+      <button class="btn full" id="cursorTool">🖐 Cursor — rotește / lucrează (nu plasează)</button>
+    </div>
+    <div class="sec">
+      <h3>Elemente cameră</h3>
+      <div class="grid2">
+        <button class="btn" data-add="usa">🚪 Ușă</button>
+        <button class="btn" data-add="gol_usa">⬚ Gol ușă</button>
+        <button class="btn" data-add="fereastra">🪟 Fereastră</button>
+        <button class="btn" data-add="gol_fereastra">⬚ Gol fereastră</button>
+        <button class="btn" data-add="treapta">▤ Treaptă</button>
+        <button class="btn" data-add="pat">🛏️ Pat</button>
+        <button class="btn" data-add="mobilier">🗄️ Mobilier</button>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Aparataj electric</h3>
       <div class="grid2">
         <button class="btn" data-add="tablou">🔲 Tablou</button>
         <button class="btn" data-add="intrerupator">🔘 Întrerupător</button>
-        <button class="btn" data-add="bec">💡 Bec (tavan)</button>
+        <button class="btn" data-add="bec">💡 Bec</button>
         <button class="btn" data-add="priza">🔌 Priză</button>
-        <button class="btn" data-add="usa">🚪 Ușă</button>
+        <button class="btn" data-add="doza">🟡 Doză</button>
         <button class="btn" id="cancelAdd">✖ Anulează</button>
       </div>
       <p class="muted" id="addInfo" style="margin-top:8px"></p>
     </div>
-
-    <div class="sec">
-      <h3>Circuite</h3>
-      <div class="list" id="circuitList"><p class="muted">Niciun circuit încă.</p></div>
-    </div>
-
-    <div class="sec">
-      <h3>Elemente plasate · putere</h3>
-      <div class="list" id="devList"><p class="muted">Nimic plasat încă.</p></div>
-      <p class="muted" style="margin-top:8px">Setează puterea (W) pentru becuri și prize — pe baza ei dimensionez cablul și siguranța.</p>
-    </div>
-
-    <div class="sec">
-      <h3>Generează</h3>
-      <div class="list">
-        <button class="btn gen full" id="genBOM">📋 Listă de materiale</button>
-        <button class="btn gen full" id="genSchema">📐 Schema monofilară</button>
-        <button class="btn gen full" id="genTut">🎓 Tutorial cablare</button>
-      </div>
-    </div>
+    <div class="sec"><h3>Cameră · plasate</h3><div class="list" id="roomList"><p class="muted">Nimic.</p></div></div>
+    <div class="sec"><h3>Circuite</h3><div class="list" id="circuitList"><p class="muted">Niciun circuit încă.</p></div></div>
+    <div class="sec"><h3>Elemente · putere</h3><div class="list" id="devList"><p class="muted">Nimic plasat.</p></div>
+      <p class="muted" style="margin-top:8px">Setează puterea (W) la becuri/prize — dimensionez cablul și siguranța din ea.</p></div>
+    <div class="sec"><h3>Generează</h3><div class="list">
+      <button class="btn gen full" id="genBOM">📋 Listă de materiale</button>
+      <button class="btn gen full" id="genSchema">📐 Schema monofilară</button>
+      <button class="btn gen full" id="genTut">🎓 Tutorial cablare</button>
+    </div></div>
   </aside>
 </div>
 
@@ -128,274 +153,303 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
 import * as THREE from 'three';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
-const ROOM={W:4, D:3, H:2.6};
-const U=230;                       // tensiune circuit fază-nul
-const COLORS=['#ffb020','#46b4ff','#34d399','#f87171','#a78bfa','#fb7185','#22d3ee','#f59e0b'];
-const STD=[10,16,20,25,32,40];     // siguranțe circuite
-const MAINSTD=[16,20,25,32,40,50,63];
+const U=230, COLORS=['#ffb020','#46b4ff','#34d399','#f87171','#a78bfa','#fb7185','#22d3ee','#f59e0b'];
+const STD=[10,16,20,25,32,40], MAINSTD=[16,20,25,32,40,50,63];
 const SECT={10:'1,5',16:'2,5',20:'2,5',25:'4',32:'6',40:'10'};
-const COND={ L:'#c2772e', N:'#2f6fd0', PE:'#cdbb00', SW:'#aab4c2' }; // fază, nul, împământare, fază comutată
+const COND={ L:'#e23b3b', N:'#2f6fd0', PE:'#e6d200', SW:'#9aa3ad' };  // fază roșu, nul albastru, împământare galben, comutată gri
+const PHASE_COL={ L1:'#e23b3b', L2:'#8a5a2b', L3:'#9aa3ad' };          // trifazat: roșu / maro / gri
 const $=id=>document.getElementById(id);
 
-let scene,camera,renderer,controls,raycaster;
-const pointer=new THREE.Vector2();
-const surfaces=[], deviceMeshes=[], wireGroup=new THREE.Group();
+/* ===== stare ===== */
+const state={system:'mono', mode:'plan'};
+let H=2.6;                                   // înălțime cameră (m)
+const plan={ walls:[ {len:4.0,turn:90},{len:3.0,turn:90},{len:4.0,turn:90},{len:3.0,turn:90} ], openings:[] };
+const OPEN_DEF={ usa:{sill:0,head:2.05,w:0.9,label:'Ușă'}, gol_usa:{sill:0,head:2.05,w:0.9,label:'Gol ușă'}, fereastra:{sill:0.9,head:2.1,w:1.2,label:'Fereastră'}, gol_fereastra:{sill:0.9,head:2.1,w:1.2,label:'Gol fereastră'} };
+
+const DEF_POWER={bec:10,priza:2000,intrerupator:0,tablou:0};
+const ADD={ tablou:{label:'Tablou electric',h:1.45,kind:null}, intrerupator:{label:'Întrerupător',h:1.10,kind:'lumina'}, bec:{label:'Bec',h:null,kind:'lumina'}, priza:{label:'Priză',h:0.30,kind:'prize'} };
+const ROOMEL={ usa:'opening', gol_usa:'opening', fereastra:'opening', gol_fereastra:'opening', treapta:'furniture', pat:'furniture', mobilier:'furniture' };
+const FURN={ pat:{w:1.6,h:0.5,d:2.0,color:0x5a6472,label:'Pat'}, mobilier:{w:0.8,h:2.0,d:0.6,color:0x8a6d3b,label:'Mobilier'}, treapta:{w:1.0,h:0.15,d:0.4,color:0x44505f,label:'Treaptă'} };
+const props=[]; const history=[];
+
+let scene,camera,renderer,controls,raycaster; const pointer=new THREE.Vector2();
+const roomGroup=new THREE.Group(), wireGroup=new THREE.Group();
+const surfaces=[], deviceMeshes=[];
 let addType=null, uid=1, cuid=1;
-const devices=[];     // {id,type,circuit,power,pos,wall,mesh}
-const circuits=[];    // {id,kind,n,color,phase}
-const state={system:'mono'};
-const DEF_POWER={bec:10, priza:2000, intrerupator:0, tablou:0, usa:0};
+const devices=[], circuits=[];
 
-const view=$('view');
-init();
+/* ===== PLAN: geometrie ===== */
+function planVerts(){
+  const v=[{x:0,z:0}]; let dir=0; // 0 = +X
+  plan.walls.forEach(w=>{ const a=dir*Math.PI/180; const p=v[v.length-1]; v.push({x:p.x+w.len*Math.cos(a), z:p.z+w.len*Math.sin(a)}); dir+=w.turn; });
+  return v; // n+1 puncte; ultima muchie închide dacă ultimul ≈ primul
+}
+function isClosed(v){ const a=v[0], b=v[v.length-1]; return Math.hypot(a.x-b.x,a.z-b.z)<0.05; }
+function edges(){ const v=planVerts(); const out=[]; const n=plan.walls.length;
+  for(let i=0;i<n;i++){ const p1=v[i], p2=v[i+1]; out.push({i,p1,p2}); } return {v,out}; }
+function centroid(v){ let x=0,z=0; v.forEach(p=>{x+=p.x;z+=p.z;}); return {x:x/v.length,z:z/v.length}; }
 
-function init(){
+/* ===== PLAN: canvas 2D ===== */
+const pc=$('planCanvas'), px=pc.getContext('2d');
+function fitPC(){ const dpr=devicePixelRatio||1; pc.width=pc.clientWidth*dpr; pc.height=pc.clientHeight*dpr; px.setTransform(dpr,0,0,dpr,0,0); }
+function drawPlan(){
+  if(state.mode!=='plan') return;
+  fitPC(); const W=pc.clientWidth, Hh=pc.clientHeight; px.clearRect(0,0,W,Hh);
+  const {v,out}=edges(); const c=centroid(v);
+  let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; v.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
+  const pad=60, s=Math.min((W-2*pad)/Math.max(0.5,mxx-mnx),(Hh-2*pad)/Math.max(0.5,mxz-mnz));
+  const ox=W/2-((mnx+mxx)/2)*s, oy=Hh/2+((mnz+mxz)/2)*s;
+  const X=x=>ox+x*s, Y=z=>oy-z*s;
+  // grilă 0.5m
+  px.strokeStyle='#13233a'; px.lineWidth=1;
+  for(let gx=Math.floor(mnx)-1;gx<=Math.ceil(mxx)+1;gx+=0.5){ px.beginPath(); px.moveTo(X(gx),0); px.lineTo(X(gx),Hh); px.stroke(); }
+  for(let gz=Math.floor(mnz)-1;gz<=Math.ceil(mxz)+1;gz+=0.5){ px.beginPath(); px.moveTo(0,Y(gz)); px.lineTo(W,Y(gz)); px.stroke(); }
+  // pereți
+  px.strokeStyle='#5fb6e6'; px.lineWidth=3; px.lineJoin='round';
+  out.forEach(e=>{ px.beginPath(); px.moveTo(X(e.p1.x),Y(e.p1.z)); px.lineTo(X(e.p2.x),Y(e.p2.z)); px.stroke(); });
+  // cote
+  px.fillStyle='#cfe0f2'; px.font='600 12px "IBM Plex Sans"'; px.textAlign='center';
+  out.forEach(e=>{ const mx=(e.p1.x+e.p2.x)/2, mz=(e.p1.z+e.p2.z)/2; const len=Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100); px.fillText(`P${e.i+1}: ${len} cm`, X(mx), Y(mz)-6); });
+  // noduri
+  v.slice(0,-1).forEach(p=>{ px.fillStyle='#ffb020'; px.beginPath(); px.arc(X(p.x),Y(p.z),4,0,7); px.fill(); });
+  // goluri
+  plan.openings.forEach(o=>{ const e=out[o.wall]; if(!e) return; const dirx=(e.p2.x-e.p1.x), dirz=(e.p2.z-e.p1.z); const L=Math.hypot(dirx,dirz); const ux=dirx/L, uz=dirz/L;
+    const a={x:e.p1.x+ux*o.pos, z:e.p1.z+uz*o.pos}, b={x:e.p1.x+ux*(o.pos+o.w), z:e.p1.z+uz*(o.pos+o.w)};
+    px.strokeStyle = o.type.startsWith('gol')?'#34d399':'#f2c14e'; px.lineWidth=6; px.beginPath(); px.moveTo(X(a.x),Y(a.z)); px.lineTo(X(b.x),Y(b.z)); px.stroke(); });
+}
+
+/* ===== PLAN: UI ===== */
+function renderWallRows(){
+  const c=$('wallRows'); c.innerHTML='';
+  plan.walls.forEach((w,i)=>{ const el=document.createElement('div'); el.className='wallrow';
+    el.innerHTML=`<span class="idx">P${i+1}</span><input type="number" min="10" step="10" value="${Math.round(w.len*100)}" data-len="${i}"><select data-turn="${i}">
+      <option value="90"${w.turn===90?' selected':''}>↰ stânga 90°</option><option value="-90"${w.turn===-90?' selected':''}>↱ dreapta 90°</option><option value="0"${w.turn===0?' selected':''}>→ drept</option></select>
+      <button class="x" data-delw="${i}">✕</button>`; c.appendChild(el); });
+  c.querySelectorAll('[data-len]').forEach(inp=> inp.onchange=()=>{ plan.walls[+inp.dataset.len].len=Math.max(0.1,(parseInt(inp.value,10)||100)/100); refreshPlan(); });
+  c.querySelectorAll('[data-turn]').forEach(sl=> sl.onchange=()=>{ plan.walls[+sl.dataset.turn].turn=parseInt(sl.value,10); refreshPlan(); });
+  c.querySelectorAll('[data-delw]').forEach(b=> b.onclick=()=>{ plan.walls.splice(+b.dataset.delw,1); plan.openings=plan.openings.filter(o=>o.wall<plan.walls.length); renderWallRows(); renderOpRows(); refreshPlan(); });
+}
+function renderOpRows(){
+  const c=$('opRows'); c.innerHTML='';
+  if(!plan.openings.length){ c.innerHTML='<p class="muted">Niciun gol.</p>'; return; }
+  plan.openings.forEach((o,i)=>{ const el=document.createElement('div'); el.className='oprow';
+    el.innerHTML=`<div style="font-size:12px">${OPEN_DEF[o.type].label} · P${o.wall+1} · la ${Math.round(o.pos*100)}cm · lat ${Math.round(o.w*100)}cm</div><button class="x" data-delo="${i}">✕</button>`; c.appendChild(el); });
+  c.querySelectorAll('[data-delo]').forEach(b=> b.onclick=()=>{ plan.openings.splice(+b.dataset.delo,1); renderOpRows(); refreshPlan(); });
+}
+function refreshPlan(){ const {v}=edges(); const closed=isClosed(v); $('planStatus').innerHTML = closed?'<span style="color:var(--good)">✓ Contur închis</span>':'<span style="color:var(--bad)">Contur deschis — ajustează pereții ca să se închidă</span>'; drawPlan(); }
+$('addWall').onclick=()=>{ plan.walls.push({len:2.0,turn:0}); renderWallRows(); refreshPlan(); };
+$('height').onchange=e=>{ H=Math.max(2.0,Math.min(4.0,(parseInt(e.target.value,10)||260)/100)); };
+$('addOp').onclick=()=>{
+  const opts=Object.entries(OPEN_DEF).map(([k,d])=>`<option value="${k}">${d.label}</option>`).join('');
+  const wopts=plan.walls.map((w,i)=>`<option value="${i}">P${i+1} (${Math.round(w.len*100)}cm)</option>`).join('');
+  openModal(`<button class="close" id="mClose">✕</button><h2>Adaugă gol / ușă / fereastră</h2>
+    <label class="fld">Tip</label><select id="opType">${opts}</select>
+    <label class="fld" style="margin-top:8px">Pe ce perete</label><select id="opWall">${wopts}</select>
+    <label class="fld" style="margin-top:8px">Poziție de la început (cm)</label><input id="opPos" type="number" min="0" value="20">
+    <label class="fld" style="margin-top:8px">Lățime (cm)</label><input id="opW" type="number" min="20" value="90">
+    <div class="dl"><button class="btn act" id="opAdd">Adaugă</button></div>`);
+  $('mClose').onclick=closeModal;
+  $('opAdd').onclick=()=>{ const type=$('opType').value, d=OPEN_DEF[type]; plan.openings.push({type, wall:parseInt($('opWall').value,10), pos:(parseInt($('opPos').value,10)||0)/100, w:(parseInt($('opW').value,10)||90)/100, sill:d.sill, head:d.head}); closeModal(); renderOpRows(); refreshPlan(); };
+};
+
+/* ===== 3D ===== */
+function init3D(){
+  if(renderer) return;
   scene=new THREE.Scene(); scene.background=new THREE.Color(0x0b0f17);
-  camera=new THREE.PerspectiveCamera(52, view.clientWidth/Math.max(1,view.clientHeight), 0.05, 200);
-  camera.position.set(ROOM.W*1.2, ROOM.H*1.5, ROOM.D*1.7);
-  renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(devicePixelRatio); renderer.setSize(view.clientWidth, view.clientHeight); view.appendChild(renderer.domElement);
-  controls=new OrbitControls(camera, renderer.domElement); controls.target.set(0, ROOM.H*0.45, 0); controls.enableDamping=true; controls.update();
+  camera=new THREE.PerspectiveCamera(52, 1, 0.05, 200);
+  renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(devicePixelRatio);
+  $('canvaswrap').appendChild(renderer.domElement); renderer.domElement.id='glCanvas'; renderer.domElement.style.display='none';
+  controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=true;
   scene.add(new THREE.HemisphereLight(0xffffff,0x33384a,1.05));
   const dir=new THREE.DirectionalLight(0xffffff,0.7); dir.position.set(4,8,6); scene.add(dir);
-  scene.add(wireGroup); buildRoom();
+  scene.add(roomGroup); scene.add(wireGroup);
   raycaster=new THREE.Raycaster();
   renderer.domElement.addEventListener('pointerdown', onPick);
-  window.addEventListener('resize', onResize);
-  animate(); askSystem();
+  animate();
 }
-function onResize(){ camera.aspect=view.clientWidth/Math.max(1,view.clientHeight); camera.updateProjectionMatrix(); renderer.setSize(view.clientWidth, view.clientHeight); }
-function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
+function sizeRenderer(){ const w=$('canvaswrap').clientWidth, h=$('canvaswrap').clientHeight; renderer.setSize(w,h); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); }
+function animate(){ requestAnimationFrame(animate); if(controls) controls.update(); if(renderer&&state.mode==='3d') renderer.render(scene,camera); }
 
-function buildRoom(){
-  const {W,D,H}=ROOM;
-  const floor=new THREE.Mesh(new THREE.PlaneGeometry(W,D), new THREE.MeshStandardMaterial({color:0x1a2233, roughness:.95}));
-  floor.rotation.x=-Math.PI/2; floor.userData={kind:'floor'}; scene.add(floor); surfaces.push(floor);
-  scene.add(new THREE.GridHelper(Math.max(W,D), Math.max(W,D)*2, 0x2a3c5a, 0x1b2940));
-  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(W,D), new THREE.MeshStandardMaterial({color:0x141b2a, roughness:.95, transparent:true, opacity:.5, side:THREE.DoubleSide}));
-  ceil.rotation.x=Math.PI/2; ceil.position.y=H; ceil.userData={kind:'ceiling'}; scene.add(ceil); surfaces.push(ceil);
-  const wallMat=()=>new THREE.MeshStandardMaterial({color:0x223049, roughness:.9, transparent:true, opacity:.22, side:THREE.DoubleSide});
-  const mk=(w,h,x,y,z,ry,wall,nx,nz)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), wallMat()); m.position.set(x,y,z); m.rotation.y=ry; m.userData={kind:'wall',wall,normal:new THREE.Vector3(nx,0,nz)}; scene.add(m); surfaces.push(m);
-    const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({color:0x3b5170})); e.position.copy(m.position); e.rotation.copy(m.rotation); scene.add(e); };
-  mk(W,H,0,H/2,-D/2,0,'N',0,1); mk(W,H,0,H/2,D/2,Math.PI,'S',0,-1); mk(D,H,-W/2,H/2,0,Math.PI/2,'V',1,0); mk(D,H,W/2,H/2,0,-Math.PI/2,'E',-1,0);
+function buildRoom3D(){
+  while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]); surfaces.length=0;
+  const {v,out}=edges(); const c=centroid(v);
+  // podea + tavan (formă poligon)
+  const shape=new THREE.Shape(); v.slice(0,-1).forEach((p,i)=> i?shape.lineTo(p.x,p.z):shape.moveTo(p.x,p.z)); shape.closePath();
+  const floor=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0x1a2233,roughness:.95,side:THREE.DoubleSide})); floor.rotation.x=Math.PI/2; floor.userData={kind:'floor'}; roomGroup.add(floor); surfaces.push(floor);
+  const ceil=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0x141b2a,roughness:.95,transparent:true,opacity:.45,side:THREE.DoubleSide})); ceil.rotation.x=Math.PI/2; ceil.position.y=H; ceil.userData={kind:'ceiling'}; roomGroup.add(ceil); surfaces.push(ceil);
+  // pereți cu goluri
+  out.forEach(e=>{
+    const p1=new THREE.Vector3(e.p1.x,0,e.p1.z), p2=new THREE.Vector3(e.p2.x,0,e.p2.z);
+    const dir=p2.clone().sub(p1); const L=dir.length(); dir.normalize();
+    let nrm=new THREE.Vector3(-dir.z,0,dir.x); const mid={x:(e.p1.x+e.p2.x)/2,z:(e.p1.z+e.p2.z)/2}; if(((c.x-mid.x)*nrm.x+(c.z-mid.z)*nrm.z)<0) nrm.multiplyScalar(-1);
+    const ops=plan.openings.filter(o=>o.wall===e.i).map(o=>({...o,e:o.pos+o.w})).sort((a,b)=>a.pos-b.pos);
+    const solids=[]; let cur=0;
+    ops.forEach(o=>{ if(o.pos>cur) solids.push([cur,o.pos,0,H]); cur=Math.max(cur,o.e); if(o.head<H) solids.push([o.pos,o.e,o.head,H]); if(o.sill>0) solids.push([o.pos,o.e,0,o.sill]); });
+    if(cur<L) solids.push([cur,L,0,H]);
+    solids.forEach(([u0,u1,v0,v1])=> addPanel(p1,dir,nrm,u0,u1,v0,v1,e.i));
+    ops.forEach(o=>{ if(o.type==='usa') addFill(p1,dir,nrm,o,0x6b4a2f,1); else if(o.type==='fereastra') addFill(p1,dir,nrm,o,0x9fd2ff,0.45); });
+  });
+  // cameră încadrare
+  let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; v.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
+  const cx=(mnx+mxx)/2, cz=(mnz+mxz)/2, span=Math.max(mxx-mnx,mxz-mnz,2);
+  controls.target.set(cx,H*0.45,cz); camera.position.set(cx+span*1.1, H*1.6, cz+span*1.3); controls.update();
 }
-function makeLabel(text,color){
-  const c=document.createElement('canvas'); c.width=128; c.height=48; const x=c.getContext('2d');
-  x.fillStyle='rgba(7,11,18,.85)'; x.fillRect(0,0,128,48); x.strokeStyle=color; x.lineWidth=4; x.strokeRect(2,2,124,44);
-  x.fillStyle='#fff'; x.font='bold 22px sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,64,26);
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c), depthTest:false})); sp.scale.set(0.32,0.12,1); return sp;
+function addPanel(p1,dir,nrm,u0,u1,v0,v1,wall){
+  const w=u1-u0, h=v1-v0; if(w<=0.001||h<=0.001) return;
+  const uc=(u0+u1)/2, vc=(v0+v1)/2;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshStandardMaterial({color:0x223049,roughness:.9,transparent:true,opacity:.24,side:THREE.DoubleSide}));
+  const pos=p1.clone().add(dir.clone().multiplyScalar(uc)); pos.y=vc; m.position.copy(pos); m.lookAt(pos.clone().add(nrm));
+  m.userData={kind:'wall',wall,normal:nrm.clone()}; roomGroup.add(m); surfaces.push(m);
+  const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({color:0x3b5170})); e.position.copy(m.position); e.quaternion.copy(m.quaternion); roomGroup.add(e);
+}
+function addFill(p1,dir,nrm,o,color,opacity){
+  const w=o.w, h=o.head-o.sill; const uc=o.pos+o.w/2, vc=(o.sill+o.head)/2;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,0.04), new THREE.MeshStandardMaterial({color,roughness:.7,transparent:opacity<1,opacity}));
+  const pos=p1.clone().add(dir.clone().multiplyScalar(uc)); pos.y=vc; m.position.copy(pos); m.lookAt(pos.clone().add(nrm)); roomGroup.add(m);
 }
 
-/* ===== sistem mono/tri ===== */
-function setSystem(s){ state.system=s; document.querySelectorAll('[data-sys-seg]').forEach(x=>x.classList.toggle('on',x.dataset.sysSeg===s)); $('sysLabel').textContent = s==='mono'?'Monofazat 230V':'Trifazat 400V'; renderLists(); }
-document.querySelectorAll('[data-sys-seg]').forEach(b=> b.onclick=()=>setSystem(b.dataset.sysSeg));
-function askSystem(){
-  openModal(`<h2>Tip instalație electrică</h2><p class="muted">Cum e alimentată casa? Influențează tabloul (siguranță generală) și echilibrarea pe faze.</p>
-   <div class="cbtns"><button class="btn act" data-sys="mono">Monofazat (230V) — o fază + nul</button>
-   <button class="btn" data-sys="tri">Trifazat (400V) — 3 faze + nul</button></div>`);
-  $('modalBody').querySelectorAll('[data-sys]').forEach(b=> b.onclick=()=>{ setSystem(b.dataset.sys); closeModal(); });
-}
-
-/* ===== plasare ===== */
-const ADD={ tablou:{label:'Tablou electric',h:1.45,kind:null}, intrerupator:{label:'Întrerupător',h:1.10,kind:'lumina'}, bec:{label:'Bec',h:null,kind:'lumina'}, priza:{label:'Priză',h:0.30,kind:'prize'}, usa:{label:'Ușă',h:null,kind:null} };
-document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.dataset.add; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); b.classList.add('on');
-  $('addInfo').innerHTML = addType==='bec' ? 'Click pe <b>tavan</b>.' : 'Click pe un <b>perete</b>.'; });
+/* ===== plasare dispozitive ===== */
+function makeLabel(text,color){ const cv=document.createElement('canvas'); cv.width=128; cv.height=48; const x=cv.getContext('2d'); x.fillStyle='rgba(7,11,18,.85)'; x.fillRect(0,0,128,48); x.strokeStyle=color; x.lineWidth=4; x.strokeRect(2,2,124,44); x.fillStyle='#fff'; x.font='bold 22px sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,64,26); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false})); sp.scale.set(0.32,0.12,1); return sp; }
+document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.dataset.add; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); $('addInfo').innerHTML=addType==='bec'?'Click pe <b>tavan</b>.':'Click pe un <b>perete</b>.'; });
 $('cancelAdd').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent=''; };
-
-function onPick(e){
-  const r=renderer.domElement.getBoundingClientRect();
-  pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1;
-  raycaster.setFromCamera(pointer,camera);
-  if(!addType) return;
-  const hits=raycaster.intersectObjects(surfaces,false); if(!hits.length) return;
-  const h=hits.find(x=> addType==='bec'? x.object.userData.kind==='ceiling' : x.object.userData.kind==='wall') || hits[0];
-  placeDevice(addType,h);
+function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera); const hits=raycaster.intersectObjects(surfaces,false); if(!hits.length) return;
+  const want=(ROOMEL[addType]==='furniture')?'floor':(addType==='bec'?'ceiling':(addType==='doza'?null:'wall'));
+  const h=want?(hits.find(x=>x.object.userData.kind===want)||hits[0]):hits[0];
+  if(ROOMEL[addType]==='opening') addOpeningAt(addType,h);
+  else if(ROOMEL[addType]==='furniture') placeFurniture(addType,h);
+  else if(addType==='doza') placeDoza(h);
+  else placeDevice(addType,h);
 }
-async function placeDevice(type, hit){
-  const a=ADD[type]; const ud=hit.object.userData; let pos=hit.point.clone();
-  let wall=ud.wall||ud.kind, normal=ud.normal? ud.normal.clone() : new THREE.Vector3(0,-1,0);
-  if(ud.kind==='wall'){ pos.add(normal.clone().multiplyScalar(0.03)); if(a.h!=null) pos.y=a.h; pos.y=Math.max(0.05,Math.min(ROOM.H-0.05,pos.y)); }
-  else if(ud.kind==='ceiling'){ pos.y=ROOM.H-0.02; }
-  if(type==='tablou' && devices.some(d=>d.type==='tablou')){ alert('Există deja un tablou.'); return; }
+async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.userData; let pos=hit.point.clone(); let normal=ud.normal?ud.normal.clone():new THREE.Vector3(0,-1,0);
+  if(ud.kind==='wall'){ pos.add(normal.clone().multiplyScalar(0.03)); if(a.h!=null) pos.y=a.h; pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); } else if(ud.kind==='ceiling'){ pos.y=H-0.02; }
+  if(type==='tablou'&&devices.some(d=>d.type==='tablou')){ alert('Există deja un tablou.'); return; }
   let circuit=null; if(a.kind){ circuit=await chooseCircuit(a.kind); if(circuit==null) return; }
-  const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal));
-  scene.add(mesh); deviceMeshes.push(mesh);
-  const dev={id:uid++, type, circuit, power:DEF_POWER[type]||0, pos, wall, mesh}; devices.push(dev);
-  if(circuit!=null){ const cc=circuits.find(c=>c.id===circuit); const lab=makeLabel('C'+cc.n, cc.color); mesh.add(lab); lab.position.set(0,0.16,0); }
-  renderWires(); renderLists();
-}
-function buildDeviceMesh(type, circuit){
-  const cc=circuits.find(c=>c.id===circuit); const col=cc?new THREE.Color(cc.color):new THREE.Color(0xcfd6df); const g=new THREE.Group();
-  if(type==='tablou'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34,0.46,0.11),new THREE.MeshStandardMaterial({color:0xdfe3e8,metalness:.3,roughness:.6})));
-    const door=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.012),new THREE.MeshStandardMaterial({color:0xf2f4f6})); door.position.z=0.06; g.add(door);
-    for(let i=0;i<3;i++){ const s=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.07,0.02),new THREE.MeshStandardMaterial({color:0x222})); s.position.set(-0.08+i*0.08,0.05,0.075); g.add(s);} }
+  const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
+  const dev={id:uid++,type,circuit,power:DEF_POWER[type]||0,pos,mesh}; devices.push(dev);
+  if(circuit!=null){ const cc=circuits.find(c=>c.id===circuit); const lab=makeLabel('C'+cc.n,cc.color); mesh.add(lab); lab.position.set(0,0.16,0); }
+  renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id)); }
+function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit); const col=cc?new THREE.Color(cc.color):new THREE.Color(0xcfd6df); const g=new THREE.Group();
+  if(type==='tablou'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34,0.46,0.11),new THREE.MeshStandardMaterial({color:0xdfe3e8,metalness:.3,roughness:.6}))); const d=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.012),new THREE.MeshStandardMaterial({color:0xf2f4f6})); d.position.z=0.06; g.add(d); }
   else if(type==='intrerupator'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.035),new THREE.MeshStandardMaterial({color:0xf0f0f0}))); const t=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.02),new THREE.MeshStandardMaterial({color:col})); t.position.z=0.025; g.add(t); }
   else if(type==='priza'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.085,0.085,0.035),new THREE.MeshStandardMaterial({color:0xf0f0f0}))); const t=new THREE.Mesh(new THREE.TorusGeometry(0.025,0.006,8,16),new THREE.MeshStandardMaterial({color:col})); t.position.z=0.025; g.add(t); }
   else if(type==='bec'){ g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.02,16),new THREE.MeshStandardMaterial({color:0xdddddf}))); const b=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,12),new THREE.MeshStandardMaterial({color:0xfff2b0,emissive:0xffd24d,emissiveIntensity:.7})); b.position.y=-0.08; g.add(b); }
-  else if(type==='usa'){ const d=new THREE.Mesh(new THREE.BoxGeometry(0.9,2.05,0.05),new THREE.MeshStandardMaterial({color:0x6b4a2f,roughness:.8})); g.add(d); }
-  return g;
-}
+  return g; }
 
-/* ===== circuit (modal) ===== */
-function chooseCircuit(kind){
-  return new Promise(resolve=>{
-    const existing=circuits.filter(c=>c.kind===kind); const kl=kind==='lumina'?'iluminat':'prize';
-    let html=`<button class="close" id="mClose">✕</button><h2>Pe ce circuit pui acest element?</h2><p class="muted">Tip: <b>${kl}</b>. Mai multe elemente pot sta pe același circuit, sau deschizi unul nou.</p><div class="cbtns">`;
-    existing.forEach(c=> html+=`<button class="btn" data-cid="${c.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${c.color};margin-right:8px"></span>Circuit ${c.n} (${kl})</button>`);
-    html+=`<button class="btn act" data-cid="new">＋ Circuit nou (${circuits.length+1}) — ${kl}</button></div>`;
-    openModal(html);
-    const done=v=>{ closeModal(); resolve(v); };
-    $('mClose').onclick=()=>done(null);
-    $('modalBody').querySelectorAll('[data-cid]').forEach(b=> b.onclick=()=>{ if(b.dataset.cid==='new'){ const c={id:cuid++, kind, n:circuits.length+1, color:COLORS[circuits.length%COLORS.length], phase:'L1'}; circuits.push(c); done(c.id); } else done(parseInt(b.dataset.cid,10)); });
-    $('modal').onclick=e=>{ if(e.target===$('modal')) done(null); };
-  });
-}
+/* ===== elemente cameră · doze manuale · undo ===== */
+function pushHistory(fn){ history.push(fn); }
+function undo(){ const f=history.pop(); if(f) f(); }
+function makeDozaMesh(){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.03,20),new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.1,roughness:.6}))); const r=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.008,8,24),new THREE.MeshStandardMaterial({color:0x6b4a10})); r.rotation.x=Math.PI/2; g.add(r); const lab=makeLabel('doză','#f2c14e'); g.add(lab); lab.position.set(0,0.13,0); return g; }
+function addOpeningAt(type,hit){ const ud=hit.object.userData; if(ud.kind!=='wall'){ alert('Click pe un perete pentru ușă/fereastră/gol.'); return; }
+  const e=edges().out[ud.wall]; if(!e) return; const p1=new THREE.Vector3(e.p1.x,0,e.p1.z); const dir=new THREE.Vector3(e.p2.x-e.p1.x,0,e.p2.z-e.p1.z); const L=dir.length(); dir.normalize();
+  const along=Math.max(0,Math.min(L,hit.point.clone().sub(p1).dot(dir))); const d=OPEN_DEF[type]; const w=Math.min(d.w,L); const pos=Math.max(0,Math.min(Math.max(0,L-w),along-w/2));
+  const op={type,wall:ud.wall,pos,w,sill:d.sill,head:Math.min(d.head,H)}; plan.openings.push(op); buildRoom3D(); renderWires(); renderRoomList();
+  pushHistory(()=>{ const i=plan.openings.indexOf(op); if(i>=0){ plan.openings.splice(i,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
+function placeFurniture(type,hit){ const f=FURN[type]; const m=new THREE.Mesh(new THREE.BoxGeometry(f.w,f.h,f.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); const p=hit.point.clone(); p.y=f.h/2; m.position.copy(p); scene.add(m); const pr={id:uid++,type,mesh:m,label:f.label}; props.push(pr); renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
+function placeDoza(hit){ const g=makeDozaMesh(); const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03)); g.position.copy(p); scene.add(g); const pr={id:uid++,type:'doza',mesh:g,label:'Doză'}; props.push(pr); renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
+function removeProp(id){ const i=props.findIndex(p=>p.id===id); if(i<0) return; scene.remove(props[i].mesh); props.splice(i,1); renderRoomList(); }
+function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[...props.map(p=>({k:'prop',id:p.id,label:p.label})), ...plan.openings.map((o,i)=>({k:'op',idx:i,label:OPEN_DEF[o.type].label+' (P'+(o.wall+1)+')'}))];
+  if(!items.length){ el.innerHTML='<p class="muted">Nimic.</p>'; return; } el.innerHTML='';
+  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; d.innerHTML=`<span class="dot" style="background:#7c93b3"></span>${it.label}<button class="x" data-rk="${it.k}" data-ri="${it.k==='prop'?it.id:it.idx}">✕</button>`; el.appendChild(d); });
+  el.querySelectorAll('[data-rk]').forEach(b=> b.onclick=()=>{ if(b.dataset.rk==='prop') removeProp(parseInt(b.dataset.ri,10)); else { plan.openings.splice(parseInt(b.dataset.ri,10),1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
+
+/* ===== circuit modal ===== */
+function chooseCircuit(kind){ return new Promise(resolve=>{ const existing=circuits.filter(c=>c.kind===kind); const kl=kind==='lumina'?'iluminat':'prize';
+  let html=`<button class="close" id="mClose">✕</button><h2>Pe ce circuit pui acest element?</h2><p class="muted">Tip: <b>${kl}</b>.</p><div class="cbtns">`;
+  existing.forEach(c=>html+=`<button class="btn" data-cid="${c.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${c.color};margin-right:8px"></span>Circuit ${c.n} (${kl})</button>`);
+  html+=`<button class="btn act" data-cid="new">＋ Circuit nou (${circuits.length+1}) — ${kl}</button></div>`; openModal(html);
+  const done=v=>{ closeModal(); resolve(v); }; $('mClose').onclick=()=>done(null);
+  $('modalBody').querySelectorAll('[data-cid]').forEach(b=> b.onclick=()=>{ if(b.dataset.cid==='new'){ const c={id:cuid++,kind,n:circuits.length+1,color:COLORS[circuits.length%COLORS.length],phase:'L1'}; circuits.push(c); done(c.id);} else done(parseInt(b.dataset.cid,10)); });
+  $('modal').onclick=e=>{ if(e.target===$('modal')) done(null); }; }); }
 function openModal(html){ $('modalBody').innerHTML=html; $('modal').classList.add('on'); }
 function closeModal(){ $('modal').classList.remove('on'); $('modal').onclick=null; }
 
-/* ===== cablare (vizual) ===== */
+/* ===== cablare cu doze ===== */
 function panelDev(){ return devices.find(d=>d.type==='tablou'); }
-function routeLen(a,b){ const top=ROOM.H-0.05; return Math.abs(top-a.y)+Math.hypot(b.x-a.x,b.z-a.z)+Math.abs(top-b.y); }
-function drawConductor(a,b,colorHex,idx){
-  const top=ROOM.H-0.06 - idx*0.012;
-  const dx=b.x-a.x, dz=b.z-a.z; const len=Math.hypot(dx,dz)||1; const ox=-dz/len*(idx*0.02), oz=dx/len*(idx*0.02);
-  const pts=[a.clone(), new THREE.Vector3(a.x+ox,top,a.z+oz), new THREE.Vector3(b.x+ox,top,b.z+oz), b.clone()];
-  wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:new THREE.Color(colorHex)})));
-}
-function addDoza(pos){
-  const g=new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.03,20), new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.1,roughness:.6})));
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.008,8,24), new THREE.MeshStandardMaterial({color:0x6b4a10})); ring.rotation.x=Math.PI/2; g.add(ring);
-  const lab=makeLabel('doză','#f2c14e'); g.add(lab); lab.position.set(0,0.13,0);
-  g.position.copy(pos); g.position.y=ROOM.H-0.03; g.position.x+=0.14;
-  wireGroup.add(g);
-}
-function renderWires(){
-  while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]);
-  const panel=panelDev(); if(!panel) return;
-  circuits.forEach(c=>{
-    const devs=devices.filter(d=>d.circuit===c.id);
-    if(c.kind==='lumina'){
-      const sws=devs.filter(d=>d.type==='intrerupator'); const lights=devs.filter(d=>d.type==='bec');
-      if(lights.length){
-        const supply=nearest({pos:panel.pos},lights)||lights[0];
-        // tablou -> doză (la bec): fază + nul + împământare
-        drawConductor(panel.pos,supply.pos,COND.L,0); drawConductor(panel.pos,supply.pos,COND.N,1); drawConductor(panel.pos,supply.pos,COND.PE,2);
-        addDoza(supply.pos);
-        // doză -> întrerupător: fază (coboară) + fază comutată (urcă)
-        sws.forEach(sw=>{ drawConductor(supply.pos,sw.pos,COND.L,0); drawConductor(supply.pos,sw.pos,COND.SW,1); });
-        // distribuie faza comutată + nul + împământare la celelalte becuri
-        let prev=supply;
-        chainOrder(supply, lights.filter(l=>l!==supply)).forEach(l=>{ drawConductor(prev.pos,l.pos,COND.SW,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); addDoza(l.pos); prev=l; });
-      } else {
-        sws.forEach(sw=> drawConductor(panel.pos,sw.pos,COND.L,0));
-      }
-    } else {
-      let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{ drawConductor(prev.pos,o.pos,COND.L,0); drawConductor(prev.pos,o.pos,COND.N,1); drawConductor(prev.pos,o.pos,COND.PE,2); prev=o; });
-    }
-  });
-}
+function routeLen(a,b){ const top=H-0.05; return Math.abs(top-a.y)+Math.hypot(b.x-a.x,b.z-a.z)+Math.abs(top-b.y); }
+function drawConductor(a,b,colorHex,idx){ const top=H-0.06-idx*0.012; const dx=b.x-a.x,dz=b.z-a.z; const len=Math.hypot(dx,dz)||1; const ox=-dz/len*(idx*0.02), oz=dx/len*(idx*0.02);
+  const pts=[a.clone(),new THREE.Vector3(a.x+ox,top,a.z+oz),new THREE.Vector3(b.x+ox,top,b.z+oz),b.clone()]; wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:new THREE.Color(colorHex)}))); }
+function addDoza(pos){ const g=makeDozaMesh(); g.position.copy(pos); g.position.y=H-0.03; g.position.x+=0.14; wireGroup.add(g); }
 function nearest(d,arr){ let best=null,bd=1e9; arr.forEach(a=>{const x=a.pos.distanceTo(d.pos); if(x<bd){bd=x;best=a;}}); return best; }
 function chainOrder(start,arr){ const rem=[...arr],out=[]; let cur=start; while(rem.length){ let bi=0,bd=1e9; rem.forEach((a,i)=>{const x=a.pos.distanceTo(cur.pos); if(x<bd){bd=x;bi=i;}}); cur=rem[bi]; out.push(cur); rem.splice(bi,1);} return out; }
+function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); const panel=panelDev(); if(!panel) return; assignPhases();
+  circuits.forEach(c=>{ const devs=devices.filter(d=>d.circuit===c.id); const Lc=state.system==='tri'?(PHASE_COL[c.phase]||COND.L):COND.L;
+    if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec');
+      if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; drawConductor(panel.pos,supply.pos,Lc,0); drawConductor(panel.pos,supply.pos,COND.N,1); drawConductor(panel.pos,supply.pos,COND.PE,2); addDoza(supply.pos);
+        sws.forEach(sw=>{ drawConductor(supply.pos,sw.pos,Lc,0); drawConductor(supply.pos,sw.pos,COND.SW,1); });
+        let prev=supply; chainOrder(supply,lights.filter(l=>l!==supply)).forEach(l=>{ drawConductor(prev.pos,l.pos,COND.SW,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); addDoza(l.pos); prev=l; }); }
+      else sws.forEach(sw=>drawConductor(panel.pos,sw.pos,Lc,0)); }
+    else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{ drawConductor(prev.pos,o.pos,Lc,0); drawConductor(prev.pos,o.pos,COND.N,1); drawConductor(prev.pos,o.pos,COND.PE,2); prev=o; }); }
+  }); }
 
 /* ===== dimensionare ===== */
 function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>s+(d.power||0),0); }
 function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const breaker=STD.find(s=>s>=need)||40; return {P,I,breaker,section:SECT[breaker]}; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0; const devs=devices.filter(d=>d.circuit===c.id);
-  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec');
-    if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; L+=routeLen(panel.pos,supply.pos); sws.forEach(s=>L+=routeLen(supply.pos,s.pos)); let prev=supply; chainOrder(supply,lights.filter(l=>l!==supply)).forEach(l=>{L+=routeLen(prev.pos,l.pos);prev=l;}); }
-    else sws.forEach(s=>L+=routeLen(panel.pos,s.pos)); }
-  else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{L+=routeLen(prev.pos,o.pos);prev=o;}); }
-  return L*1.15; }
-function assignPhases(){ const ph=['L1','L2','L3']; circuits.forEach((c,i)=>{ c.phase = state.system==='tri'? ph[i%3] : 'L1'; }); }
-function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c));
-  if(state.system==='mono'){ const I=acc.L1/U; return {mono:true, I, main:MAINSTD.find(s=>s>=I*1.1)||63, acc}; }
-  const maxP=Math.max(acc.L1,acc.L2,acc.L3); const I=maxP/U; return {mono:false, I, main:MAINSTD.find(s=>s>=I*1.1)||63, acc}; }
+  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec'); if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; L+=routeLen(panel.pos,supply.pos); sws.forEach(s=>L+=routeLen(supply.pos,s.pos)); let prev=supply; chainOrder(supply,lights.filter(l=>l!==supply)).forEach(l=>{L+=routeLen(prev.pos,l.pos);prev=l;}); } else sws.forEach(s=>L+=routeLen(panel.pos,s.pos)); }
+  else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{L+=routeLen(prev.pos,o.pos);prev=o;}); } return L*1.15; }
+function assignPhases(){ const ph=['L1','L2','L3']; circuits.forEach((c,i)=>{ c.phase=state.system==='tri'?ph[i%3]:'L1'; }); }
+function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); if(state.system==='mono'){ const I=acc.L1/U; return {mono:true,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; } const maxP=Math.max(acc.L1,acc.L2,acc.L3); const I=maxP/U; return {mono:false,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; }
 
-/* ===== liste UI ===== */
-function renderLists(){
-  const cl=$('circuitList');
+/* ===== liste 3D ===== */
+function renderLists(){ const cl=$('circuitList');
   if(!circuits.length) cl.innerHTML='<p class="muted">Niciun circuit încă.</p>';
-  else { cl.innerHTML=''; circuits.forEach(c=>{ const sz=sizeCircuit(c); const el=document.createElement('div'); el.className='row';
-    el.innerHTML=`<span class="dot" style="background:${c.color}"></span>C${c.n} ${c.kind==='lumina'?'ilum.':'prize'} · ${Math.round(sz.P)}W → <b style="color:var(--ink)">${sz.breaker}A / ${sz.section}mm²</b>${state.system==='tri'?(' · '+c.phase):''}`; cl.appendChild(el); }); }
-  const dl=$('devList');
-  if(!devices.length) dl.innerHTML='<p class="muted">Nimic plasat încă.</p>';
-  else { dl.innerHTML=''; devices.forEach(d=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row';
-    const load=(d.type==='bec'||d.type==='priza');
-    el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span>${ADD[d.type].label}${c?(' · C'+c.n):''}`
-      + (load?` <input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}"> W`:'')
-      + `<button class="x" data-del="${d.id}">✕</button>`; dl.appendChild(el); });
+  else { cl.innerHTML=''; circuits.forEach(c=>{ const sz=sizeCircuit(c); const el=document.createElement('div'); el.className='row'; el.innerHTML=`<span class="dot" style="background:${c.color}"></span>C${c.n} ${c.kind==='lumina'?'ilum.':'prize'} · ${Math.round(sz.P)}W → <b style="color:var(--ink)">${sz.breaker}A/${sz.section}mm²</b>${state.system==='tri'?(' · '+c.phase):''}`; cl.appendChild(el); }); }
+  const dl=$('devList'); if(!devices.length) dl.innerHTML='<p class="muted">Nimic plasat.</p>';
+  else { dl.innerHTML=''; devices.forEach(d=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row'; const load=(d.type==='bec'||d.type==='priza');
+    el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span>${ADD[d.type].label}${c?(' · C'+c.n):''}`+(load?` <input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}"> W`:'')+`<button class="x" data-del="${d.id}">✕</button>`; dl.appendChild(el); });
     dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
-    dl.querySelectorAll('[data-pw]').forEach(inp=> inp.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.pw,10)); if(d){ d.power=Math.max(0,parseInt(inp.value,10)||0); renderLists(); } }); }
-}
+    dl.querySelectorAll('[data-pw]').forEach(inp=> inp.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.pw,10)); if(d){ d.power=Math.max(0,parseInt(inp.value,10)||0); renderLists(); } }); } }
 function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); renderWires(); renderLists(); }
 
 /* ===== generatoare ===== */
-function genBOM(){
-  const panel=panelDev(); const main=sizeMain();
-  const cableBy={}; circuits.forEach(c=>{ const sz=sizeCircuit(c); const L=circuitLength(c); const key=`${c.kind==='lumina'?'3×':'3×'}${sz.section} mm²`; cableBy[key]=(cableBy[key]||0)+L; });
-  const sw=devices.filter(d=>d.type==='intrerupator').length, bec=devices.filter(d=>d.type==='bec').length, priza=devices.filter(d=>d.type==='priza').length, usa=devices.filter(d=>d.type==='usa').length;
-  const rows=[];
-  rows.push(['Tablou electric (cofret)', panel?1:0,'buc']);
-  rows.push([`Întrerupător general ${state.system==='tri'?'3P':'1P'} ${main.main}A`, panel?1:0,'buc']);
-  rows.push([`Protecție diferențială (RCD) 30mA ${state.system==='tri'?'4P':'2P'}`, panel?1:0,'buc']);
-  circuits.forEach(c=>{ const sz=sizeCircuit(c); rows.push([`Siguranță automată C${c.n} (${c.kind==='lumina'?'iluminat':'prize'}) ${sz.breaker}A`, 1,'buc']); });
-  rows.push(['Întrerupător de perete', sw,'buc']);
-  rows.push(['Bec + dulie', bec,'buc']);
-  rows.push(['Priză cu împământare', priza,'buc']);
-  rows.push(['Doză derivație', sw+bec+Math.ceil(priza/2),'buc']);
-  Object.entries(cableBy).forEach(([k,v])=> rows.push([`Cablu ${k}`, v.toFixed(1),'m']));
-  const totL=Object.values(cableBy).reduce((a,b)=>a+b,0); if(totL>0) rows.push(['Tub copex / canal cablu', totL.toFixed(1),'m']);
-  rows.push(['Ușă', usa,'buc']);
-  let html=`<button class="close" id="mClose">✕</button><h2>📋 Listă de materiale</h2>`;
-  html+=`<p class="muted">Sistem: <b>${state.system==='mono'?'monofazat 230V':'trifazat 400V'}</b> · General estimat: <b>${main.main}A</b>${state.system==='tri'?` · echilibrare faze L1/L2/L3: ${Math.round(main.acc.L1)}/${Math.round(main.acc.L2)}/${Math.round(main.acc.L3)} W`:''}</p>`;
-  if(!panel) html+=`<p class="muted" style="color:var(--bad)">Adaugă un <b>tablou</b> pentru calculul cablajului.</p>`;
-  html+=`<table><thead><tr><th>Material</th><th>Cant.</th><th>UM</th></tr></thead><tbody>`;
-  rows.filter(r=>Number(r[1])>0).forEach(r=> html+=`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`);
-  html+=`</tbody></table><div class="dl"><button class="btn act" id="dlBOM">⬇ Descarcă (CSV)</button></div>`;
-  openModal(html); $('mClose').onclick=closeModal;
-  $('dlBOM').onclick=()=>download('lista-materiale.csv','Material,Cantitate,UM\n'+rows.filter(r=>Number(r[1])>0).map(r=>`${r[0]},${r[1]},${r[2]}`).join('\n'));
-}
-function genSchema(){
-  const main=sizeMain(); const W=760, rowH=72, top=86, busX=170, H=top+Math.max(1,circuits.length)*rowH+44;
-  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" font-family="IBM Plex Sans, sans-serif"><rect width="${W}" height="${H}" fill="#0b0f17"/>`;
-  s+=`<text x="20" y="28" fill="#e7eef8" font-size="15" font-weight="700">Schema monofilară — ${state.system==='mono'?'monofazat 230V':'trifazat 400V'}</text>`;
-  s+=`<text x="20" y="50" fill="#8696b0" font-size="12">Rețea → General ${main.main}A ${state.system==='tri'?'(3P)':'(1P)'} → RCD 30mA → circuite</text>`;
-  s+=`<line x1="${busX}" y1="${top-18}" x2="${busX}" y2="${H-22}" stroke="#5fb6e6" stroke-width="3"/>`;
-  s+=`<rect x="${busX-118}" y="${top-28}" width="26" height="18" fill="none" stroke="#ffb020" stroke-width="2"/><text x="${busX-105}" y="${top-15}" fill="#e7eef8" font-size="9" text-anchor="middle">${main.main}A</text>`;
+function genBOM(){ const panel=panelDev(); const main=sizeMain(); const cableBy={}; circuits.forEach(c=>{ const sz=sizeCircuit(c); const L=circuitLength(c); const key=`3×${sz.section} mm²`; cableBy[key]=(cableBy[key]||0)+L; });
+  const sw=devices.filter(d=>d.type==='intrerupator').length, bec=devices.filter(d=>d.type==='bec').length, priza=devices.filter(d=>d.type==='priza').length;
+  const rows=[]; rows.push(['Tablou electric (cofret)',panel?1:0,'buc']); rows.push([`Întrerupător general ${state.system==='tri'?'3P':'1P'} ${main.main}A`,panel?1:0,'buc']); rows.push([`Protecție diferențială (RCD) 30mA ${state.system==='tri'?'4P':'2P'}`,panel?1:0,'buc']);
+  circuits.forEach(c=>{ const sz=sizeCircuit(c); rows.push([`Siguranță automată C${c.n} (${c.kind==='lumina'?'iluminat':'prize'}) ${sz.breaker}A`,1,'buc']); });
+  rows.push(['Întrerupător de perete',sw,'buc']); rows.push(['Bec + dulie',bec,'buc']); rows.push(['Priză cu împământare',priza,'buc']); rows.push(['Doză derivație',sw+bec+Math.ceil(priza/2),'buc']);
+  Object.entries(cableBy).forEach(([k,v])=> rows.push([`Cablu ${k}`,v.toFixed(1),'m'])); const tot=Object.values(cableBy).reduce((a,b)=>a+b,0); if(tot>0) rows.push(['Tub copex / canal cablu',tot.toFixed(1),'m']);
+  let html=`<button class="close" id="mClose">✕</button><h2>📋 Listă de materiale</h2><p class="muted">Sistem: <b>${state.system==='mono'?'monofazat 230V':'trifazat 400V'}</b> · General: <b>${main.main}A</b>${state.system==='tri'?` · faze L1/L2/L3: ${Math.round(main.acc.L1)}/${Math.round(main.acc.L2)}/${Math.round(main.acc.L3)} W`:''}</p>`;
+  if(!panel) html+=`<p class="muted" style="color:var(--bad)">Adaugă un tablou pentru calculul cablajului.</p>`;
+  html+=`<table><thead><tr><th>Material</th><th>Cant.</th><th>UM</th></tr></thead><tbody>`; rows.filter(r=>Number(r[1])>0).forEach(r=>html+=`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`); html+=`</tbody></table><div class="dl"><button class="btn act" id="dlBOM">⬇ Descarcă (CSV)</button></div>`;
+  openModal(html); $('mClose').onclick=closeModal; $('dlBOM').onclick=()=>download('lista-materiale.csv','Material,Cantitate,UM\n'+rows.filter(r=>Number(r[1])>0).map(r=>`${r[0]},${r[1]},${r[2]}`).join('\n')); }
+function genSchema(){ const main=sizeMain(); const W=760,rowH=72,top=86,busX=170,Hs=top+Math.max(1,circuits.length)*rowH+44;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${Hs}" font-family="IBM Plex Sans, sans-serif"><rect width="${W}" height="${Hs}" fill="#0b0f17"/>`;
+  s+=`<text x="20" y="28" fill="#e7eef8" font-size="15" font-weight="700">Schema monofilară — ${state.system==='mono'?'monofazat 230V':'trifazat 400V'}</text><text x="20" y="50" fill="#8696b0" font-size="12">General ${main.main}A → RCD 30mA → circuite</text>`;
+  s+=`<line x1="${busX}" y1="${top-18}" x2="${busX}" y2="${Hs-22}" stroke="#5fb6e6" stroke-width="3"/><rect x="${busX-118}" y="${top-28}" width="26" height="18" fill="none" stroke="#ffb020" stroke-width="2"/><text x="${busX-105}" y="${top-15}" fill="#e7eef8" font-size="9" text-anchor="middle">${main.main}A</text>`;
   circuits.forEach((c,i)=>{ const y=top+i*rowH+14; const sz=sizeCircuit(c); const dev=devices.filter(d=>d.circuit===c.id);
-    s+=`<line x1="${busX}" y1="${y}" x2="${W-40}" y2="${y}" stroke="${c.color}" stroke-width="2.5"/>`;
-    s+=`<rect x="${busX+16}" y="${y-12}" width="30" height="24" fill="#0b0f17" stroke="${c.color}" stroke-width="2"/><text x="${busX+31}" y="${y+4}" fill="#e7eef8" font-size="10" text-anchor="middle">${sz.breaker}A</text>`;
-    s+=`<text x="${busX+58}" y="${y-15}" fill="#e7eef8" font-size="12" font-weight="600">Circuit ${c.n} · ${c.kind==='lumina'?'iluminat':'prize'} · ${sz.section}mm²${state.system==='tri'?(' · '+c.phase):''}</text>`;
-    s+=`<text x="${busX+58}" y="${y+18}" fill="#8696b0" font-size="10">${Math.round(sz.P)}W · ${sz.I.toFixed(1)}A</text>`;
-    let dx=busX+330; dev.filter(d=>d.type!=='tablou').forEach(d=>{ const sym=d.type==='intrerupator'?'⟋':(d.type==='bec'?'⊗':(d.type==='priza'?'⊟':'?')); s+=`<circle cx="${dx}" cy="${y}" r="11" fill="#0b0f17" stroke="${c.color}" stroke-width="1.6"/><text x="${dx}" y="${y+4}" fill="#e7eef8" font-size="12" text-anchor="middle">${sym}</text>`; dx+=40; });
-  });
-  if(!circuits.length) s+=`<text x="${busX+30}" y="${top+20}" fill="#8696b0" font-size="13">Adaugă circuite ca să apară schema.</text>`;
-  s+=`<text x="20" y="${H-12}" fill="#5a6b86" font-size="10">⟋ întrerupător · ⊗ corp iluminat · ⊟ priză · dimensionat din puteri · PROFCEISS</text></svg>`;
-  openModal(`<button class="close" id="mClose">✕</button><h2>📐 Schema monofilară</h2><div style="background:#0b0f17;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div><div class="dl"><button class="btn act" id="dlSchema">⬇ Descarcă (SVG)</button></div>`);
-  $('mClose').onclick=closeModal; $('dlSchema').onclick=()=>download('schema-monofilara.svg', s);
-}
-function genTut(){
-  const main=sizeMain();
-  let h=`<button class="close" id="mClose">✕</button><h2>🎓 Tutorial cablare — pentru începători</h2><div class="tut">`;
-  h+=`<div class="warn">⚠ <b>Securitate:</b> oprește curentul de la general, verifică cu testerul că nu mai e tensiune. Dacă nu ești sigur, cheamă un electrician autorizat.</div>`;
-  h+=`<h4>Instalația ta</h4><p>Sistem <b>${state.system==='mono'?'monofazat (230V, o fază + nul)':'trifazat (400V, 3 faze + nul)'}</b>. Siguranță generală estimată: <b>${main.main}A</b>. ${state.system==='tri'?'Circuitele se repartizează pe cele 3 faze ca să fie echilibrate.':''}</p>`;
-  h+=`<h4>Codul culorilor</h4><p>Fază = <b>maro/negru</b> · Nul = <b>albastru</b> · Împământare = <b>galben-verde</b>.</p>`;
-  h+=`<h4>Tabloul</h4><p>Faza → general → RCD (30mA) → fiecare siguranță de circuit. Nulul la bara de nul, împământarea la bara de împământare.</p>`;
-  circuits.forEach(c=>{ const sz=sizeCircuit(c); const dev=devices.filter(d=>d.circuit===c.id);
-    h+=`<h4>Circuit ${c.n} — ${c.kind==='lumina'?'iluminat':'prize'} · siguranță ${sz.breaker}A · cablu 3×${sz.section}mm²${state.system==='tri'?' · fază '+c.phase:''}</h4>`;
-    h+=`<p class="muted">Consum total pe circuit: ${Math.round(sz.P)}W (${sz.I.toFixed(1)}A). Siguranța și secțiunea au fost alese automat din puterile introduse.</p>`;
-    if(c.kind==='lumina'){ const nsw=dev.filter(d=>d.type==='intrerupator').length, nb=dev.filter(d=>d.type==='bec').length;
-      h+=`<p>${nsw} întrerupător(e), ${nb} bec(uri). Cablul de la tablou (fază + nul + împământare) ajunge într-o <b>doză</b> lângă bec. Din doză: • <b>nulul</b> și <b>împământarea</b> merg direct la bec; • <b>faza</b> coboară la întrerupător; • <b>faza comutată</b> urcă înapoi din întrerupător la bec. Întrerupătorul taie <b>doar faza</b> — nulul nu se întrerupe niciodată.</p>`; }
-    else { const np=dev.filter(d=>d.type==='priza').length; h+=`<p>${np} priză(e). • Toate 3 firele la fiecare priză (fază, nul, împământare). • Prizele se leagă în paralel (din doză în doză). • Împământarea e obligatorie.</p>`; }
-  });
-  if(!circuits.length) h+=`<p>Adaugă circuite și elemente cu puteri ca să generez pașii și dimensionarea.</p>`;
-  h+=`<h4>Final</h4><p>Strânge bornele, închide dozele, repune tensiunea și testează fiecare circuit.</p></div><div class="dl"><button class="btn act" id="dlTut">⬇ Descarcă (text)</button></div>`;
-  openModal(h); $('mClose').onclick=closeModal; $('dlTut').onclick=()=>download('tutorial-cablare.txt', $('modalBody').innerText.replace('⬇ Descarcă (text)',''));
-}
+    s+=`<line x1="${busX}" y1="${y}" x2="${W-40}" y2="${y}" stroke="${c.color}" stroke-width="2.5"/><rect x="${busX+16}" y="${y-12}" width="30" height="24" fill="#0b0f17" stroke="${c.color}" stroke-width="2"/><text x="${busX+31}" y="${y+4}" fill="#e7eef8" font-size="10" text-anchor="middle">${sz.breaker}A</text>`;
+    s+=`<text x="${busX+58}" y="${y-15}" fill="#e7eef8" font-size="12" font-weight="600">Circuit ${c.n} · ${c.kind==='lumina'?'iluminat':'prize'} · ${sz.section}mm²${state.system==='tri'?(' · '+c.phase):''}</text><text x="${busX+58}" y="${y+18}" fill="#8696b0" font-size="10">${Math.round(sz.P)}W · ${sz.I.toFixed(1)}A</text>`;
+    let dx=busX+330; dev.filter(d=>d.type!=='tablou').forEach(d=>{ const sym=d.type==='intrerupator'?'⟋':(d.type==='bec'?'⊗':(d.type==='priza'?'⊟':'?')); s+=`<circle cx="${dx}" cy="${y}" r="11" fill="#0b0f17" stroke="${c.color}" stroke-width="1.6"/><text x="${dx}" y="${y+4}" fill="#e7eef8" font-size="12" text-anchor="middle">${sym}</text>`; dx+=40; }); });
+  if(!circuits.length) s+=`<text x="${busX+30}" y="${top+20}" fill="#8696b0" font-size="13">Adaugă circuite.</text>`;
+  s+=`<text x="20" y="${Hs-12}" fill="#5a6b86" font-size="10">⟋ întrerupător · ⊗ corp iluminat · ⊟ priză · PROFCEISS</text></svg>`;
+  openModal(`<button class="close" id="mClose">✕</button><h2>📐 Schema monofilară</h2><div style="background:#0b0f17;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div><div class="dl"><button class="btn act" id="dlSchema">⬇ Descarcă (SVG)</button></div>`); $('mClose').onclick=closeModal; $('dlSchema').onclick=()=>download('schema-monofilara.svg',s); }
+function genTut(){ const main=sizeMain(); let h=`<button class="close" id="mClose">✕</button><h2>🎓 Tutorial cablare</h2><div class="tut">`;
+  h+=`<div class="warn">⚠ <b>Securitate:</b> oprește curentul de la general și verifică cu testerul că nu mai e tensiune. Dacă nu ești sigur, cheamă un electrician autorizat.</div>`;
+  h+=`<h4>Instalația</h4><p>Sistem <b>${state.system==='mono'?'monofazat (230V)':'trifazat (400V)'}</b>. General estimat: <b>${main.main}A</b>.</p><h4>Culori</h4><p>Fază = maro/negru · Nul = albastru · Împământare = galben-verde.</p>`;
+  circuits.forEach(c=>{ const sz=sizeCircuit(c); const dev=devices.filter(d=>d.circuit===c.id); h+=`<h4>Circuit ${c.n} — ${c.kind==='lumina'?'iluminat':'prize'} · ${sz.breaker}A · 3×${sz.section}mm²${state.system==='tri'?' · '+c.phase:''}</h4><p class="muted">${Math.round(sz.P)}W (${sz.I.toFixed(1)}A) — siguranță și secțiune alese automat din puteri.</p>`;
+    if(c.kind==='lumina'){ const nsw=dev.filter(d=>d.type==='intrerupator').length, nb=dev.filter(d=>d.type==='bec').length; h+=`<p>${nsw} întrerupător(e), ${nb} bec(uri). Cablul de la tablou (fază+nul+împământare) ajunge într-o <b>doză</b> lângă bec. Din doză: nulul și împământarea merg direct la bec; faza coboară la întrerupător; faza comutată urcă înapoi la bec. Întrerupătorul taie <b>doar faza</b>.</p>`; }
+    else { const np=dev.filter(d=>d.type==='priza').length; h+=`<p>${np} priză(e). Toate 3 firele la fiecare priză; prizele se leagă în paralel (din doză în doză); împământarea e obligatorie.</p>`; } });
+  if(!circuits.length) h+=`<p>Adaugă circuite și puteri ca să generez pașii și dimensionarea.</p>`;
+  h+=`<h4>Final</h4><p>Strânge bornele, închide dozele, repune tensiunea, testează fiecare circuit.</p></div><div class="dl"><button class="btn act" id="dlTut">⬇ Descarcă (text)</button></div>`;
+  openModal(h); $('mClose').onclick=closeModal; $('dlTut').onclick=()=>download('tutorial-cablare.txt',$('modalBody').innerText.replace('⬇ Descarcă (text)','')); }
 function download(name,content){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'})); a.download=name; a.click(); }
-
 $('genBOM').onclick=genBOM; $('genSchema').onclick=genSchema; $('genTut').onclick=genTut;
-$('drawer').onclick=()=>$('panel').classList.toggle('open');
+
+/* ===== sistem mono/tri ===== */
+function setSystem(s){ state.system=s; document.querySelectorAll('[data-sys-seg]').forEach(x=>x.classList.toggle('on',x.dataset.sysSeg===s)); if(circuits.length) renderLists(); }
+document.querySelectorAll('[data-sys-seg]').forEach(b=> b.onclick=()=>setSystem(b.dataset.sysSeg));
+function askSystem(){ openModal(`<h2>Tip instalație electrică</h2><p class="muted">Cum e alimentată casa?</p><div class="cbtns"><button class="btn act" data-sys="mono">Monofazat (230V)</button><button class="btn" data-sys="tri">Trifazat (400V)</button></div>`); $('modalBody').querySelectorAll('[data-sys]').forEach(b=>b.onclick=()=>{ setSystem(b.dataset.sys); closeModal(); }); }
+
+/* ===== comutare moduri ===== */
+$('raise').onclick=()=>{ init3D(); buildRoom3D(); state.mode='3d'; $('planCanvas').style.display='none'; renderer.domElement.style.display='block'; sizeRenderer(); $('planPanel').classList.add('hidden'); $('elecPanel').classList.remove('hidden'); $('legend').classList.remove('hidden'); $('mode').innerHTML='Alege un element, apoi <b>click pe perete/tavan</b>. Drag = rotește. Apasă <b>🖐 Cursor</b> ca să nu plasezi din greșeală.'; $('topHint').textContent='Pasul 2 — adaugă elemente'; renderLists(); renderRoomList(); };
+$('toggleView').onclick=()=>{ if(state.mode==='plan') $('raise').click(); else $('backPlan').click(); };
+$('undoBtn').onclick=undo;
+$('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent='Mod cursor: rotești / muți vederea, nu se plasează nimic.'; };
+$('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('topHint').textContent='Pasul 1 — desenează planul camerei în cm'; $('mode').innerHTML='Definește pereții (cm + cotitură). Apasă <b>Ridică 3D</b>.'; drawPlan(); };
+window.addEventListener('resize',()=>{ if(state.mode==='plan') drawPlan(); else if(renderer) sizeRenderer(); });
+
+/* ===== start ===== */
+renderWallRows(); renderOpRows(); refreshPlan(); askSystem();
 </script>
 </body>
 </html>
