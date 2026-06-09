@@ -512,16 +512,16 @@ function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find
 function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases();
   const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
   // doze -> sursa lor (doar dacă au copii)
-  dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); drawConductor(z.pos,sp,Lcol(c),0,false,rd); drawConductor(z.pos,sp,COND.N,1,false,rd); drawConductor(z.pos,sp,COND.PE,2,false,rd); });
+  dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
   // dispozitive -> sursa lor (lanț până la tablou)
-  devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const dir=!!d.direct;
-    if(d.type==='priza'){ drawConductor(d.pos,sp,Lc,0,dir,rd); drawConductor(d.pos,sp,COND.N,1,dir,rd); drawConductor(d.pos,sp,COND.PE,2,dir,rd); }
+  devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=d.route||'sus';
+    if(d.type==='priza'){ drawConductor(d.pos,sp,Lc,0,rm,rd); drawConductor(d.pos,sp,COND.N,1,rm,rd); drawConductor(d.pos,sp,COND.PE,2,rm,rd); }
     else if(d.type==='bec'){ const src=d.source; const swDev=(src&&src.kind==='dev')?devices.find(x=>x.id===src.id):null;
-      if(swDev && swDev.type==='intrerupator'){ const np=srcPos(swDev.source); drawConductor(d.pos,swDev.pos,COND.SW,0,dir,rd); drawConductor(d.pos,np,COND.N,1,false,rd); drawConductor(d.pos,np,COND.PE,2,false,rd); }
-      else { drawConductor(d.pos,sp,COND.SW,0,dir,rd); drawConductor(d.pos,sp,COND.N,1,dir,rd); drawConductor(d.pos,sp,COND.PE,2,dir,rd); } }
+      if(swDev && swDev.type==='intrerupator'){ const np=srcPos(swDev.source); drawConductor(d.pos,swDev.pos,COND.SW,0,rm,rd); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); }
+      else { drawConductor(d.pos,sp,COND.SW,0,rm,rd); drawConductor(d.pos,sp,COND.N,1,rm,rd); drawConductor(d.pos,sp,COND.PE,2,rm,rd); } }
     else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
-      if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ drawConductor(d.pos,srcDev.pos,Lc,0,dir,rd); drawConductor(d.pos,srcDev.pos,COND.SW,1,dir,rd); }
-      else { drawConductor(d.pos,sp,Lc,0,dir,rd); drawConductor(d.pos,sp,COND.SW,1,dir,rd); } }
+      if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd); }
+      else { drawConductor(d.pos,sp,Lc,0,rm,rd); drawConductor(d.pos,sp,COND.SW,1,rm,rd); } }
   }); }
 
 /* ===== dimensionare ===== */
@@ -529,8 +529,8 @@ function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>
 function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const breaker=STD.find(s=>s>=need)||40; return {P,I,breaker,section:SECT[breaker]}; }
 function condRad(c){ const sec=c?sizeCircuit(c).section:'1,5'; return ({'1,5':0.004,'2,5':0.008,'4':0.010,'6':0.012,'10':0.015})[sec]||0.006; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0;
-  devices.filter(d=>d.circuit===c.id && d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); L+=routeLen(d.pos, sp, !!d.direct); });
-  dozas.forEach(z=>{ const child=devices.find(d=>d.circuit===c.id && d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(child) L+=routeLen(z.pos, srcPos(z.source)); });
+  devices.filter(d=>d.circuit===c.id && d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); L+=routeLen(d.pos, sp, d.route||'sus'); });
+  dozas.forEach(z=>{ const child=devices.find(d=>d.circuit===c.id && d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(child) L+=routeLen(z.pos, srcPos(z.source), child.route||'sus'); });
   return L*1.15; }
 function assignPhases(){ if(state.system!=='tri'){ circuits.forEach(c=>{ c.phase='L1'; }); return; } let i=0; circuits.forEach(c=>{ if(!['L1','L2','L3'].includes(c.phase)){ c.phase=['L1','L2','L3'][i%3]; } i++; }); }
 function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); if(state.system==='mono'){ const I=acc.L1/U; return {mono:true,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; } const maxP=Math.max(acc.L1,acc.L2,acc.L3); const I=maxP/U; return {mono:false,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; }
