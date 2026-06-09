@@ -78,6 +78,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
   <div class="canvaswrap" id="canvaswrap">
     <canvas id="planCanvas"></canvas>
     <div class="hud" id="mode">Definește pereții în dreapta (lungime în cm + cotitură). Apasă <b>Ridică 3D</b> când e gata.</div>
+    <div class="hud hidden" id="measure" style="top:10px;right:10px;text-align:right;max-width:60%"></div>
     <div class="hud hidden" id="legend"><b>Fire:</b><span><i style="background:#e23b3b"></i>fază</span><span><i style="background:#2f6fd0"></i>nul</span><span><i style="background:#e6d200"></i>împământare</span><span><i style="background:#9aa3ad"></i>comutată</span><span style="opacity:.7">· 3~ L1/L2/L3:</span><span><i style="background:#e23b3b"></i></span><span><i style="background:#8a5a2b"></i></span><span><i style="background:#9aa3ad"></i></span></div>
   </div>
 
@@ -264,7 +265,9 @@ function init3D(){
   const dir=new THREE.DirectionalLight(0xffffff,0.7); dir.position.set(4,8,6); scene.add(dir);
   scene.add(roomGroup); scene.add(wireGroup);
   raycaster=new THREE.Raycaster();
-  renderer.domElement.addEventListener('pointerdown', onPick);
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
   animate();
 }
 function sizeRenderer(){ const w=$('canvaswrap').clientWidth, h=$('canvaswrap').clientHeight; renderer.setSize(w,h); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); }
@@ -325,7 +328,7 @@ async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.use
   if(type==='tablou'&&devices.some(d=>d.type==='tablou')){ alert('Există deja un tablou.'); return; }
   let circuit=null; if(a.kind){ circuit=await chooseCircuit(a.kind); if(circuit==null) return; }
   const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
-  const dev={id:uid++,type,circuit,power:DEF_POWER[type]||0,pos,mesh}; devices.push(dev);
+  const dev={id:uid++,type,circuit,power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
   if(circuit!=null){ const cc=circuits.find(c=>c.id===circuit); const lab=makeLabel('C'+cc.n,cc.color); mesh.add(lab); lab.position.set(0,0.16,0); }
   renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id)); }
 function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit); const col=cc?new THREE.Color(cc.color):new THREE.Color(0xcfd6df); const g=new THREE.Group();
@@ -344,12 +347,46 @@ function addOpeningAt(type,hit){ const ud=hit.object.userData; if(ud.kind!=='wal
   const along=Math.max(0,Math.min(L,hit.point.clone().sub(p1).dot(dir))); const d=OPEN_DEF[type]; const w=Math.min(d.w,L); const pos=Math.max(0,Math.min(Math.max(0,L-w),along-w/2));
   const op={type,wall:ud.wall,pos,w,sill:d.sill,head:Math.min(d.head,H)}; plan.openings.push(op); buildRoom3D(); renderWires(); renderRoomList();
   pushHistory(()=>{ const i=plan.openings.indexOf(op); if(i>=0){ plan.openings.splice(i,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
-function placeFurniture(type,hit){ const f=FURN[type]; const m=new THREE.Mesh(new THREE.BoxGeometry(f.w,f.h,f.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); const p=hit.point.clone(); p.y=f.h/2; m.position.copy(p); scene.add(m); const pr={id:uid++,type,mesh:m,label:f.label}; props.push(pr); renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
-function placeDoza(hit){ const g=makeDozaMesh(); const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03)); g.position.copy(p); scene.add(g); const pr={id:uid++,type:'doza',mesh:g,label:'Doză'}; props.push(pr); renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
+function placeFurniture(type,hit){ const f=FURN[type]; const m=new THREE.Mesh(new THREE.BoxGeometry(f.w,f.h,f.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); const p=hit.point.clone(); p.y=f.h/2; m.position.copy(p); scene.add(m); const pr={id:uid++,type,mesh:m,label:f.label,kind:'prop'}; props.push(pr); m.userData={el:'prop',id:pr.id}; renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
+function placeDoza(hit){ const g=makeDozaMesh(); const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03)); g.position.copy(p); scene.add(g); const pr={id:uid++,type:'doza',mesh:g,label:'Doză',kind:'prop'}; props.push(pr); g.userData={el:'prop',id:pr.id}; renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
+/* ===== selecție + mutare (drag) ===== */
+let selectedEl=null, dragging=null, wireTO=null;
+function elObj(sel){ return sel.kind==='dev'?devices.find(d=>d.id===sel.id):(sel.kind==='prop'?props.find(p=>p.id===sel.id):dozas.find(d=>d.id===sel.id)); }
+function elPos(el){ return el.pos?el.pos:el.mesh.position; }
+function elLabel(el){ return el.label||(ADD[el.type]&&ADD[el.type].label)||'Element'; }
+function pickSelectable(e){ const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera);
+  const roots=[...devices.map(d=>d.mesh),...props.map(p=>p.mesh),...dozas.map(d=>d.mesh)]; const hits=raycaster.intersectObjects(roots,true); if(!hits.length) return null; let o=hits[0].object; while(o&&!o.userData.el) o=o.parent; if(!o) return null; return {kind:o.userData.el,id:o.userData.id}; }
+function selectEl(sel){ selectedEl=sel; const m=$('measure'); if(!sel){ m.classList.add('hidden'); return; } const el=elObj(sel); if(!el){ m.classList.add('hidden'); return; } updateMeasure(el); m.classList.remove('hidden'); }
+function onPointerDown(e){ if(state.mode!=='3d') return; if(addType){ onPick(e); return; } const sel=pickSelectable(e); if(sel){ selectEl(sel); dragging=sel; controls.enabled=false; } else selectEl(null); }
+function onPointerMove(e){ if(!dragging) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera);
+  const el=elObj(dragging); if(!el){ dragging=null; controls.enabled=true; return; }
+  let want; if(dragging.kind==='dev') want= el.type==='bec'?'ceiling':'wall'; else if(dragging.kind==='doza') want=null; else want= el.type==='doza'?null:'floor';
+  const hits=raycaster.intersectObjects(surfaces,true); if(!hits.length) return; const h=want?(hits.find(x=>x.object.userData.kind===want)||null):hits[0]; if(!h) return;
+  moveElementTo(el,dragging.kind,h); updateMeasure(el); renderWiresThrottled(); }
+function onPointerUp(){ if(dragging){ dragging=null; controls.enabled=true; renderWires(); } }
+function moveElementTo(el,kind,h){ const ud=h.object.userData;
+  if(kind==='dev'){ if(ud.kind==='wall'){ const n=ud.normal.clone(); const pos=h.point.clone().add(n.clone().multiplyScalar(0.03)); pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); el.pos.copy(pos); el.normal=n; el.surf='wall'; el.mesh.position.copy(pos); el.mesh.lookAt(pos.clone().add(n)); } else if(ud.kind==='ceiling'){ const pos=h.point.clone(); pos.y=H-0.02; el.pos.copy(pos); el.mesh.position.copy(pos); } else { const pos=h.point.clone(); el.pos.copy(pos); el.mesh.position.copy(pos); } }
+  else if(kind==='doza'){ const pos=h.point.clone(); if(ud.kind==='wall'&&ud.normal) pos.add(ud.normal.clone().multiplyScalar(0.03)); el.pos.copy(pos); el.mesh.position.copy(pos); }
+  else { const pos=h.point.clone(); if(ud.kind==='floor') pos.y=el.mesh.position.y; el.mesh.position.copy(pos); } }
+function renderWiresThrottled(){ if(wireTO) return; wireTO=setTimeout(()=>{ wireTO=null; renderWires(); },70); }
+function segDist(px,pz,x1,z1,x2,z2){ const dx=x2-x1,dz=z2-z1; const L2=dx*dx+dz*dz||1; let t=((px-x1)*dx+(pz-z1)*dz)/L2; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-(x1+t*dx),pz-(z1+t*dz)); }
+function distToWalls(p){ const {out}=edges(); let m=1e9; out.forEach(e=>{ m=Math.min(m,segDist(p.x,p.z,e.p1.x,e.p1.z,e.p2.x,e.p2.z)); }); return m; }
+function updateMeasure(el){ const p=elPos(el); const dw=Math.round(distToWalls(p)*100), fl=Math.round(p.y*100), ce=Math.round((H-p.y)*100); $('measure').innerHTML=`<b>${elLabel(el)}</b> — trage ca să muți<br>perete: ${dw} cm · podea: ${fl} cm · tavan: ${ce} cm`; }
+/* editează dimensiuni gol */
+function editOpening(idx){ const o=plan.openings[idx]; if(!o) return; const win=o.type.includes('fereastra');
+  openModal(`<button class="close" id="mClose">✕</button><h2>Editează ${OPEN_DEF[o.type].label}</h2>
+   <label class="fld">Lățime (cm)</label><input id="eW" type="number" value="${Math.round(o.w*100)}">
+   <label class="fld" style="margin-top:8px">Înălțime gol (cm)</label><input id="eH" type="number" value="${Math.round((o.head-o.sill)*100)}">
+   ${win?`<label class="fld" style="margin-top:8px">Înălțime prag de la podea (cm)</label><input id="eS" type="number" value="${Math.round(o.sill*100)}">`:''}
+   <label class="fld" style="margin-top:8px">Poziție de la început (cm)</label><input id="eP" type="number" value="${Math.round(o.pos*100)}">
+   <div class="dl"><button class="btn act" id="eApply">Aplică</button></div>`);
+  $('mClose').onclick=closeModal;
+  $('eApply').onclick=()=>{ o.w=Math.max(0.2,(parseInt($('eW').value,10)||90)/100); const hh=Math.max(0.2,(parseInt($('eH').value,10)||205)/100); o.sill=win?Math.max(0,(parseInt($('eS').value,10)||90)/100):0; o.head=Math.min(H,o.sill+hh); o.pos=Math.max(0,(parseInt($('eP').value,10)||0)/100); closeModal(); buildRoom3D(); renderWires(); renderRoomList(); }; }
 function removeProp(id){ const i=props.findIndex(p=>p.id===id); if(i<0) return; scene.remove(props[i].mesh); props.splice(i,1); renderRoomList(); }
 function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[...props.map(p=>({k:'prop',id:p.id,label:p.label})), ...plan.openings.map((o,i)=>({k:'op',idx:i,label:OPEN_DEF[o.type].label+' (P'+(o.wall+1)+')'}))];
   if(!items.length){ el.innerHTML='<p class="muted">Nimic.</p>'; return; } el.innerHTML='';
-  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; d.innerHTML=`<span class="dot" style="background:#7c93b3"></span>${it.label}<button class="x" data-rk="${it.k}" data-ri="${it.k==='prop'?it.id:it.idx}">✕</button>`; el.appendChild(d); });
+  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns=''; if(it.k==='op') btns+=`<button class="x" data-ek="${it.idx}" title="Editează dimensiuni">✎</button>`; btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='prop'?it.id:it.idx}">✕</button>`; d.innerHTML=`<span class="dot" style="background:#7c93b3"></span>${it.label}${btns}`; el.appendChild(d); });
+  el.querySelectorAll('[data-ek]').forEach(b=> b.onclick=()=>editOpening(parseInt(b.dataset.ek,10)));
   el.querySelectorAll('[data-rk]').forEach(b=> b.onclick=()=>{ if(b.dataset.rk==='prop') removeProp(parseInt(b.dataset.ri,10)); else { plan.openings.splice(parseInt(b.dataset.ri,10),1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
 
 /* ===== circuit modal ===== */
@@ -371,12 +408,16 @@ function drawConductor(a,b,colorHex,idx){ const top=H-0.06-idx*0.012; const dx=b
 function addDoza(pos){ const g=makeDozaMesh(); g.position.copy(pos); g.position.y=H-0.03; g.position.x+=0.14; wireGroup.add(g); }
 function nearest(d,arr){ let best=null,bd=1e9; arr.forEach(a=>{const x=a.pos.distanceTo(d.pos); if(x<bd){bd=x;best=a;}}); return best; }
 function chainOrder(start,arr){ const rem=[...arr],out=[]; let cur=start; while(rem.length){ let bi=0,bd=1e9; rem.forEach((a,i)=>{const x=a.pos.distanceTo(cur.pos); if(x<bd){bd=x;bi=i;}}); cur=rem[bi]; out.push(cur); rem.splice(bi,1);} return out; }
-function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); const panel=panelDev(); if(!panel) return; assignPhases();
+const dozas=[];
+function ensureDoza(cid,defPos){ let d=dozas.find(x=>x.circuit===cid); if(!d){ d={id:uid++,circuit:cid,pos:defPos.clone(),mesh:makeDozaMesh()}; d.mesh.userData={el:'doza',id:d.id}; d.mesh.position.copy(d.pos); scene.add(d.mesh); dozas.push(d); } return d; }
+function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find(x=>x.id===dozas[i].circuit); const has=c&&devices.some(dd=>dd.circuit===c.id&&dd.type==='bec'); if(!has){ scene.remove(dozas[i].mesh); dozas.splice(i,1); } } }
+function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); pruneDozas(); const panel=panelDev(); if(!panel) return; assignPhases();
   circuits.forEach(c=>{ const devs=devices.filter(d=>d.circuit===c.id); const Lc=state.system==='tri'?(PHASE_COL[c.phase]||COND.L):COND.L;
     if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec');
-      if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; drawConductor(panel.pos,supply.pos,Lc,0); drawConductor(panel.pos,supply.pos,COND.N,1); drawConductor(panel.pos,supply.pos,COND.PE,2); addDoza(supply.pos);
-        sws.forEach(sw=>{ drawConductor(supply.pos,sw.pos,Lc,0); drawConductor(supply.pos,sw.pos,COND.SW,1); });
-        let prev=supply; chainOrder(supply,lights.filter(l=>l!==supply)).forEach(l=>{ drawConductor(prev.pos,l.pos,COND.SW,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); addDoza(l.pos); prev=l; }); }
+      if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; const doza=ensureDoza(c.id,supply.pos);
+        drawConductor(panel.pos,doza.pos,Lc,0); drawConductor(panel.pos,doza.pos,COND.N,1); drawConductor(panel.pos,doza.pos,COND.PE,2);
+        sws.forEach(sw=>{ drawConductor(doza.pos,sw.pos,Lc,0); drawConductor(doza.pos,sw.pos,COND.SW,1); });
+        let prev={pos:doza.pos}; chainOrder({pos:doza.pos},lights).forEach(l=>{ drawConductor(prev.pos,l.pos,COND.SW,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); prev=l; }); }
       else sws.forEach(sw=>drawConductor(panel.pos,sw.pos,Lc,0)); }
     else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{ drawConductor(prev.pos,o.pos,Lc,0); drawConductor(prev.pos,o.pos,COND.N,1); drawConductor(prev.pos,o.pos,COND.PE,2); prev=o; }); }
   }); }
@@ -385,7 +426,7 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
 function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>s+(d.power||0),0); }
 function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const breaker=STD.find(s=>s>=need)||40; return {P,I,breaker,section:SECT[breaker]}; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0; const devs=devices.filter(d=>d.circuit===c.id);
-  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec'); if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; L+=routeLen(panel.pos,supply.pos); sws.forEach(s=>L+=routeLen(supply.pos,s.pos)); let prev=supply; chainOrder(supply,lights.filter(l=>l!==supply)).forEach(l=>{L+=routeLen(prev.pos,l.pos);prev=l;}); } else sws.forEach(s=>L+=routeLen(panel.pos,s.pos)); }
+  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec'); if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; const dz=dozas.find(x=>x.circuit===c.id); const base=dz?dz.pos:supply.pos; L+=routeLen(panel.pos,base); sws.forEach(s=>L+=routeLen(base,s.pos)); let prev={pos:base}; chainOrder({pos:base},lights).forEach(l=>{L+=routeLen(prev.pos,l.pos);prev=l;}); } else sws.forEach(s=>L+=routeLen(panel.pos,s.pos)); }
   else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{L+=routeLen(prev.pos,o.pos);prev=o;}); } return L*1.15; }
 function assignPhases(){ const ph=['L1','L2','L3']; circuits.forEach((c,i)=>{ c.phase=state.system==='tri'?ph[i%3]:'L1'; }); }
 function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); if(state.system==='mono'){ const I=acc.L1/U; return {mono:true,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; } const maxP=Math.max(acc.L1,acc.L2,acc.L3); const I=maxP/U; return {mono:false,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; }
@@ -445,7 +486,7 @@ $('raise').onclick=()=>{ init3D(); buildRoom3D(); state.mode='3d'; $('planCanvas
 $('toggleView').onclick=()=>{ if(state.mode==='plan') $('raise').click(); else $('backPlan').click(); };
 $('undoBtn').onclick=undo;
 $('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent='Mod cursor: rotești / muți vederea, nu se plasează nimic.'; };
-$('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('topHint').textContent='Pasul 1 — desenează planul camerei în cm'; $('mode').innerHTML='Definește pereții (cm + cotitură). Apasă <b>Ridică 3D</b>.'; drawPlan(); };
+$('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('measure').classList.add('hidden'); selectedEl=null; dragging=null; $('topHint').textContent='Pasul 1 — desenează planul camerei în cm'; $('mode').innerHTML='Definește pereții (cm + cotitură). Apasă <b>Ridică 3D</b>.'; drawPlan(); };
 window.addEventListener('resize',()=>{ if(state.mode==='plan') drawPlan(); else if(renderer) sizeRenderer(); });
 
 /* ===== start ===== */
