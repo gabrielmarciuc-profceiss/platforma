@@ -333,6 +333,9 @@ function addFill(p1,dir,nrm,o,color,opacity){
 
 /* ===== plasare dispozitive ===== */
 function makeLabel(text,color){ const cv=document.createElement('canvas'); cv.width=128; cv.height=48; const x=cv.getContext('2d'); x.fillStyle='rgba(7,11,18,.85)'; x.fillRect(0,0,128,48); x.strokeStyle=color; x.lineWidth=4; x.strokeRect(2,2,124,44); x.fillStyle='#fff'; x.font='bold 22px sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,64,26); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false})); sp.scale.set(0.32,0.12,1); return sp; }
+function labelText(dev){ const c=circuits.find(x=>x.id===dev.circuit); return (dev.name||ADD[dev.type].label)+(c?(' · C'+c.n):''); }
+function labelColor(dev){ const c=circuits.find(x=>x.id===dev.circuit); return c?c.color:'#cfd6df'; }
+function updateDevLabel(dev){ if(dev.lab){ dev.mesh.remove(dev.lab); dev.lab=null; } if(dev.type==='tablou') return; const s=makeLabel(labelText(dev),labelColor(dev)); s.position.set(0,0.18,0); dev.mesh.add(s); dev.lab=s; }
 document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.dataset.add; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); $('addInfo').innerHTML=addType==='bec'?'Click pe <b>tavan</b>.':'Click pe un <b>perete</b>.'; });
 $('cancelAdd').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent=''; };
 function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera); const hits=raycaster.intersectObjects(surfaces,false); if(!hits.length) return;
@@ -350,8 +353,8 @@ async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.use
   let source={kind:'panel'};
   if(doza){ if(route.mode==='chain' && (type==='priza'||type==='bec')){ const sib=devices.filter(x=>x.type===type&&x.doza===doza&&x.circuit===circuit); source=sib.length?{kind:'dev',id:sib[sib.length-1].id}:{kind:'doza',id:doza}; } else source={kind:'doza',id:doza}; }
   const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
-  const dev={id:uid++,type,circuit,doza,source,power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
-  if(circuit!=null){ const cc=circuits.find(c=>c.id===circuit); const dn=doza?dozas.find(z=>z.id===doza):null; const lab=makeLabel('C'+cc.n+(dn?' D'+dn.n:''),cc.color); mesh.add(lab); lab.position.set(0,0.16,0); }
+  const dev={id:uid++,type,circuit,doza,source,power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind,name:ADD[type].label+' '+(devices.filter(x=>x.type===type).length+1)}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
+  updateDevLabel(dev);
   renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id)); }
 function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit); const col=cc?new THREE.Color(cc.color):new THREE.Color(0xcfd6df); const g=new THREE.Group();
   if(type==='tablou'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34,0.46,0.11),new THREE.MeshStandardMaterial({color:0xdfe3e8,metalness:.3,roughness:.6}))); const d=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.012),new THREE.MeshStandardMaterial({color:0xf2f4f6})); d.position.z=0.06; g.add(d); }
@@ -510,7 +513,7 @@ function renderLists(){ const cl=$('circuitList');
     const circOpts=circuits.filter(x=>x.kind===kind).map(x=>`<option value="${x.id}" ${x.id===d.circuit?'selected':''}>C${x.n}</option>`).join('')||'<option value="">—</option>';
     const srcSel=d.source||{kind:'panel'}; const srcOpts=`<option value="panel" ${srcSel.kind==='panel'?'selected':''}>Tablou</option>`+dozas.map(z=>`<option value="doza:${z.id}" ${(srcSel.kind==='doza'&&srcSel.id===z.id)?'selected':''}>Doza ${z.n}</option>`).join('')+devices.filter(x=>x.id!==d.id&&x.type!=='tablou').map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${ADD[x.type].label.split(' ')[0]}·${x.id}</option>`).join('');
     const load=(d.type==='bec'||d.type==='priza');
-    el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><span style="flex:1">${ADD[d.type].label}·${d.id}</span><button class="x" data-del="${d.id}">✕</button>`
+    el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
       +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursă</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select>`
       +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto;width:54px"> W`:'')+`</div>`;
     dl.appendChild(el); });
