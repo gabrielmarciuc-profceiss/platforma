@@ -163,7 +163,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
       <button class="btn gen full" id="genBOM">📋 Listă de materiale</button>
       <button class="btn gen full" id="genSchema">📐 Trimite în schema monofilară</button>
       <button class="btn gen full" id="genTut">🎓 Tutorial cablare</button>
-      <button class="btn gen full" id="genPanel">🗄️ Schema tablou electric</button>
+      <button class="btn gen full" id="genPanel">🗄️ Editor tablou electric</button>
       <button class="btn gen full" id="genPDF">📄 Export PDF schiță (2D + 3D)</button>
       <button class="btn gen full" id="genCheck" style="background:#e3f5ea;border-color:#bfe3cc">🩺 Verifică instalația (asistent)</button>
       <button class="btn gen full" id="genDXF">📐 Export DXF (pentru CAD)</button>
@@ -544,14 +544,15 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
 
 /* ===== dimensionare ===== */
 function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>s+(d.power||0),0); }
-function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const breaker=STD.find(s=>s>=need)||40; return {P,I,breaker,section:SECT[breaker]}; }
+function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const auto=STD.find(s=>s>=need)||40; const breaker=c.breakerOverride||auto; return {P,I,breaker,section:SECT[breaker],auto}; }
 function condRad(c){ const sec=c?sizeCircuit(c).section:'1,5'; return ({'1,5':0.004,'2,5':0.008,'4':0.010,'6':0.012,'10':0.015})[sec]||0.006; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0;
   devices.filter(d=>d.circuit===c.id && d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); L+=routeLen(d.pos, sp, d.route||'sus'); });
   dozas.forEach(z=>{ const child=devices.find(d=>d.circuit===c.id && d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(child) L+=routeLen(z.pos, srcPos(z.source), child.route||'sus'); });
   return L*1.15; }
 function assignPhases(){ if(state.system!=='tri'){ circuits.forEach(c=>{ c.phase='L1'; }); return; } let i=0; circuits.forEach(c=>{ if(!['L1','L2','L3'].includes(c.phase)){ c.phase=['L1','L2','L3'][i%3]; } i++; }); }
-function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); if(state.system==='mono'){ const I=acc.L1/U; return {mono:true,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; } const maxP=Math.max(acc.L1,acc.L2,acc.L3); const I=maxP/U; return {mono:false,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; }
+function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); const tetra=(state.mainPoles||(state.system==='tri'?'tetra':'mono'))==='tetra'; const load=tetra?Math.max(acc.L1,acc.L2,acc.L3):(acc.L1+acc.L2+acc.L3); const I=load/U; const auto=MAINSTD.find(s=>s>=I*1.1)||63; return {tetra,I,main:state.mainOverride||auto,auto,acc}; }
+function recommendPanel(){ const perBr=1; const mainMod=(state.mainPoles||(state.system==='tri'?'tetra':'mono'))==='tetra'?4:2; const rcdMod=mainMod; const used=circuits.length*perBr+mainMod+rcdMod; const need=Math.ceil(used*1.25); const STDP=[12,18,24,36,48,54,72]; const pick=STDP.find(x=>x>=need)||72; return {used,need,pick,rows:Math.ceil(pick/12)}; }
 
 /* ===== liste 3D ===== */
 function renderLists(){ const cl=$('circuitList');
@@ -660,14 +661,20 @@ function genPanel(){
   });
   s+=`<text x="20" y="${Hs-12}" font-size="9" fill="#777">Roșu = fază · albastru = nul · galben-verde = împământare. Puntea de sus duce faza la toate siguranțele${tri?' de pe aceeași fază':''}. Nulul și împământarea pleacă din barele de jos spre fiecare circuit. Siguranța întrerupe doar faza.</text>`;
   s+=`</svg>`;
-  const tut=`<div class="tut" style="margin-top:10px"><h4>Cum legi tabloul (începător)</h4>
-   <p>1. Montezi șina DIN. Pui <b>siguranța generală ${main.main}A</b>, apoi <b>diferențialul (RCD) 30mA</b>.<br>
-   2. De la RCD pleacă <b>${tri?'cele 3 faze pe cele 3 punți':'faza pe punte (peigne)'}</b> — puntea alimentează capul de sus al fiecărei siguranțe.<br>
-   3. La fiecare siguranță: <b>faza intră sus</b> (din punte), <b>iese jos</b> spre circuitul ei.<br>
-   4. <b>Nulul</b> se leagă din <span style="color:#2f6fd0">bara de nul</span> direct la fiecare circuit (nu prin siguranțe).<br>
-   5. <b>Împământarea</b> din <span style="color:#b59f00">bara PE</span> la fiecare circuit.${tri?'<br>6. Distribuie circuitele cât mai egal pe L1/L2/L3.':''}</p></div>`;
-  openModal(`<button class="close" id="mClose">✕</button><h2>🗄️ Schema tablou electric</h2><div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div>${tut}<div class="dl"><button class="btn act" id="dlPanel">⬇ Descarcă (SVG)</button></div>`);
+  const rec=recommendPanel(); const mp=state.mainPoles||(tri?'tetra':'mono');
+  const ist='padding:4px 6px;font-size:12px';
+  const ctrl=`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 10px;font-size:13px"><b>Siguranță generală:</b>
+    <select id="edMainPoles" style="${ist};width:auto">${[['mono','Monofazat 1P+N'],['tetra','Tetrapolar 4P']].map(p=>`<option value="${p[0]}" ${p[0]===mp?'selected':''}>${p[1]}</option>`).join('')}</select>
+    <select id="edMainA" style="${ist};width:auto">${MAINSTD.map(a=>`<option value="${a}" ${a===main.main?'selected':''}>${a}A</option>`).join('')}</select>
+    <span class="muted">+ RCD 30mA · recomandat auto: ${main.auto}A</span></div>`;
+  const tblRows=cs.map(c=>{ const sz=sizeCircuit(c); const over=c.breakerOverride&&c.breakerOverride!==sz.auto; return `<tr><td>${c.cod||('C'+c.n)} · ${c.kind==='lumina'?'ilum.':'prize'}${tri?(' · '+c.phase):''}</td><td><select data-edbr="${c.id}" style="${ist};width:auto">${STD.map(a=>`<option value="${a}" ${a===sz.breaker?'selected':''}>${a}A</option>`).join('')}</select></td><td>${sz.section} mm²</td><td class="muted" style="font-size:11px">auto ${sz.auto}A · ${Math.round(sz.P)}W${over?' · <span style="color:#d98200">manual</span>':''}</td></tr>`; }).join('');
+  const tbl=`<table style="margin-top:10px"><thead><tr><th>Circuit</th><th>Siguranță</th><th>Cablu</th><th></th></tr></thead><tbody>${tblRows}</tbody></table>`;
+  const recHtml=`<div style="margin-top:10px;padding:10px 12px;border:1px solid #bcd0ea;background:#eef5fd;border-radius:8px;font-size:13px;line-height:1.5">📦 <b>Tablou recomandat: ${rec.pick} module</b> (≈ ${rec.rows} ${rec.rows===1?'rând':'rânduri'}). Folosite acum ~${rec.used} module (siguranțe + general + RCD); cu <b>25% rezervă</b> pentru viitoare circuite → minim ${rec.need} module.</div>`;
+  openModal(`<button class="close" id="mClose">✕</button><h2>🗄️ Editor tablou electric</h2>${ctrl}<div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div>${recHtml}${tbl}<div class="dl"><button class="btn act" id="dlPanel">⬇ Descarcă schema (SVG)</button></div>`);
   $('mClose').onclick=closeModal; $('dlPanel').onclick=()=>download('schema-tablou.svg',s);
+  $('edMainPoles').onchange=e=>{ state.mainPoles=e.target.value; state.mainOverride=null; genPanel(); };
+  $('edMainA').onchange=e=>{ state.mainOverride=parseInt(e.target.value,10); genPanel(); };
+  document.querySelectorAll('[data-edbr]').forEach(sel=> sel.onchange=()=>{ const c=circuits.find(x=>x.id===parseInt(sel.dataset.edbr,10)); if(c){ c.breakerOverride=parseInt(sel.value,10); renderWires(); renderLists(); genPanel(); } });
 }
 function loadJsPDF(){ return new Promise((res,rej)=>{ if(window.jspdf&&window.jspdf.jsPDF){ res(window.jspdf); return; } const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; sc.onload=()=>res(window.jspdf); sc.onerror=()=>rej(new Error('jsPDF')); document.head.appendChild(sc); }); }
 function roomBBox(){ const p=plan.points; let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; p.forEach(q=>{mnx=Math.min(mnx,q.x);mnz=Math.min(mnz,q.z);mxx=Math.max(mxx,q.x);mxz=Math.max(mxz,q.z);}); return {cx:(mnx+mxx)/2,cz:(mnz+mxz)/2,span:Math.max(mxx-mnx,mxz-mnz,2)}; }
