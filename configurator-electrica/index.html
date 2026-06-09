@@ -155,11 +155,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
     <div class="sec"><h3>Circuite</h3><div class="list" id="circuitList"><p class="muted">Niciun circuit încă.</p></div></div>
     <div class="sec"><h3>Elemente · putere</h3><div class="list" id="devList"><p class="muted">Nimic plasat.</p></div>
       <p class="muted" style="margin-top:8px">Setează puterea (W) la becuri/prize — dimensionez cablul și siguranța din ea.</p></div>
-    <div class="sec"><h3>Traseu cablaj</h3>
-      <div class="seg" id="routeMode"><button data-rm="chain" class="active">Punte (în lanț)</button><button data-rm="each">Din doză separat</button></div>
-      <div class="seg" id="routePath" style="margin-top:8px"><button data-rp="tavan" class="active">Pe tavan</button><button data-rp="podea">Pe podea</button></div>
-      <p class="muted" style="margin-top:7px">„Punte/Separat": cum se leagă implicit sursele. „Tavan/Podea": nivelul firelor. <b>Tipul de traseu (perimetru vs direct) îl alegi individual la fiecare piesă</b>, lângă sursă.</p>
-    </div>
+    <div class="sec"><p class="muted">Sursa și <b>tipul de traseu</b> (standard / pe sus / direct) se aleg <b>individual la fiecare piesă</b>, în lista de mai jos.</p></div>
     <div class="sec"><h3>Generează</h3><div class="list">
       <button class="btn gen full" id="genBOM">📋 Listă de materiale</button>
       <button class="btn gen full" id="genSchema">📐 Trimite în schema monofilară</button>
@@ -290,14 +286,16 @@ function init3D(){
   camera=new THREE.PerspectiveCamera(52, 1, 0.05, 200);
   renderer=new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true, alpha:true}); renderer.setClearColor(0x000000,0); renderer.setPixelRatio(devicePixelRatio);
   $('canvaswrap').appendChild(renderer.domElement); renderer.domElement.id='glCanvas'; renderer.domElement.style.display='none';
-  controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=true;
-  scene.add(new THREE.HemisphereLight(0xffffff,0x33384a,1.05));
-  const dir=new THREE.DirectionalLight(0xffffff,0.7); dir.position.set(4,8,6); scene.add(dir);
+  controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=false;
+  scene.add(new THREE.HemisphereLight(0xffffff,0xc8d4e2,1.25));
+  const dir=new THREE.DirectionalLight(0xffffff,0.85); dir.position.set(4,8,6); scene.add(dir);
+  scene.add(new THREE.AmbientLight(0xffffff,0.35));
   scene.add(roomGroup); scene.add(wireGroup);
   raycaster=new THREE.Raycaster();
-  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  renderer.domElement.addEventListener('pointerdown', onPointerDown, true);
   renderer.domElement.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
   animate();
 }
 function sizeRenderer(){ const w=$('canvaswrap').clientWidth, h=$('canvaswrap').clientHeight; renderer.setSize(w,h); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); }
@@ -358,10 +356,10 @@ $('cancelAdd').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]
 function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera); const hits=raycaster.intersectObjects(surfaces,false); if(!hits.length) return;
   const want=(ROOMEL[addType]==='furniture')?'floor':(addType==='bec'?'ceiling':(addType==='doza'?null:'wall'));
   const h=want?(hits.find(x=>x.object.userData.kind===want)||hits[0]):hits[0];
-  if(ROOMEL[addType]==='opening') addOpeningAt(addType,h);
-  else if(ROOMEL[addType]==='furniture') placeFurniture(addType,h);
-  else if(addType==='doza') placeDoza(h);
-  else placeDevice(addType,h);
+  if(ROOMEL[addType]==='opening'){ addOpeningAt(addType,h); controls.enabled=true; }
+  else if(ROOMEL[addType]==='furniture'){ placeFurniture(addType,h); controls.enabled=true; }
+  else if(addType==='doza'){ placeDoza(h); controls.enabled=true; }
+  else placeDevice(addType,h).then(()=>{ controls.enabled=true; }).catch(()=>{ controls.enabled=true; });
 }
 async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.userData; let pos=hit.point.clone(); let normal=ud.normal?ud.normal.clone():new THREE.Vector3(0,-1,0);
   if(ud.kind==='wall'){ pos.add(normal.clone().multiplyScalar(0.03)); if(a.h!=null) pos.y=a.h; pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); } else if(ud.kind==='ceiling'){ pos.y=H-0.02; }
@@ -403,13 +401,13 @@ function elLabel(el){ return el.name||el.label||(el.n!=null?('Doza '+el.n):'')||
 function pickSelectable(e){ const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera);
   const roots=[...devices.map(d=>d.mesh),...props.map(p=>p.mesh),...dozas.map(d=>d.mesh)]; const hits=raycaster.intersectObjects(roots,true); if(!hits.length) return null; let o=hits[0].object; while(o&&!o.userData.el) o=o.parent; if(!o) return null; return {kind:o.userData.el,id:o.userData.id}; }
 function selectEl(sel){ selectedEl=sel; const m=$('measure'); if(!sel){ m.classList.add('hidden'); return; } const el=elObj(sel); if(!el){ m.classList.add('hidden'); return; } updateMeasure(el); m.classList.remove('hidden'); }
-function onPointerDown(e){ if(state.mode!=='3d') return; if(addType){ onPick(e); return; } const sel=pickSelectable(e); if(sel){ selectEl(sel); dragging=sel; controls.enabled=false; } else selectEl(null); }
+function onPointerDown(e){ if(state.mode!=='3d') return; if(addType){ controls.enabled=false; onPick(e); return; } const sel=pickSelectable(e); if(sel){ selectEl(sel); dragging=sel; controls.enabled=false; } else { selectEl(null); controls.enabled=true; } }
 function onPointerMove(e){ if(!dragging) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera);
   const el=elObj(dragging); if(!el){ dragging=null; controls.enabled=true; return; }
   let want; if(dragging.kind==='dev') want= el.type==='bec'?'ceiling':'wall'; else if(dragging.kind==='doza') want=null; else want= el.type==='doza'?null:'floor';
   const hits=raycaster.intersectObjects(surfaces,true); if(!hits.length) return; const h=want?(hits.find(x=>x.object.userData.kind===want)||null):hits[0]; if(!h) return;
   moveElementTo(el,dragging.kind,h); updateMeasure(el); renderWiresThrottled(); }
-function onPointerUp(){ if(dragging){ dragging=null; controls.enabled=true; renderWires(); } }
+function onPointerUp(){ if(dragging){ dragging=null; renderWires(); } controls.enabled=true; }
 function moveElementTo(el,kind,h){ const ud=h.object.userData;
   if(kind==='dev'){ if(ud.kind==='wall'){ const n=ud.normal.clone(); const pos=h.point.clone().add(n.clone().multiplyScalar(0.03)); pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); el.pos.copy(pos); el.normal=n; el.surf='wall'; el.mesh.position.copy(pos); el.mesh.lookAt(pos.clone().add(n)); } else if(ud.kind==='ceiling'){ const pos=h.point.clone(); pos.y=H-0.02; el.pos.copy(pos); el.mesh.position.copy(pos); } else { const pos=h.point.clone(); el.pos.copy(pos); el.mesh.position.copy(pos); } }
   else if(kind==='doza'){ const pos=h.point.clone(); if(ud.kind==='wall'&&ud.normal) pos.add(ud.normal.clone().multiplyScalar(0.03)); el.pos.copy(pos); el.mesh.position.copy(pos); }
@@ -491,17 +489,17 @@ function surfaceRoute(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=p
   const startH=a.y>H*0.7?H:a.y, endH=b.y>H*0.7?H:b.y; const mids=perimMids(pa.s,pb.s);
   const xz=[{x:pa.x,z:pa.z}, ...mids, {x:pb.x,z:pb.z}]; const cum=[0]; for(let i=1;i<xz.length;i++) cum.push(cum[i-1]+Math.hypot(xz[i].x-xz[i-1].x,xz[i].z-xz[i-1].z)); const tot=cum[cum.length-1]||1;
   const path=[a.clone()]; xz.forEach((p,i)=> path.push(new THREE.Vector3(p.x, startH+(endH-startH)*(cum[i]/tot), p.z))); path.push(b.clone()); return path; }
-function routeLen(a,b,direct){ if(!PERIM) buildPerim(); const level=direct?a.y:(route.path==='podea'?0.08:(H-0.05)); const pa=projPerim(a), pb=projPerim(b); let horiz; if(PERIM){ const Lt=PERIM.Ltot; const fwd=((pb.s-pa.s)%Lt+Lt)%Lt; horiz=Math.min(fwd,Lt-fwd); } else horiz=Math.hypot(b.x-a.x,b.z-a.z); const dA=Math.abs(level-a.y)+Math.hypot(a.x-pa.x,a.z-pa.z); const dB=Math.abs(level-b.y)+Math.hypot(b.x-pb.x,b.z-pb.z); return horiz+dA+dB; }
-function drawConductor(a,b,colorHex,idx,direct,rad){
-  let pts=null;
-  if(direct){ // drumul cel mai scurt PE SUPRAFEȚE: drept pe aceeași latură, prin colț pe laterale diferite
+function routeLen(a,b,rmode){ if(!PERIM) buildPerim(); const direct=rmode==='direct'; const level=direct?a.y:(rmode==='podea'?0.08:(H-0.05)); const pa=projPerim(a), pb=projPerim(b); let horiz; if(PERIM){ const Lt=PERIM.Ltot; const fwd=((pb.s-pa.s)%Lt+Lt)%Lt; horiz=Math.min(fwd,Lt-fwd); } else horiz=Math.hypot(b.x-a.x,b.z-a.z); const dA=Math.abs(level-a.y)+Math.hypot(a.x-pa.x,a.z-pa.z); const dB=Math.abs(level-b.y)+Math.hypot(b.x-pb.x,b.z-pb.z); return horiz+dA+dB; }
+function drawConductor(a,b,colorHex,idx,rmode,rad){
+  rmode=rmode||'standard'; let pts=null;
+  if(rmode==='direct'){ // drumul cel mai scurt PE SUPRAFEȚE: drept pe aceeași latură, prin colț pe laterale diferite
     const ceilBoth = a.y>H*0.7 && b.y>H*0.7;
     let sameWall=false; if(!ceilBoth){ const pa=projPerim(a), pb=projPerim(b); sameWall=(pa.edge!=null && pa.edge===pb.edge); }
     if(ceilBoth){ const lvl=Math.max(a.y,b.y)-idx*0.012; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; const ox=-dz/ln*(idx*0.02), oz=dx/ln*(idx*0.02); pts=[a.clone(), new THREE.Vector3(a.x+ox,lvl,a.z+oz), new THREE.Vector3(b.x+ox,lvl,b.z+oz), b.clone()]; }
     else if(sameWall){ const off=idx*0.014; pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
     else { pts=surfaceRoute(a,b); for(let i=1;i<pts.length-1;i++) pts[i].y-=idx*0.012; }
   }
-  if(!pts){ const level=(route.path==='podea'?0.08:(H-0.06))-idx*0.014; const way=routeWaypoints(a,b); pts=[a.clone()]; way.forEach(w=>pts.push(new THREE.Vector3(w.x,level,w.z))); pts.push(b.clone()); }
+  if(!pts){ const level=(rmode==='podea'?0.08:(H-0.06))-idx*0.014; const way=routeWaypoints(a,b); pts=[a.clone()]; way.forEach(w=>pts.push(new THREE.Vector3(w.x,level,w.z))); pts.push(b.clone()); }
   const curve=new THREE.CatmullRomCurve3(pts,false,'catmullrom',0.0); const geo=new THREE.TubeGeometry(curve, Math.max(8,pts.length*6), rad||0.006, 7, false);
   wireGroup.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:new THREE.Color(colorHex), roughness:.55, metalness:.1}))); }
 function addDoza(pos){ const g=makeDozaMesh(); g.position.copy(pos); g.position.y=H-0.03; g.position.x+=0.14; wireGroup.add(g); }
@@ -709,8 +707,6 @@ $('raise').onclick=()=>{ if(!isClosed()){ alert('Închide întâi conturul camer
 $('toggleView').onclick=()=>{ if(state.mode==='plan') $('raise').click(); else $('backPlan').click(); };
 $('undoBtn').onclick=undo; $('undoBtn2').onclick=undo;
 $('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent='Mod cursor: rotești / muți vederea, nu se plasează nimic.'; };
-$('routeMode').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); route.mode=b.dataset.rm; applyRouteMode(); renderWires(); renderLists(); });
-$('routePath').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); route.path=b.dataset.rp; renderWires(); });
 $('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('measure').classList.add('hidden'); selectedEl=null; dragging=null; $('topHint').textContent='Pasul 1 — desenează planul camerei în cm'; $('mode').innerHTML='Definește pereții (cm + cotitură). Apasă <b>Ridică 3D</b>.'; drawPlan(); };
 window.addEventListener('resize',()=>{ if(state.mode==='plan') drawPlan(); else if(renderer) sizeRenderer(); });
 
