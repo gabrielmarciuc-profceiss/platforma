@@ -495,9 +495,10 @@ function surfaceRoute(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=p
   const xz=[{x:pa.x,z:pa.z}, ...mids, {x:pb.x,z:pb.z}]; const cum=[0]; for(let i=1;i<xz.length;i++) cum.push(cum[i-1]+Math.hypot(xz[i].x-xz[i-1].x,xz[i].z-xz[i-1].z)); const tot=cum[cum.length-1]||1;
   const path=[a.clone()]; xz.forEach((p,i)=> path.push(new THREE.Vector3(p.x, startH+(endH-startH)*(cum[i]/tot), p.z))); path.push(b.clone()); return path; }
 function routeLen(a,b,rmode){ if(!PERIM) buildPerim(); const direct=rmode==='direct'; const level=direct?a.y:(rmode==='podea'?0.08:(H-0.05)); const pa=projPerim(a), pb=projPerim(b); let horiz; if(PERIM){ const Lt=PERIM.Ltot; const fwd=((pb.s-pa.s)%Lt+Lt)%Lt; horiz=Math.min(fwd,Lt-fwd); } else horiz=Math.hypot(b.x-a.x,b.z-a.z); const dA=Math.abs(level-a.y)+Math.hypot(a.x-pa.x,a.z-pa.z); const dB=Math.abs(level-b.y)+Math.hypot(b.x-pb.x,b.z-pb.z); return horiz+dA+dB; }
-function drawConductor(a,b,colorHex,idx,rmode,rad){
+function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
   rmode=rmode||'standard'; let pts=null;
-  if(rmode==='direct'){ // drumul cel mai scurt PE SUPRAFEȚE: drept pe aceeași latură, prin colț pe laterale diferite
+  if(straight){ const off=idx*0.014; pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
+  else if(rmode==='direct'){ // drumul cel mai scurt PE SUPRAFEȚE: drept pe aceeași latură, prin colț pe laterale diferite
     const ceilBoth = a.y>H*0.7 && b.y>H*0.7;
     let sameWall=false; if(!ceilBoth){ const pa=projPerim(a), pb=projPerim(b); sameWall=(pa.edge!=null && pa.edge===pb.edge); }
     if(ceilBoth){ const lvl=Math.max(a.y,b.y)-idx*0.012; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; const ox=-dz/ln*(idx*0.02), oz=dx/ln*(idx*0.02); pts=[a.clone(), new THREE.Vector3(a.x+ox,lvl,a.z+oz), new THREE.Vector3(b.x+ox,lvl,b.z+oz), b.clone()]; }
@@ -519,14 +520,16 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
   // doze -> sursa lor (doar dacă au copii)
   dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
   // dispozitive -> sursa lor (lanț până la tablou)
+  const samePlane=(d,o)=> d&&o&&d.normal&&o.normal && d.normal.dot(o.normal)>0.95;
   devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=d.route||'sus';
-    if(d.type==='priza'){ drawConductor(d.pos,sp,Lc,0,rm,rd); drawConductor(d.pos,sp,COND.N,1,rm,rd); drawConductor(d.pos,sp,COND.PE,2,rm,rd); }
+    const sd=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const str=(rm==='direct')&&samePlane(d,sd);
+    if(d.type==='priza'){ drawConductor(d.pos,sp,Lc,0,rm,rd,str); drawConductor(d.pos,sp,COND.N,1,rm,rd,str); drawConductor(d.pos,sp,COND.PE,2,rm,rd,str); }
     else if(d.type==='bec'){ const src=d.source; const swDev=(src&&src.kind==='dev')?devices.find(x=>x.id===src.id):null;
-      if(swDev && swDev.type==='intrerupator'){ const np=srcPos(swDev.source); drawConductor(d.pos,swDev.pos,COND.SW,0,rm,rd); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); }
-      else { drawConductor(d.pos,sp,COND.SW,0,rm,rd); drawConductor(d.pos,sp,COND.N,1,rm,rd); drawConductor(d.pos,sp,COND.PE,2,rm,rd); } }
+      if(swDev && swDev.type==='intrerupator'){ const np=srcPos(swDev.source); drawConductor(d.pos,swDev.pos,COND.SW,0,rm,rd,samePlane(d,swDev)&&rm==='direct'); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); }
+      else { drawConductor(d.pos,sp,COND.SW,0,rm,rd,str); drawConductor(d.pos,sp,COND.N,1,rm,rd,str); drawConductor(d.pos,sp,COND.PE,2,rm,rd,str); } }
     else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
-      if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd); }
-      else { drawConductor(d.pos,sp,Lc,0,rm,rd); drawConductor(d.pos,sp,COND.SW,1,rm,rd); } }
+      if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ const s2=(rm==='direct')&&samePlane(d,srcDev); drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd,s2); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd,s2); }
+      else { drawConductor(d.pos,sp,Lc,0,rm,rd,str); drawConductor(d.pos,sp,COND.SW,1,rm,rd,str); } }
   }); }
 
 /* ===== dimensionare ===== */
