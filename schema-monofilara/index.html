@@ -835,7 +835,30 @@ document.addEventListener('change', e => {
   if (e.target.id === 'f_pv_baterie_on') { toggleBaterieGroup(); rebuild(); }
 });
 
+// Import date din configuratorul electric (prin #data=...)
+function importFromHash() {
+  try {
+    const m = location.hash.match(/data=([^&]+)/);
+    if (!m) return;
+    const data = JSON.parse(decodeURIComponent(m[1]));
+    if (data.branch) {
+      const rb = document.querySelector('input[name="branch"][value="' + data.branch + '"]');
+      if (rb) {
+        rb.checked = true;
+        document.getElementById('lbl-mono').classList.toggle('active', data.branch === 'mono');
+        document.getElementById('lbl-tri').classList.toggle('active', data.branch === 'tri');
+      }
+    }
+    if (Array.isArray(data.circuits) && data.circuits.length) {
+      circuits = data.circuits.map(c => ({
+        cod: c.cod || 'C', dest: c.dest || '', sig: c.sig || '', cablu: c.cablu || '', dif: c.dif || '30mA', faza: c.faza || 'L1'
+      }));
+    }
+  } catch (e) { /* ignoră date invalide */ }
+}
+
 window.addEventListener('load', () => {
+  importFromHash();
   renderCircuits();
   togglePVSection();
   toggleBaterieGroup();

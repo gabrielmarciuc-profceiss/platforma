@@ -147,14 +147,16 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
     <div class="sec"><h3>Elemente · putere</h3><div class="list" id="devList"><p class="muted">Nimic plasat.</p></div>
       <p class="muted" style="margin-top:8px">Setează puterea (W) la becuri/prize — dimensionez cablul și siguranța din ea.</p></div>
     <div class="sec"><h3>Traseu cablaj</h3>
-      <div class="seg" id="routeMode"><button data-rm="circuit" class="active">Gândire pe circuit</button><button data-rm="scurt">Traseu scurt</button></div>
+      <div class="seg" id="routeMode"><button data-rm="chain" class="active">Punte (în lanț)</button><button data-rm="each">Din doză separat</button></div>
       <div class="seg" id="routePath" style="margin-top:8px"><button data-rp="tavan" class="active">Pe tavan</button><button data-rp="podea">Pe podea</button></div>
-      <p class="muted" style="margin-top:7px">„Traseu scurt" leagă prizele în punte (economie cablu). „Pe tavan / Pe podea" alege pe unde merg firele.</p>
+      <p class="muted" style="margin-top:7px">„Punte": prizele de pe aceeași doză se leagă în lanț, una din alta (economie). „Din doză separat": fir individual la fiecare. Firele merg pe perimetru. „Tavan / Podea": nivelul firelor.</p>
     </div>
     <div class="sec"><h3>Generează</h3><div class="list">
       <button class="btn gen full" id="genBOM">📋 Listă de materiale</button>
-      <button class="btn gen full" id="genSchema">📐 Schema monofilară</button>
+      <button class="btn gen full" id="genSchema">📐 Trimite în schema monofilară</button>
       <button class="btn gen full" id="genTut">🎓 Tutorial cablare</button>
+      <button class="btn gen full" id="genPanel">🗄️ Schema tablou electric</button>
+      <button class="btn gen full" id="genPDF">📄 Export PDF schiță (2D + 3D)</button>
     </div></div>
   </aside>
 </div>
@@ -174,7 +176,7 @@ const $=id=>document.getElementById(id);
 
 /* ===== stare ===== */
 const state={system:'mono', mode:'plan'};
-const route={mode:'circuit', path:'tavan'};   // mode: circuit|scurt · path: tavan|podea
+const route={mode:'chain', path:'tavan'};   // mode: chain (punte) | each (din doză separat) · path: tavan|podea
 let H=2.6;                                   // înălțime cameră (m)
 const plan={ points:[ {x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3} ], closed:true, openings:[] };
 let planMode='edit', planDrag=-1, planMap={s:1,ox:0,oy:0};
@@ -275,7 +277,7 @@ function init3D(){
   if(renderer) return;
   scene=new THREE.Scene(); scene.background=new THREE.Color(0x0b0f17);
   camera=new THREE.PerspectiveCamera(52, 1, 0.05, 200);
-  renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(devicePixelRatio);
+  renderer=new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true}); renderer.setPixelRatio(devicePixelRatio);
   $('canvaswrap').appendChild(renderer.domElement); renderer.domElement.id='glCanvas'; renderer.domElement.style.display='none';
   controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=true;
   scene.add(new THREE.HemisphereLight(0xffffff,0x33384a,1.05));
@@ -343,10 +345,10 @@ function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.dom
 async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.userData; let pos=hit.point.clone(); let normal=ud.normal?ud.normal.clone():new THREE.Vector3(0,-1,0);
   if(ud.kind==='wall'){ pos.add(normal.clone().multiplyScalar(0.03)); if(a.h!=null) pos.y=a.h; pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); } else if(ud.kind==='ceiling'){ pos.y=H-0.02; }
   if(type==='tablou'&&devices.some(d=>d.type==='tablou')){ alert('Există deja un tablou.'); return; }
-  let circuit=null; if(a.kind){ circuit=await chooseCircuit(a.kind); if(circuit==null) return; }
+  let circuit=null, doza=null; if(a.kind){ const asg=await chooseAssignment(a.kind); if(!asg) return; circuit=asg.circuit; doza=asg.doza; }
   const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
-  const dev={id:uid++,type,circuit,power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
-  if(circuit!=null){ const cc=circuits.find(c=>c.id===circuit); const lab=makeLabel('C'+cc.n,cc.color); mesh.add(lab); lab.position.set(0,0.16,0); }
+  const dev={id:uid++,type,circuit,doza,power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
+  if(circuit!=null){ const cc=circuits.find(c=>c.id===circuit); const dn=doza?dozas.find(z=>z.id===doza):null; const lab=makeLabel('C'+cc.n+(dn?' D'+dn.n:''),cc.color); mesh.add(lab); lab.position.set(0,0.16,0); }
   renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id)); }
 function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit); const col=cc?new THREE.Color(cc.color):new THREE.Color(0xcfd6df); const g=new THREE.Group();
   if(type==='tablou'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34,0.46,0.11),new THREE.MeshStandardMaterial({color:0xdfe3e8,metalness:.3,roughness:.6}))); const d=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.012),new THREE.MeshStandardMaterial({color:0xf2f4f6})); d.position.z=0.06; g.add(d); }
@@ -358,14 +360,17 @@ function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit
 /* ===== elemente cameră · doze manuale · undo ===== */
 function pushHistory(fn){ history.push(fn); }
 function undo(){ const f=history.pop(); if(f) f(); }
-function makeDozaMesh(){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.03,20),new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.1,roughness:.6}))); const r=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.008,8,24),new THREE.MeshStandardMaterial({color:0x6b4a10})); r.rotation.x=Math.PI/2; g.add(r); const lab=makeLabel('doză','#f2c14e'); g.add(lab); lab.position.set(0,0.13,0); return g; }
+function makeDozaMesh(text){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.03,20),new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.1,roughness:.6}))); const r=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.008,8,24),new THREE.MeshStandardMaterial({color:0x6b4a10})); r.rotation.x=Math.PI/2; g.add(r); const lab=makeLabel(text||'doză','#f2c14e'); g.add(lab); lab.position.set(0,0.13,0); return g; }
 function addOpeningAt(type,hit){ const ud=hit.object.userData; if(ud.kind!=='wall'){ alert('Click pe un perete pentru ușă/fereastră/gol.'); return; }
   const e=edges().out[ud.wall]; if(!e) return; const p1=new THREE.Vector3(e.p1.x,0,e.p1.z); const dir=new THREE.Vector3(e.p2.x-e.p1.x,0,e.p2.z-e.p1.z); const L=dir.length(); dir.normalize();
   const along=Math.max(0,Math.min(L,hit.point.clone().sub(p1).dot(dir))); const d=OPEN_DEF[type]; const w=Math.min(d.w,L); const pos=Math.max(0,Math.min(Math.max(0,L-w),along-w/2));
   const op={type,wall:ud.wall,pos,w,sill:d.sill,head:Math.min(d.head,H)}; plan.openings.push(op); buildRoom3D(); renderWires(); renderRoomList();
   pushHistory(()=>{ const i=plan.openings.indexOf(op); if(i>=0){ plan.openings.splice(i,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
 function placeFurniture(type,hit){ const f=FURN[type]; const m=new THREE.Mesh(new THREE.BoxGeometry(f.w,f.h,f.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); const p=hit.point.clone(); p.y=f.h/2; m.position.copy(p); scene.add(m); const pr={id:uid++,type,mesh:m,label:f.label,kind:'prop'}; props.push(pr); m.userData={el:'prop',id:pr.id}; renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
-function placeDoza(hit){ const g=makeDozaMesh(); const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03)); g.position.copy(p); scene.add(g); const pr={id:uid++,type:'doza',mesh:g,label:'Doză',kind:'prop'}; props.push(pr); g.userData={el:'prop',id:pr.id}; renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
+function placeDoza(hit){ const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03));
+  const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); scene.add(g);
+  const dz={id:uid++,n,pos:p.clone(),mesh:g}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); renderLists(); renderWires(); pushHistory(()=>removeDoza(dz.id)); }
+function removeDoza(id){ const i=dozas.findIndex(d=>d.id===id); if(i<0) return; scene.remove(dozas[i].mesh); dozas.splice(i,1); devices.forEach(d=>{ if(d.doza===id) d.doza=null; }); renderRoomList(); renderLists(); renderWires(); }
 /* ===== selecție + mutare (drag) ===== */
 let selectedEl=null, dragging=null, wireTO=null;
 function elObj(sel){ return sel.kind==='dev'?devices.find(d=>d.id===sel.id):(sel.kind==='prop'?props.find(p=>p.id===sel.id):dozas.find(d=>d.id===sel.id)); }
@@ -388,7 +393,12 @@ function moveElementTo(el,kind,h){ const ud=h.object.userData;
 function renderWiresThrottled(){ if(wireTO) return; wireTO=setTimeout(()=>{ wireTO=null; renderWires(); },70); }
 function segDist(px,pz,x1,z1,x2,z2){ const dx=x2-x1,dz=z2-z1; const L2=dx*dx+dz*dz||1; let t=((px-x1)*dx+(pz-z1)*dz)/L2; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-(x1+t*dx),pz-(z1+t*dz)); }
 function distToWalls(p){ const {out}=edges(); let m=1e9; out.forEach(e=>{ m=Math.min(m,segDist(p.x,p.z,e.p1.x,e.p1.z,e.p2.x,e.p2.z)); }); return m; }
-function updateMeasure(el){ const p=elPos(el); const dw=Math.round(distToWalls(p)*100), fl=Math.round(p.y*100), ce=Math.round((H-p.y)*100); $('measure').innerHTML=`<b>${elLabel(el)}</b> — trage ca să muți<br>perete: ${dw} cm · podea: ${fl} cm · tavan: ${ce} cm`; }
+function updateMeasure(el){ const p=elPos(el); const dw=Math.round(distToWalls(p)*100);
+  const inp='width:58px;text-align:right;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px 5px;font-size:12px';
+  $('measure').innerHTML=`<b>${elLabel(el)}</b> — trage, sau scrie + Enter<br>perete: ${dw} cm`+
+    `<span style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;justify-content:flex-end"><span style="font-size:11px">podea</span><input id="mFloor" type="number" value="${Math.round(p.y*100)}" style="${inp}"><span style="font-size:11px">tavan</span><input id="mCeil" type="number" value="${Math.round((H-p.y)*100)}" style="${inp}"></span>`;
+  const f=$('mFloor'), c=$('mCeil'); if(f) f.onchange=()=>setElY(el,(parseInt(f.value,10)||0)/100); if(c) c.onchange=()=>setElY(el,H-(parseInt(c.value,10)||0)/100); }
+function setElY(el,y){ y=Math.max(0,Math.min(H,y)); if(el.pos) el.pos.y=y; el.mesh.position.y=y; renderWires(); updateMeasure(el); }
 /* editează dimensiuni gol */
 function editOpening(idx){ const o=plan.openings[idx]; if(!o) return; const win=o.type.includes('fereastra');
   openModal(`<button class="close" id="mClose">✕</button><h2>Editează ${OPEN_DEF[o.type].label}</h2>
@@ -400,70 +410,119 @@ function editOpening(idx){ const o=plan.openings[idx]; if(!o) return; const win=
   $('mClose').onclick=closeModal;
   $('eApply').onclick=()=>{ o.w=Math.max(0.2,(parseInt($('eW').value,10)||90)/100); const hh=Math.max(0.2,(parseInt($('eH').value,10)||205)/100); o.sill=win?Math.max(0,(parseInt($('eS').value,10)||90)/100):0; o.head=Math.min(H,o.sill+hh); o.pos=Math.max(0,(parseInt($('eP').value,10)||0)/100); closeModal(); buildRoom3D(); renderWires(); renderRoomList(); }; }
 function removeProp(id){ const i=props.findIndex(p=>p.id===id); if(i<0) return; scene.remove(props[i].mesh); props.splice(i,1); renderRoomList(); }
-function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[...props.map(p=>({k:'prop',id:p.id,label:p.label})), ...plan.openings.map((o,i)=>({k:'op',idx:i,label:OPEN_DEF[o.type].label+' (P'+(o.wall+1)+')'}))];
+function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[...dozas.map(z=>({k:'doza',id:z.id,label:'Doza '+z.n,col:'#f2c14e'})), ...props.map(p=>({k:'prop',id:p.id,label:p.label,col:'#7c93b3'})), ...plan.openings.map((o,i)=>({k:'op',idx:i,label:OPEN_DEF[o.type].label+' (P'+(o.wall+1)+')',col:'#7c93b3'}))];
   if(!items.length){ el.innerHTML='<p class="muted">Nimic.</p>'; return; } el.innerHTML='';
-  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns=''; if(it.k==='op') btns+=`<button class="x" data-ek="${it.idx}" title="Editează dimensiuni">✎</button>`; btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='prop'?it.id:it.idx}">✕</button>`; d.innerHTML=`<span class="dot" style="background:#7c93b3"></span>${it.label}${btns}`; el.appendChild(d); });
+  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns=''; if(it.k==='op') btns+=`<button class="x" data-ek="${it.idx}" title="Editează dimensiuni">✎</button>`; btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='op'?it.idx:it.id}">✕</button>`; d.innerHTML=`<span class="dot" style="background:${it.col}"></span>${it.label}${btns}`; el.appendChild(d); });
   el.querySelectorAll('[data-ek]').forEach(b=> b.onclick=()=>editOpening(parseInt(b.dataset.ek,10)));
-  el.querySelectorAll('[data-rk]').forEach(b=> b.onclick=()=>{ if(b.dataset.rk==='prop') removeProp(parseInt(b.dataset.ri,10)); else { plan.openings.splice(parseInt(b.dataset.ri,10),1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
+  el.querySelectorAll('[data-rk]').forEach(b=> b.onclick=()=>{ const k=b.dataset.rk, ri=parseInt(b.dataset.ri,10); if(k==='prop') removeProp(ri); else if(k==='doza') removeDoza(ri); else { plan.openings.splice(ri,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
 
 /* ===== circuit modal ===== */
 function chooseCircuit(kind){ return new Promise(resolve=>{ const existing=circuits.filter(c=>c.kind===kind); const kl=kind==='lumina'?'iluminat':'prize';
-  let html=`<button class="close" id="mClose">✕</button><h2>Pe ce circuit pui acest element?</h2><p class="muted">Tip: <b>${kl}</b>.</p><div class="cbtns">`;
-  existing.forEach(c=>html+=`<button class="btn" data-cid="${c.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${c.color};margin-right:8px"></span>Circuit ${c.n} (${kl})</button>`);
-  html+=`<button class="btn act" data-cid="new">＋ Circuit nou (${circuits.length+1}) — ${kl}</button></div>`; openModal(html);
-  const done=v=>{ closeModal(); resolve(v); }; $('mClose').onclick=()=>done(null);
-  $('modalBody').querySelectorAll('[data-cid]').forEach(b=> b.onclick=()=>{ if(b.dataset.cid==='new'){ const c={id:cuid++,kind,n:circuits.length+1,color:COLORS[circuits.length%COLORS.length],phase:'L1'}; circuits.push(c); done(c.id);} else done(parseInt(b.dataset.cid,10)); });
-  $('modal').onclick=e=>{ if(e.target===$('modal')) done(null); }; }); }
+  const done=v=>{ closeModal(); resolve(v); };
+  const create=phase=>{ const c={id:cuid++,kind,n:circuits.length+1,color:COLORS[circuits.length%COLORS.length],phase}; circuits.push(c); done(c.id); };
+  function step1(){
+    let html=`<button class="close" id="mClose">✕</button><h2>Pe ce circuit pui acest element?</h2><p class="muted">Tip: <b>${kl}</b>.</p><div class="cbtns">`;
+    existing.forEach(c=>html+=`<button class="btn" data-cid="${c.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${c.color};margin-right:8px"></span>Circuit ${c.n} (${kl}${state.system==='tri'?', '+c.phase:''})</button>`);
+    html+=`<button class="btn act" data-cid="new">＋ Circuit nou (${circuits.length+1}) — ${kl}</button></div>`; openModal(html);
+    $('mClose').onclick=()=>done(null);
+    $('modalBody').querySelectorAll('[data-cid]').forEach(b=> b.onclick=()=>{ if(b.dataset.cid==='new'){ if(state.system==='tri') step2(); else create('L1'); } else done(parseInt(b.dataset.cid,10)); });
+    $('modal').onclick=e=>{ if(e.target===$('modal')) done(null); };
+  }
+  function step2(){
+    assignPhases(); const load={L1:0,L2:0,L3:0}; circuits.forEach(c=>{ load[c.phase]=(load[c.phase]||0)+circPower(c); });
+    let html=`<button class="close" id="mClose">✕</button><h2>Pe ce fază pui circuitul nou?</h2><p class="muted">Echilibrează încărcarea pe cele 3 faze:</p><div class="cbtns">`;
+    ['L1','L2','L3'].forEach(ph=>{ html+=`<button class="btn" data-ph="${ph}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${PHASE_COL[ph]};margin-right:8px"></span>Faza ${ph} — ${Math.round(load[ph])} W deja</button>`; });
+    html+=`</div>`; openModal(html);
+    $('mClose').onclick=()=>done(null);
+    $('modalBody').querySelectorAll('[data-ph]').forEach(b=> b.onclick=()=>create(b.dataset.ph));
+    $('modal').onclick=e=>{ if(e.target===$('modal')) done(null); };
+  }
+  step1(); }); }
+function chooseDoza(){ return new Promise(resolve=>{ const done=v=>{ closeModal(); resolve(v); };
+  let html=`<button class="close" id="mClose">✕</button><h2>Pe ce doză te legi?</h2>`;
+  if(!dozas.length) html+=`<p class="muted">Nu ai pus încă doze. Poți lega direct la tablou, sau anulează și pune întâi doze.</p>`;
+  html+=`<div class="cbtns">`;
+  dozas.forEach(d=>html+=`<button class="btn" data-dz="${d.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#f2c14e;margin-right:8px"></span>Doza ${d.n}</button>`);
+  html+=`<button class="btn" data-dz="0">Direct la tablou (fără doză)</button></div>`;
+  openModal(html); $('mClose').onclick=()=>done(false);
+  $('modalBody').querySelectorAll('[data-dz]').forEach(b=> b.onclick=()=>{ const v=parseInt(b.dataset.dz,10); done(v===0?null:v); });
+  $('modal').onclick=e=>{ if(e.target===$('modal')) done(false); }; }); }
+async function chooseAssignment(kind){ const circuit=await chooseCircuit(kind); if(circuit==null) return null; const doza=await chooseDoza(); if(doza===false) return null; return { circuit, doza }; }
 function openModal(html){ $('modalBody').innerHTML=html; $('modal').classList.add('on'); }
 function closeModal(){ $('modal').classList.remove('on'); $('modal').onclick=null; }
 
 /* ===== cablare cu doze ===== */
 function panelDev(){ return devices.find(d=>d.type==='tablou'); }
-function routeLen(a,b,direct){ if(direct) return Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z); const lvl=route.path==='podea'?0.08:(H-0.05); return Math.abs(lvl-a.y)+Math.hypot(b.x-a.x,b.z-a.z)+Math.abs(lvl-b.y); }
-function drawConductor(a,b,colorHex,idx,direct){ const dx=b.x-a.x,dz=b.z-a.z; const len=Math.hypot(dx,dz)||1; const ox=-dz/len*(idx*0.02), oz=dx/len*(idx*0.02); let pts;
-  if(direct){ pts=[new THREE.Vector3(a.x+ox,a.y,a.z+oz), new THREE.Vector3(b.x+ox,b.y,b.z+oz)]; }
-  else { const lvl=route.path==='podea'?(0.08+idx*0.012):(H-0.06-idx*0.012); pts=[a.clone(),new THREE.Vector3(a.x+ox,lvl,a.z+oz),new THREE.Vector3(b.x+ox,lvl,b.z+oz),b.clone()]; }
-  wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:new THREE.Color(colorHex)}))); }
+/* ===== rutare pe perimetrul camerei (firele nu ies din spațiu) ===== */
+let PERIM=null;
+function buildPerim(){ const {v}=edges(); const pts=v.slice(0,-1); if(pts.length<2){ PERIM=null; return; } const m=pts.length; const cum=[0]; let L=0; for(let i=0;i<m;i++){ const a=pts[i], b=pts[(i+1)%m]; L+=Math.hypot(b.x-a.x,b.z-a.z); cum.push(L); } PERIM={pts,cum,Ltot:L,m}; }
+function projPerim(P){ if(!PERIM) return {x:P.x,z:P.z,s:0}; let best=null; for(let i=0;i<PERIM.m;i++){ const a=PERIM.pts[i], b=PERIM.pts[(i+1)%PERIM.m]; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; let t=((P.x-a.x)*dx+(P.z-a.z)*dz)/(ln*ln); t=Math.max(0,Math.min(1,t)); const cx=a.x+t*dx, cz=a.z+t*dz; const d=Math.hypot(P.x-cx,P.z-cz); if(!best||d<best.d) best={d,x:cx,z:cz,s:PERIM.cum[i]+t*ln}; } return best; }
+function perimMids(sA,sB){ if(!PERIM) return []; const Lt=PERIM.Ltot; const fwdDist=((sB-sA)%Lt+Lt)%Lt; const fwd=fwdDist<=Lt-fwdDist; const dist=fwd?fwdDist:Lt-fwdDist; const out=[]; for(let k=0;k<PERIM.m;k++){ const cs=PERIM.cum[k]; const dd=fwd?(((cs-sA)%Lt+Lt)%Lt):(((sA-cs)%Lt+Lt)%Lt); if(dd>0.001 && dd<dist-0.001) out.push({d:dd,p:PERIM.pts[k]}); } out.sort((x,y)=>x.d-y.d); return out.map(o=>o.p); }
+function routeWaypoints(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [{x:a.x,z:a.z},{x:b.x,z:b.z}]; return [{x:pa.x,z:pa.z}, ...perimMids(pa.s,pb.s), {x:pb.x,z:pb.z}]; }
+function routeLen(a,b,direct){ if(!PERIM) buildPerim(); const level=direct?a.y:(route.path==='podea'?0.08:(H-0.05)); const pa=projPerim(a), pb=projPerim(b); let horiz; if(PERIM){ const Lt=PERIM.Ltot; const fwd=((pb.s-pa.s)%Lt+Lt)%Lt; horiz=Math.min(fwd,Lt-fwd); } else horiz=Math.hypot(b.x-a.x,b.z-a.z); const dA=Math.abs(level-a.y)+Math.hypot(a.x-pa.x,a.z-pa.z); const dB=Math.abs(level-b.y)+Math.hypot(b.x-pb.x,b.z-pb.z); return horiz+dA+dB; }
+function drawConductor(a,b,colorHex,idx,direct){ const level=(direct?a.y:(route.path==='podea'?0.08:(H-0.06)))-idx*0.012; const way=routeWaypoints(a,b); const pts=[a.clone()]; way.forEach(w=>pts.push(new THREE.Vector3(w.x,level,w.z))); pts.push(b.clone()); wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:new THREE.Color(colorHex)}))); }
 function addDoza(pos){ const g=makeDozaMesh(); g.position.copy(pos); g.position.y=H-0.03; g.position.x+=0.14; wireGroup.add(g); }
 function nearest(d,arr){ let best=null,bd=1e9; arr.forEach(a=>{const x=a.pos.distanceTo(d.pos); if(x<bd){bd=x;best=a;}}); return best; }
 function chainOrder(start,arr){ const rem=[...arr],out=[]; let cur=start; while(rem.length){ let bi=0,bd=1e9; rem.forEach((a,i)=>{const x=a.pos.distanceTo(cur.pos); if(x<bd){bd=x;bi=i;}}); cur=rem[bi]; out.push(cur); rem.splice(bi,1);} return out; }
 const dozas=[];
 function ensureDoza(cid,defPos){ let d=dozas.find(x=>x.circuit===cid); if(!d){ d={id:uid++,circuit:cid,pos:defPos.clone(),mesh:makeDozaMesh()}; d.mesh.userData={el:'doza',id:d.id}; d.mesh.position.copy(d.pos); scene.add(d.mesh); dozas.push(d); } return d; }
 function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find(x=>x.id===dozas[i].circuit); const has=c&&devices.some(dd=>dd.circuit===c.id&&dd.type==='intrerupator'); if(!has){ scene.remove(dozas[i].mesh); dozas.splice(i,1); } } }
-function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); pruneDozas(); const panel=panelDev(); if(!panel) return; assignPhases();
-  circuits.forEach(c=>{ const devs=devices.filter(d=>d.circuit===c.id); const Lc=state.system==='tri'?(PHASE_COL[c.phase]||COND.L):COND.L;
-    if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec');
-      if(sws.length){ const supply=nearest({pos:panel.pos},sws)||sws[0]; const doza=ensureDoza(c.id,supply.pos);
-        // tablou -> întrerupător (doza): fază, nul, împământare
-        drawConductor(panel.pos,doza.pos,Lc,0); drawConductor(panel.pos,doza.pos,COND.N,1); drawConductor(panel.pos,doza.pos,COND.PE,2);
-        // întrerupător -> bec(uri): fază comutată + nul + împământare (nul/PE trec prin doză)
-        let prev={pos:doza.pos}; chainOrder({pos:doza.pos},lights).forEach(l=>{ drawConductor(prev.pos,l.pos,COND.SW,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); prev=l; });
-        // întrerupătoare suplimentare alimentate din doză
-        sws.filter(s=>s!==supply).forEach(s=>{ drawConductor(doza.pos,s.pos,Lc,0); drawConductor(doza.pos,s.pos,COND.N,1); drawConductor(doza.pos,s.pos,COND.PE,2); }); }
-      else if(lights.length){ let prev=panel; chainOrder(panel,lights).forEach(l=>{ drawConductor(prev.pos,l.pos,Lc,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); prev=l; }); } }
-    else { const outs=devs.filter(d=>d.type==='priza');
-      if(route.mode==='scurt'){ let prev=panel; chainOrder(panel,outs).forEach((o,i)=>{ const dr=i>0; drawConductor(prev.pos,o.pos,Lc,0,dr); drawConductor(prev.pos,o.pos,COND.N,1,dr); drawConductor(prev.pos,o.pos,COND.PE,2,dr); prev=o; }); }
-      else outs.forEach(o=>{ drawConductor(panel.pos,o.pos,Lc,0,false); drawConductor(panel.pos,o.pos,COND.N,1,false); drawConductor(panel.pos,o.pos,COND.PE,2,false); }); }
+function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases();
+  const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
+  // pentru fiecare doză: tablou -> doză (magistrală) apoi doză -> dispozitive
+  dozas.forEach(dz=>{ const dvs=devices.filter(d=>d.doza===dz.id); if(!dvs.length) return; const c0=circuits.find(x=>x.id===dvs[0].circuit);
+    drawConductor(panel.pos,dz.pos,Lcol(c0),0); drawConductor(panel.pos,dz.pos,COND.N,1); drawConductor(panel.pos,dz.pos,COND.PE,2);
+    // prize: grupate pe circuit; punte (lanț) sau separat
+    const prize=dvs.filter(d=>d.type==='priza'); const byC={}; prize.forEach(p=>{ (byC[p.circuit]=byC[p.circuit]||[]).push(p); });
+    Object.values(byC).forEach(group=>{ const Lc=Lcol(circuits.find(x=>x.id===group[0].circuit));
+      if(route.mode==='chain'){ const ord=chainOrder(dz,group); let prev=dz; ord.forEach((p,i)=>{ const dr=i>0; drawConductor(prev.pos,p.pos,Lc,0,dr); drawConductor(prev.pos,p.pos,COND.N,1,dr); drawConductor(prev.pos,p.pos,COND.PE,2,dr); prev=p; }); }
+      else group.forEach(p=>{ drawConductor(dz.pos,p.pos,Lc,0); drawConductor(dz.pos,p.pos,COND.N,1); drawConductor(dz.pos,p.pos,COND.PE,2); }); });
+    // întrerupătoare + becuri
+    dvs.filter(d=>d.type!=='priza').forEach(d=>{ const Lc=Lcol(circuits.find(x=>x.id===d.circuit));
+      if(d.type==='intrerupator'){ drawConductor(dz.pos,d.pos,Lc,0); drawConductor(dz.pos,d.pos,COND.SW,1); }
+      else if(d.type==='bec'){ drawConductor(dz.pos,d.pos,COND.SW,0); drawConductor(dz.pos,d.pos,COND.N,1); drawConductor(dz.pos,d.pos,COND.PE,2); }
+    }); });
+  // dispozitive fără doză -> direct la tablou
+  devices.filter(d=>d.type!=='tablou' && !d.doza).forEach(d=>{ const Lc=Lcol(circuits.find(x=>x.id===d.circuit));
+    if(d.type==='priza'){ drawConductor(panel.pos,d.pos,Lc,0); drawConductor(panel.pos,d.pos,COND.N,1); drawConductor(panel.pos,d.pos,COND.PE,2); }
+    else if(d.type==='bec'){ drawConductor(panel.pos,d.pos,Lc,0); drawConductor(panel.pos,d.pos,COND.N,1); drawConductor(panel.pos,d.pos,COND.PE,2); }
+    else if(d.type==='intrerupator'){ drawConductor(panel.pos,d.pos,Lc,0); }
   }); }
 
 /* ===== dimensionare ===== */
 function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>s+(d.power||0),0); }
 function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const breaker=STD.find(s=>s>=need)||40; return {P,I,breaker,section:SECT[breaker]}; }
-function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0; const devs=devices.filter(d=>d.circuit===c.id);
-  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec'); if(sws.length){ const supply=nearest({pos:panel.pos},sws)||sws[0]; const dz=dozas.find(x=>x.circuit===c.id); const base=dz?dz.pos:supply.pos; L+=routeLen(panel.pos,base); let prev={pos:base}; chainOrder({pos:base},lights).forEach(l=>{L+=routeLen(prev.pos,l.pos);prev=l;}); sws.filter(s=>s!==supply).forEach(s=>L+=routeLen(base,s.pos)); } else lights.forEach(l=>L+=routeLen(panel.pos,l.pos)); }
-  else { const outs=devs.filter(d=>d.type==='priza'); if(route.mode==='scurt'){ let prev=panel; chainOrder(panel,outs).forEach((o,i)=>{ L+=routeLen(prev.pos,o.pos,i>0); prev=o; }); } else outs.forEach(o=>L+=routeLen(panel.pos,o.pos,false)); } return L*1.15; }
-function assignPhases(){ const ph=['L1','L2','L3']; circuits.forEach((c,i)=>{ c.phase=state.system==='tri'?ph[i%3]:'L1'; }); }
+function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0;
+  dozas.forEach(dz=>{ const dvs=devices.filter(d=>d.doza===dz.id && d.circuit===c.id); if(!dvs.length) return; L+=routeLen(panel.pos,dz.pos);
+    const prize=dvs.filter(d=>d.type==='priza'), rest=dvs.filter(d=>d.type!=='priza');
+    if(route.mode==='chain' && prize.length){ const ord=chainOrder(dz,prize); let prev=dz; ord.forEach((p,i)=>{ L+=routeLen(prev.pos,p.pos,i>0); prev=p; }); }
+    else prize.forEach(p=>L+=routeLen(dz.pos,p.pos));
+    rest.forEach(d=>L+=routeLen(dz.pos,d.pos)); });
+  devices.filter(d=>d.circuit===c.id && !d.doza && d.type!=='tablou').forEach(d=> L+=routeLen(panel.pos,d.pos));
+  return L*1.15; }
+function assignPhases(){ if(state.system!=='tri'){ circuits.forEach(c=>{ c.phase='L1'; }); return; } let i=0; circuits.forEach(c=>{ if(!['L1','L2','L3'].includes(c.phase)){ c.phase=['L1','L2','L3'][i%3]; } i++; }); }
 function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); if(state.system==='mono'){ const I=acc.L1/U; return {mono:true,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; } const maxP=Math.max(acc.L1,acc.L2,acc.L3); const I=maxP/U; return {mono:false,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; }
 
 /* ===== liste 3D ===== */
 function renderLists(){ const cl=$('circuitList');
   if(!circuits.length) cl.innerHTML='<p class="muted">Niciun circuit încă.</p>';
   else { cl.innerHTML=''; circuits.forEach(c=>{ const sz=sizeCircuit(c); const el=document.createElement('div'); el.className='row'; el.innerHTML=`<span class="dot" style="background:${c.color}"></span>C${c.n} ${c.kind==='lumina'?'ilum.':'prize'} · ${Math.round(sz.P)}W → <b style="color:var(--ink)">${sz.breaker}A/${sz.section}mm²</b>${state.system==='tri'?(' · '+c.phase):''}`; cl.appendChild(el); }); }
-  const dl=$('devList'); if(!devices.length) dl.innerHTML='<p class="muted">Nimic plasat.</p>';
-  else { dl.innerHTML=''; devices.forEach(d=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row'; const load=(d.type==='bec'||d.type==='priza');
-    el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span>${ADD[d.type].label}${c?(' · C'+c.n):''}`+(load?` <input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}"> W`:'')+`<button class="x" data-del="${d.id}">✕</button>`; dl.appendChild(el); });
-    dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
-    dl.querySelectorAll('[data-pw]').forEach(inp=> inp.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.pw,10)); if(d){ d.power=Math.max(0,parseInt(inp.value,10)||0); renderLists(); } }); } }
+  const dl=$('devList'); if(!devices.length){ dl.innerHTML='<p class="muted">Nimic plasat.</p>'; return; }
+  dl.innerHTML='';
+  devices.forEach(d=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row'; el.style.flexWrap='wrap';
+    if(d.type==='tablou'){ el.innerHTML=`<span class="dot" style="background:#7c93b3"></span><span style="flex:1">Tablou electric</span><button class="x" data-del="${d.id}">✕</button>`; dl.appendChild(el); return; }
+    const kind=ADD[d.type].kind; const ssty='background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px;font-size:11px';
+    const circOpts=circuits.filter(x=>x.kind===kind).map(x=>`<option value="${x.id}" ${x.id===d.circuit?'selected':''}>C${x.n}</option>`).join('')||'<option value="">—</option>';
+    const dozOpts=`<option value="0" ${!d.doza?'selected':''}>direct</option>`+dozas.map(z=>`<option value="${z.id}" ${z.id===d.doza?'selected':''}>D${z.n}</option>`).join('');
+    const load=(d.type==='bec'||d.type==='priza');
+    el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><span style="flex:1">${ADD[d.type].label}</span><button class="x" data-del="${d.id}">✕</button>`
+      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">doză</span><select data-z="${d.id}" style="${ssty}">${dozOpts}</select>`
+      +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto"> W`:'')+`</div>`;
+    dl.appendChild(el); });
+  dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
+  dl.querySelectorAll('[data-pw]').forEach(inp=> inp.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.pw,10)); if(d){ d.power=Math.max(0,parseInt(inp.value,10)||0); renderLists(); } });
+  dl.querySelectorAll('[data-c]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.c,10)); if(d){ d.circuit=parseInt(sel.value,10); renderWires(); renderLists(); } });
+  dl.querySelectorAll('[data-z]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.z,10)); if(d){ const v=parseInt(sel.value,10); d.doza=v===0?null:v; renderWires(); } }); }
 function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); renderWires(); renderLists(); }
 
 /* ===== generatoare ===== */
@@ -498,7 +557,68 @@ function genTut(){ const main=sizeMain(); let h=`<button class="close" id="mClos
   h+=`<h4>Final</h4><p>Strânge bornele, închide dozele, repune tensiunea, testează fiecare circuit.</p></div><div class="dl"><button class="btn act" id="dlTut">⬇ Descarcă (text)</button></div>`;
   openModal(h); $('mClose').onclick=closeModal; $('dlTut').onclick=()=>download('tutorial-cablare.txt',$('modalBody').innerText.replace('⬇ Descarcă (text)','')); }
 function download(name,content){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'})); a.download=name; a.click(); }
-$('genBOM').onclick=genBOM; $('genSchema').onclick=genSchema; $('genTut').onclick=genTut;
+function sendToSchema(){ assignPhases(); const payload={ branch:state.system, circuits:circuits.map(c=>{ const sz=sizeCircuit(c); return { cod:'C'+c.n, dest:(c.kind==='lumina'?'Iluminat':'Prize')+' '+c.n, sig:'C'+sz.breaker+'-'+(c.kind==='lumina'?'1P+N':'2P+N'), cablu:'3x'+sz.section+' CYY-F', dif:'30mA', faza: state.system==='tri'?c.phase:'L' }; }) };
+  if(!payload.circuits.length){ alert('Adaugă întâi circuite (becuri/prize pe circuite), apoi trimite.'); return; }
+  window.open('../schema-monofilara/#data='+encodeURIComponent(JSON.stringify(payload)),'_blank'); }
+function genPanel(){
+  assignPhases(); const main=sizeMain(); const tri=state.system==='tri'; const cs=circuits;
+  if(!panelDev()){ alert('Adaugă întâi un tablou și circuite.'); return; }
+  const n=Math.max(cs.length,1); const bx0=215, step=Math.max(58,Math.min(86,640/n)), bw=42, bTop=170, bH=60;
+  const W=Math.max(780,bx0+n*step+30), Hs=380;
+  const phaseList=tri?['L1','L2','L3']:['L']; const busY={L:122,L1:104,L2:122,L3:140};
+  const pcol=ph=> ph==='L'?'#e23b3b':({L1:'#e23b3b',L2:'#8a5a2b',L3:'#9aa3ad'}[ph]);
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${Hs}" font-family="Arial, sans-serif"><rect width="${W}" height="${Hs}" fill="#ffffff"/>`;
+  s+=`<rect x="10" y="40" width="${W-20}" height="${Hs-80}" fill="none" stroke="#1B2A4A" stroke-width="2" rx="6"/>`;
+  s+=`<text x="20" y="27" font-size="15" font-weight="bold" fill="#1B2A4A">Schemă tablou electric — ${tri?'trifazat 400V':'monofazat 230V'}</text>`;
+  const sup=tri?[['L1','#e23b3b'],['L2','#8a5a2b'],['L3','#9aa3ad'],['N','#2f6fd0'],['PE','#e6d200']]:[['L','#e23b3b'],['N','#2f6fd0'],['PE','#e6d200']];
+  s+=`<text x="24" y="58" font-size="11" fill="#555">Alimentare</text>`;
+  sup.forEach((p,i)=>{ const y=70+i*15; s+=`<circle cx="34" cy="${y}" r="5" fill="${p[1]}"/><text x="44" y="${y+4}" font-size="11" fill="#111">${p[0]}</text>`; });
+  s+=`<rect x="92" y="82" width="46" height="40" fill="#f4f6fa" stroke="#1B2A4A"/><text x="115" y="100" font-size="9" text-anchor="middle">General</text><text x="115" y="114" font-size="9" text-anchor="middle">${main.main}A</text>`;
+  s+=`<rect x="146" y="82" width="46" height="40" fill="#eafaf0" stroke="#1a7a3a"/><text x="169" y="100" font-size="9" text-anchor="middle">RCD</text><text x="169" y="114" font-size="9" text-anchor="middle">30mA</text>`;
+  phaseList.forEach(ph=>{ const col=pcol(ph), y=busY[ph]; s+=`<line x1="200" y1="${y}" x2="${bx0+(n-1)*step+bw}" y2="${y}" stroke="${col}" stroke-width="3"/><text x="200" y="${y-4}" font-size="9" fill="${col}">punte ${ph}</text>`; s+=`<line x1="192" y1="102" x2="200" y2="${y}" stroke="${col}" stroke-width="2"/>`; });
+  const nY=270, peY=300; s+=`<line x1="92" y1="${nY}" x2="${W-26}" y2="${nY}" stroke="#2f6fd0" stroke-width="3"/><text x="94" y="${nY-5}" font-size="10" fill="#2f6fd0">Bară nul (N)</text>`;
+  s+=`<line x1="92" y1="${peY}" x2="${W-26}" y2="${peY}" stroke="#e6d200" stroke-width="3"/><text x="94" y="${peY-5}" font-size="10" fill="#b59f00">Bară împământare (PE)</text>`;
+  s+=`<line x1="115" y1="122" x2="115" y2="${nY}" stroke="#2f6fd0" stroke-width="0"/>`;
+  cs.forEach((c,i)=>{ const x=bx0+i*step; const sz=sizeCircuit(c); const ph=tri?c.phase:'L'; const col=pcol(ph);
+    s+=`<line x1="${x+bw/2}" y1="${bTop}" x2="${x+bw/2}" y2="${busY[ph]}" stroke="${col}" stroke-width="2"/>`;
+    s+=`<rect x="${x}" y="${bTop}" width="${bw}" height="${bH}" fill="#fafaf5" stroke="#333"/><text x="${x+bw/2}" y="${bTop+20}" font-size="10" text-anchor="middle" font-weight="bold">${c.cod||('C'+c.n)}</text><text x="${x+bw/2}" y="${bTop+36}" font-size="10" text-anchor="middle">${sz.breaker}A</text><text x="${x+bw/2}" y="${bTop+52}" font-size="9" text-anchor="middle" fill="${col}">${tri?ph:''}</text>`;
+    const oy=bTop+bH; s+=`<line x1="${x+bw/2}" y1="${oy}" x2="${x+bw/2}" y2="${peY+16}" stroke="${col}" stroke-width="2"/>`;
+    s+=`<line x1="${x+bw/2-7}" y1="${nY}" x2="${x+bw/2-7}" y2="${peY+16}" stroke="#2f6fd0" stroke-width="2"/>`;
+    s+=`<line x1="${x+bw/2+7}" y1="${peY}" x2="${x+bw/2+7}" y2="${peY+16}" stroke="#e6d200" stroke-width="2"/>`;
+    s+=`<text x="${x+bw/2}" y="${peY+30}" font-size="8.5" text-anchor="middle" fill="#111">${c.kind==='lumina'?'ilum.':'prize'} ${sz.section}mm²</text>`;
+  });
+  s+=`<text x="20" y="${Hs-12}" font-size="9" fill="#777">Roșu = fază · albastru = nul · galben-verde = împământare. Puntea de sus duce faza la toate siguranțele${tri?' de pe aceeași fază':''}. Nulul și împământarea pleacă din barele de jos spre fiecare circuit. Siguranța întrerupe doar faza.</text>`;
+  s+=`</svg>`;
+  const tut=`<div class="tut" style="margin-top:10px"><h4>Cum legi tabloul (începător)</h4>
+   <p>1. Montezi șina DIN. Pui <b>siguranța generală ${main.main}A</b>, apoi <b>diferențialul (RCD) 30mA</b>.<br>
+   2. De la RCD pleacă <b>${tri?'cele 3 faze pe cele 3 punți':'faza pe punte (peigne)'}</b> — puntea alimentează capul de sus al fiecărei siguranțe.<br>
+   3. La fiecare siguranță: <b>faza intră sus</b> (din punte), <b>iese jos</b> spre circuitul ei.<br>
+   4. <b>Nulul</b> se leagă din <span style="color:#2f6fd0">bara de nul</span> direct la fiecare circuit (nu prin siguranțe).<br>
+   5. <b>Împământarea</b> din <span style="color:#b59f00">bara PE</span> la fiecare circuit.${tri?'<br>6. Distribuie circuitele cât mai egal pe L1/L2/L3.':''}</p></div>`;
+  openModal(`<button class="close" id="mClose">✕</button><h2>🗄️ Schema tablou electric</h2><div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div>${tut}<div class="dl"><button class="btn act" id="dlPanel">⬇ Descarcă (SVG)</button></div>`);
+  $('mClose').onclick=closeModal; $('dlPanel').onclick=()=>download('schema-tablou.svg',s);
+}
+function loadJsPDF(){ return new Promise((res,rej)=>{ if(window.jspdf&&window.jspdf.jsPDF){ res(window.jspdf); return; } const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; sc.onload=()=>res(window.jspdf); sc.onerror=()=>rej(new Error('jsPDF')); document.head.appendChild(sc); }); }
+function roomBBox(){ const p=plan.points; let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; p.forEach(q=>{mnx=Math.min(mnx,q.x);mnz=Math.min(mnz,q.z);mxx=Math.max(mxx,q.x);mxz=Math.max(mxz,q.z);}); return {cx:(mnx+mxx)/2,cz:(mnz+mxz)/2,span:Math.max(mxx-mnx,mxz-mnz,2)}; }
+async function exportPDF(){
+  if(state.mode!=='3d'){ alert('Ridică întâi planul în 3D (butonul ⬆ sau ⇆ 2D/3D), apoi exportă.'); return; }
+  let lib; try{ lib=await loadJsPDF(); }catch(e){ alert('Nu am putut încărca librăria PDF (verifică internetul).'); return; }
+  const { jsPDF }=lib; const doc=new jsPDF('landscape','mm','a4'); const PW=297, PH=210;
+  const title=(state.system==='mono'?'Monofazat 230V':'Trifazat 400V');
+  // pagina 1: plan 2D
+  doc.setFontSize(15); doc.text('Schiță instalație electrică — '+title, 14, 14);
+  try{ const img2d=pc.toDataURL('image/png'); doc.setFontSize(11); doc.text('Plan 2D (cm)', 14, 24); doc.addImage(img2d,'PNG',14,28,160,120); }catch(e){}
+  doc.setFontSize(9); doc.text('PROFCEISS · configurator electrică', 14, PH-8);
+  // unghiuri 3D
+  const bb=roomBBox(); const sel=selectedEl; selectEl(null);
+  const savePos=camera.position.clone(), saveTgt=controls.target.clone(), saveEnabled=controls.enabled; controls.enabled=false;
+  const views=[ {a:0.30,h:1.7,t:'Vedere 3D — față'}, {a:Math.PI*0.6,h:1.7,t:'Vedere 3D — lateral'}, {a:Math.PI*1.1,h:1.7,t:'Vedere 3D — spate'}, {a:Math.PI*1.6,h:1.7,t:'Vedere 3D — colț'}, {a:0.6,h:4.2,t:'Vedere de sus'} ];
+  for(const V of views){ camera.position.set(bb.cx+Math.cos(V.a)*bb.span*1.35, H*V.h, bb.cz+Math.sin(V.a)*bb.span*1.35); controls.target.set(bb.cx,H*0.45,bb.cz); camera.lookAt(bb.cx,H*0.45,bb.cz); renderer.render(scene,camera); let img; try{ img=renderer.domElement.toDataURL('image/png'); }catch(e){ continue; }
+    doc.addPage(); doc.setFontSize(13); doc.text(V.t+' — '+title, 14, 14); const w=PW-28, h=w*0.62; doc.addImage(img,'PNG',14,22,w,Math.min(h,PH-34)); }
+  camera.position.copy(savePos); controls.target.copy(saveTgt); controls.enabled=saveEnabled; controls.update(); if(sel) selectEl(sel);
+  doc.save('schita-instalatie-electrica.pdf');
+}
+$('genBOM').onclick=genBOM; $('genSchema').onclick=sendToSchema; $('genTut').onclick=genTut; $('genPanel').onclick=genPanel; $('genPDF').onclick=exportPDF;
 
 /* ===== sistem mono/tri ===== */
 function setSystem(s){ state.system=s; document.querySelectorAll('[data-sys-seg]').forEach(x=>x.classList.toggle('on',x.dataset.sysSeg===s)); if(circuits.length) renderLists(); }
