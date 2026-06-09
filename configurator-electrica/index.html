@@ -338,7 +338,9 @@ function addFill(p1,dir,nrm,o,color,opacity){
 }
 
 /* ===== plasare dispozitive ===== */
-function makeLabel(text,color){ const cv=document.createElement('canvas'); cv.width=128; cv.height=48; const x=cv.getContext('2d'); x.fillStyle='rgba(7,11,18,.85)'; x.fillRect(0,0,128,48); x.strokeStyle=color; x.lineWidth=4; x.strokeRect(2,2,124,44); x.fillStyle='#fff'; x.font='bold 22px sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,64,26); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false})); sp.scale.set(0.32,0.12,1); return sp; }
+function makeLabel(text,color){ text=String(text||''); const fs=26, pad=18; const mc=document.createElement('canvas').getContext('2d'); mc.font='bold '+fs+'px Arial,sans-serif'; const tw=Math.ceil(mc.measureText(text).width); const W=Math.max(44,tw+pad*2), Hh=fs+18;
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=Hh; const x=cv.getContext('2d'); x.fillStyle='rgba(7,11,18,.88)'; x.fillRect(0,0,W,Hh); x.lineWidth=4; x.strokeStyle=color; x.strokeRect(2,2,W-4,Hh-4); x.fillStyle='#fff'; x.font='bold '+fs+'px Arial,sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(text,W/2,Hh/2+1);
+  const tex=new THREE.CanvasTexture(cv); tex.minFilter=THREE.LinearFilter; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false})); const h=0.12; sp.scale.set(h*(W/Hh), h, 1); return sp; }
 function labelText(dev){ const c=circuits.find(x=>x.id===dev.circuit); return (dev.name||ADD[dev.type].label)+(c?(' · C'+c.n):''); }
 function labelColor(dev){ const c=circuits.find(x=>x.id===dev.circuit); return c?c.color:'#cfd6df'; }
 function updateDevLabel(dev){ if(dev.lab){ dev.mesh.remove(dev.lab); dev.lab=null; } if(dev.type==='tablou') return; const s=makeLabel(labelText(dev),labelColor(dev)); s.position.set(0,0.18,0); dev.mesh.add(s); dev.lab=s; }
