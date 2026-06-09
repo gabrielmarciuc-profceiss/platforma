@@ -84,8 +84,14 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
 
   <!-- PANOU PLAN -->
   <aside id="planPanel">
+    <div class="sec"><div class="grid2">
+      <button class="btn" id="drawMode">✏️ Desenează</button>
+      <button class="btn on" id="editMode">🖐 Mută colțuri</button>
+      <button class="btn" id="closeShape">⭙ Închide contur</button>
+      <button class="btn" id="clearShape">🗑 Golește</button>
+    </div><p class="muted" id="planTool" style="margin-top:7px">Mută: trage colțurile. „Desenează": click adaugă colțuri.</p></div>
     <div class="sec">
-      <h3>Pereți (în ordine)</h3>
+      <h3>Pereți (segmente)</h3>
       <div id="wallRows"></div>
       <button class="btn full" id="addWall">＋ Adaugă perete</button>
       <p class="muted" id="planStatus" style="margin-top:8px"></p>
@@ -140,6 +146,11 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
     <div class="sec"><h3>Circuite</h3><div class="list" id="circuitList"><p class="muted">Niciun circuit încă.</p></div></div>
     <div class="sec"><h3>Elemente · putere</h3><div class="list" id="devList"><p class="muted">Nimic plasat.</p></div>
       <p class="muted" style="margin-top:8px">Setează puterea (W) la becuri/prize — dimensionez cablul și siguranța din ea.</p></div>
+    <div class="sec"><h3>Traseu cablaj</h3>
+      <div class="seg" id="routeMode"><button data-rm="circuit" class="active">Gândire pe circuit</button><button data-rm="scurt">Traseu scurt</button></div>
+      <div class="seg" id="routePath" style="margin-top:8px"><button data-rp="tavan" class="active">Pe tavan</button><button data-rp="podea">Pe podea</button></div>
+      <p class="muted" style="margin-top:7px">„Traseu scurt" leagă prizele în punte (economie cablu). „Pe tavan / Pe podea" alege pe unde merg firele.</p>
+    </div>
     <div class="sec"><h3>Generează</h3><div class="list">
       <button class="btn gen full" id="genBOM">📋 Listă de materiale</button>
       <button class="btn gen full" id="genSchema">📐 Schema monofilară</button>
@@ -163,8 +174,10 @@ const $=id=>document.getElementById(id);
 
 /* ===== stare ===== */
 const state={system:'mono', mode:'plan'};
+const route={mode:'circuit', path:'tavan'};   // mode: circuit|scurt · path: tavan|podea
 let H=2.6;                                   // înălțime cameră (m)
-const plan={ walls:[ {len:4.0,turn:90},{len:3.0,turn:90},{len:4.0,turn:90},{len:3.0,turn:90} ], openings:[] };
+const plan={ points:[ {x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3} ], closed:true, openings:[] };
+let planMode='edit', planDrag=-1, planMap={s:1,ox:0,oy:0};
 const OPEN_DEF={ usa:{sill:0,head:2.05,w:0.9,label:'Ușă'}, gol_usa:{sill:0,head:2.05,w:0.9,label:'Gol ușă'}, fereastra:{sill:0.9,head:2.1,w:1.2,label:'Fereastră'}, gol_fereastra:{sill:0.9,head:2.1,w:1.2,label:'Gol fereastră'} };
 
 const DEF_POWER={bec:10,priza:2000,intrerupator:0,tablou:0};
@@ -180,15 +193,10 @@ let addType=null, uid=1, cuid=1;
 const devices=[], circuits=[];
 
 /* ===== PLAN: geometrie ===== */
-function planVerts(){
-  const v=[{x:0,z:0}]; let dir=0; // 0 = +X
-  plan.walls.forEach(w=>{ const a=dir*Math.PI/180; const p=v[v.length-1]; v.push({x:p.x+w.len*Math.cos(a), z:p.z+w.len*Math.sin(a)}); dir+=w.turn; });
-  return v; // n+1 puncte; ultima muchie închide dacă ultimul ≈ primul
-}
-function isClosed(v){ const a=v[0], b=v[v.length-1]; return Math.hypot(a.x-b.x,a.z-b.z)<0.05; }
-function edges(){ const v=planVerts(); const out=[]; const n=plan.walls.length;
-  for(let i=0;i<n;i++){ const p1=v[i], p2=v[i+1]; out.push({i,p1,p2}); } return {v,out}; }
-function centroid(v){ let x=0,z=0; v.forEach(p=>{x+=p.x;z+=p.z;}); return {x:x/v.length,z:z/v.length}; }
+function planVerts(){ return (plan.closed && plan.points.length>=3) ? [...plan.points, plan.points[0]] : [...plan.points]; }
+function isClosed(){ return plan.closed && plan.points.length>=3; }
+function edges(){ const v=planVerts(); const out=[]; for(let i=0;i+1<v.length;i++) out.push({i,p1:v[i],p2:v[i+1]}); return {v,out}; }
+function centroid(){ const p=plan.points; if(!p.length) return {x:0,z:0}; let x=0,z=0; p.forEach(q=>{x+=q.x;z+=q.z;}); return {x:x/p.length,z:z/p.length}; }
 
 /* ===== PLAN: canvas 2D ===== */
 const pc=$('planCanvas'), px=pc.getContext('2d');
@@ -196,40 +204,45 @@ function fitPC(){ const dpr=devicePixelRatio||1; pc.width=pc.clientWidth*dpr; pc
 function drawPlan(){
   if(state.mode!=='plan') return;
   fitPC(); const W=pc.clientWidth, Hh=pc.clientHeight; px.clearRect(0,0,W,Hh);
-  const {v,out}=edges(); const c=centroid(v);
-  let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; v.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
+  const pts=plan.points; const {out}=edges();
+  let mnx=-1,mnz=-1,mxx=5,mxz=4;
+  if(pts.length){ mnx=mnz=1e9; mxx=mxz=-1e9; pts.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);}); }
   const pad=60, s=Math.min((W-2*pad)/Math.max(0.5,mxx-mnx),(Hh-2*pad)/Math.max(0.5,mxz-mnz));
-  const ox=W/2-((mnx+mxx)/2)*s, oy=Hh/2+((mnz+mxz)/2)*s;
+  const ox=W/2-((mnx+mxx)/2)*s, oy=Hh/2+((mnz+mxz)/2)*s; planMap={s,ox,oy};
   const X=x=>ox+x*s, Y=z=>oy-z*s;
-  // grilă 0.5m
   px.strokeStyle='#13233a'; px.lineWidth=1;
   for(let gx=Math.floor(mnx)-1;gx<=Math.ceil(mxx)+1;gx+=0.5){ px.beginPath(); px.moveTo(X(gx),0); px.lineTo(X(gx),Hh); px.stroke(); }
   for(let gz=Math.floor(mnz)-1;gz<=Math.ceil(mxz)+1;gz+=0.5){ px.beginPath(); px.moveTo(0,Y(gz)); px.lineTo(W,Y(gz)); px.stroke(); }
-  // pereți
   px.strokeStyle='#5fb6e6'; px.lineWidth=3; px.lineJoin='round';
   out.forEach(e=>{ px.beginPath(); px.moveTo(X(e.p1.x),Y(e.p1.z)); px.lineTo(X(e.p2.x),Y(e.p2.z)); px.stroke(); });
-  // cote
   px.fillStyle='#cfe0f2'; px.font='600 12px "IBM Plex Sans"'; px.textAlign='center';
-  out.forEach(e=>{ const mx=(e.p1.x+e.p2.x)/2, mz=(e.p1.z+e.p2.z)/2; const len=Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100); px.fillText(`P${e.i+1}: ${len} cm`, X(mx), Y(mz)-6); });
-  // noduri
-  v.slice(0,-1).forEach(p=>{ px.fillStyle='#ffb020'; px.beginPath(); px.arc(X(p.x),Y(p.z),4,0,7); px.fill(); });
-  // goluri
-  plan.openings.forEach(o=>{ const e=out[o.wall]; if(!e) return; const dirx=(e.p2.x-e.p1.x), dirz=(e.p2.z-e.p1.z); const L=Math.hypot(dirx,dirz); const ux=dirx/L, uz=dirz/L;
+  out.forEach(e=>{ const mx=(e.p1.x+e.p2.x)/2, mz=(e.p1.z+e.p2.z)/2; const len=Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100); px.fillText(`${len} cm`, X(mx), Y(mz)-6); });
+  pts.forEach((p,i)=>{ px.fillStyle=(i===0&&planMode==='draw')?'#34d399':'#ffb020'; px.beginPath(); px.arc(X(p.x),Y(p.z),6,0,7); px.fill(); });
+  plan.openings.forEach(o=>{ const e=out[o.wall]; if(!e) return; const dirx=(e.p2.x-e.p1.x), dirz=(e.p2.z-e.p1.z); const L=Math.hypot(dirx,dirz)||1; const ux=dirx/L, uz=dirz/L;
     const a={x:e.p1.x+ux*o.pos, z:e.p1.z+uz*o.pos}, b={x:e.p1.x+ux*(o.pos+o.w), z:e.p1.z+uz*(o.pos+o.w)};
-    px.strokeStyle = o.type.startsWith('gol')?'#34d399':'#f2c14e'; px.lineWidth=6; px.beginPath(); px.moveTo(X(a.x),Y(a.z)); px.lineTo(X(b.x),Y(b.z)); px.stroke(); });
+    px.strokeStyle=o.type.startsWith('gol')?'#34d399':'#f2c14e'; px.lineWidth=6; px.beginPath(); px.moveTo(X(a.x),Y(a.z)); px.lineTo(X(b.x),Y(b.z)); px.stroke(); });
 }
+/* screen → world + interacțiune mouse pe plan */
+function pcWorld(e){ const r=pc.getBoundingClientRect(); const sx=e.clientX-r.left, sy=e.clientY-r.top; return {x:(sx-planMap.ox)/planMap.s, z:(planMap.oy-sy)/planMap.s}; }
+const snap=v=>Math.round(v/0.05)*0.05;
+pc.addEventListener('pointerdown',e=>{ if(state.mode!=='plan') return; const w=pcWorld(e);
+  if(planMode==='draw'){ if(plan.points.length>=3){ const f=plan.points[0]; if(Math.hypot(w.x-f.x,w.z-f.z)<0.25){ plan.closed=true; planMode='edit'; setPlanModeUI(); renderWallRows(); refreshPlan(); return; } } plan.closed=false; plan.points.push({x:snap(w.x),z:snap(w.z)}); renderWallRows(); refreshPlan(); }
+  else { let bi=-1,bd=0.3; plan.points.forEach((p,i)=>{ const d=Math.hypot(w.x-p.x,w.z-p.z); if(d<bd){bd=d;bi=i;} }); planDrag=bi; } });
+pc.addEventListener('pointermove',e=>{ if(state.mode!=='plan'||planDrag<0) return; const w=pcWorld(e); plan.points[planDrag].x=snap(w.x); plan.points[planDrag].z=snap(w.z); renderWallRows(); refreshPlan(); });
+window.addEventListener('pointerup',()=>{ planDrag=-1; });
+function setPlanModeUI(){ $('drawMode').classList.toggle('on',planMode==='draw'); $('editMode').classList.toggle('on',planMode==='edit'); $('planTool').textContent= planMode==='draw'?'Desenează: click adaugă colțuri; click pe primul colț (verde) închide conturul.':'Mută: trage colțurile (punctele galbene).'; }
 
 /* ===== PLAN: UI ===== */
 function renderWallRows(){
-  const c=$('wallRows'); c.innerHTML='';
-  plan.walls.forEach((w,i)=>{ const el=document.createElement('div'); el.className='wallrow';
-    el.innerHTML=`<span class="idx">P${i+1}</span><input type="number" min="10" step="10" value="${Math.round(w.len*100)}" data-len="${i}"><select data-turn="${i}">
-      <option value="90"${w.turn===90?' selected':''}>↰ stânga 90°</option><option value="-90"${w.turn===-90?' selected':''}>↱ dreapta 90°</option><option value="0"${w.turn===0?' selected':''}>→ drept</option></select>
-      <button class="x" data-delw="${i}">✕</button>`; c.appendChild(el); });
-  c.querySelectorAll('[data-len]').forEach(inp=> inp.onchange=()=>{ plan.walls[+inp.dataset.len].len=Math.max(0.1,(parseInt(inp.value,10)||100)/100); refreshPlan(); });
-  c.querySelectorAll('[data-turn]').forEach(sl=> sl.onchange=()=>{ plan.walls[+sl.dataset.turn].turn=parseInt(sl.value,10); refreshPlan(); });
-  c.querySelectorAll('[data-delw]').forEach(b=> b.onclick=()=>{ plan.walls.splice(+b.dataset.delw,1); plan.openings=plan.openings.filter(o=>o.wall<plan.walls.length); renderWallRows(); renderOpRows(); refreshPlan(); });
+  const c=$('wallRows'); c.innerHTML=''; const {out}=edges();
+  out.forEach(e=>{ const len=Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100); const el=document.createElement('div'); el.className='wallrow'; el.style.gridTemplateColumns='auto 1fr auto';
+    el.innerHTML=`<span class="idx">P${e.i+1}</span><div style="display:flex;align-items:center;gap:6px"><input type="number" min="5" step="5" value="${len}" data-len="${e.i}" style="width:84px"><span class="muted">cm</span></div><button class="x" data-delp="${e.i}">✕</button>`; c.appendChild(el); });
+  c.querySelectorAll('[data-len]').forEach(inp=> inp.onchange=()=>setSegLen(+inp.dataset.len,(parseInt(inp.value,10)||100)/100));
+  c.querySelectorAll('[data-delp]').forEach(b=> b.onclick=()=>delPoint(+b.dataset.delp));
 }
+function setSegLen(i,L){ const v=planVerts(); if(i+1>=v.length) return; const p1=v[i], p2=v[i+1]; const dx=p2.x-p1.x, dz=p2.z-p1.z; const cur=Math.hypot(dx,dz)||1; const ux=dx/cur, uz=dz/cur; const ddx=(p1.x+ux*L)-p2.x, ddz=(p1.z+uz*L)-p2.z;
+  for(let k=i+1;k<plan.points.length;k++){ plan.points[k].x+=ddx; plan.points[k].z+=ddz; } renderWallRows(); refreshPlan(); }
+function delPoint(i){ if(plan.points.length<=3) return; plan.points.splice(Math.min(i,plan.points.length-1),1); plan.openings=plan.openings.filter(o=>o.wall<edges().out.length); renderWallRows(); renderOpRows(); refreshPlan(); }
 function renderOpRows(){
   const c=$('opRows'); c.innerHTML='';
   if(!plan.openings.length){ c.innerHTML='<p class="muted">Niciun gol.</p>'; return; }
@@ -237,12 +250,16 @@ function renderOpRows(){
     el.innerHTML=`<div style="font-size:12px">${OPEN_DEF[o.type].label} · P${o.wall+1} · la ${Math.round(o.pos*100)}cm · lat ${Math.round(o.w*100)}cm</div><button class="x" data-delo="${i}">✕</button>`; c.appendChild(el); });
   c.querySelectorAll('[data-delo]').forEach(b=> b.onclick=()=>{ plan.openings.splice(+b.dataset.delo,1); renderOpRows(); refreshPlan(); });
 }
-function refreshPlan(){ const {v}=edges(); const closed=isClosed(v); $('planStatus').innerHTML = closed?'<span style="color:var(--good)">✓ Contur închis</span>':'<span style="color:var(--bad)">Contur deschis — ajustează pereții ca să se închidă</span>'; drawPlan(); }
-$('addWall').onclick=()=>{ plan.walls.push({len:2.0,turn:0}); renderWallRows(); refreshPlan(); };
+function refreshPlan(){ const closed=isClosed(); $('planStatus').innerHTML = closed?('<span style="color:var(--good)">✓ Contur închis · '+plan.points.length+' colțuri</span>'):'<span style="color:var(--bad)">Contur deschis — închide-l (buton sau click pe primul colț)</span>'; drawPlan(); }
+$('addWall').onclick=()=>{ const p=plan.points[plan.points.length-1]||{x:0,z:0}; plan.points.push({x:p.x+1,z:p.z}); plan.closed=false; renderWallRows(); refreshPlan(); };
+$('drawMode').onclick=()=>{ planMode='draw'; setPlanModeUI(); };
+$('editMode').onclick=()=>{ planMode='edit'; setPlanModeUI(); };
+$('closeShape').onclick=()=>{ if(plan.points.length>=3){ plan.closed=true; planMode='edit'; setPlanModeUI(); renderWallRows(); refreshPlan(); } };
+$('clearShape').onclick=()=>{ plan.points=[]; plan.closed=false; plan.openings=[]; planMode='draw'; setPlanModeUI(); renderWallRows(); renderOpRows(); refreshPlan(); };
 $('height').onchange=e=>{ H=Math.max(2.0,Math.min(4.0,(parseInt(e.target.value,10)||260)/100)); };
 $('addOp').onclick=()=>{
   const opts=Object.entries(OPEN_DEF).map(([k,d])=>`<option value="${k}">${d.label}</option>`).join('');
-  const wopts=plan.walls.map((w,i)=>`<option value="${i}">P${i+1} (${Math.round(w.len*100)}cm)</option>`).join('');
+  const wopts=edges().out.map(e=>`<option value="${e.i}">P${e.i+1} (${Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100)}cm)</option>`).join('');
   openModal(`<button class="close" id="mClose">✕</button><h2>Adaugă gol / ușă / fereastră</h2>
     <label class="fld">Tip</label><select id="opType">${opts}</select>
     <label class="fld" style="margin-top:8px">Pe ce perete</label><select id="opWall">${wopts}</select>
@@ -275,7 +292,7 @@ function animate(){ requestAnimationFrame(animate); if(controls) controls.update
 
 function buildRoom3D(){
   while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]); surfaces.length=0;
-  const {v,out}=edges(); const c=centroid(v);
+  const {v,out}=edges(); const c=centroid();
   // podea + tavan (formă poligon)
   const shape=new THREE.Shape(); v.slice(0,-1).forEach((p,i)=> i?shape.lineTo(p.x,p.z):shape.moveTo(p.x,p.z)); shape.closePath();
   const floor=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0x1a2233,roughness:.95,side:THREE.DoubleSide})); floor.rotation.x=Math.PI/2; floor.userData={kind:'floor'}; roomGroup.add(floor); surfaces.push(floor);
@@ -402,32 +419,39 @@ function closeModal(){ $('modal').classList.remove('on'); $('modal').onclick=nul
 
 /* ===== cablare cu doze ===== */
 function panelDev(){ return devices.find(d=>d.type==='tablou'); }
-function routeLen(a,b){ const top=H-0.05; return Math.abs(top-a.y)+Math.hypot(b.x-a.x,b.z-a.z)+Math.abs(top-b.y); }
-function drawConductor(a,b,colorHex,idx){ const top=H-0.06-idx*0.012; const dx=b.x-a.x,dz=b.z-a.z; const len=Math.hypot(dx,dz)||1; const ox=-dz/len*(idx*0.02), oz=dx/len*(idx*0.02);
-  const pts=[a.clone(),new THREE.Vector3(a.x+ox,top,a.z+oz),new THREE.Vector3(b.x+ox,top,b.z+oz),b.clone()]; wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:new THREE.Color(colorHex)}))); }
+function routeLen(a,b,direct){ if(direct) return Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z); const lvl=route.path==='podea'?0.08:(H-0.05); return Math.abs(lvl-a.y)+Math.hypot(b.x-a.x,b.z-a.z)+Math.abs(lvl-b.y); }
+function drawConductor(a,b,colorHex,idx,direct){ const dx=b.x-a.x,dz=b.z-a.z; const len=Math.hypot(dx,dz)||1; const ox=-dz/len*(idx*0.02), oz=dx/len*(idx*0.02); let pts;
+  if(direct){ pts=[new THREE.Vector3(a.x+ox,a.y,a.z+oz), new THREE.Vector3(b.x+ox,b.y,b.z+oz)]; }
+  else { const lvl=route.path==='podea'?(0.08+idx*0.012):(H-0.06-idx*0.012); pts=[a.clone(),new THREE.Vector3(a.x+ox,lvl,a.z+oz),new THREE.Vector3(b.x+ox,lvl,b.z+oz),b.clone()]; }
+  wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:new THREE.Color(colorHex)}))); }
 function addDoza(pos){ const g=makeDozaMesh(); g.position.copy(pos); g.position.y=H-0.03; g.position.x+=0.14; wireGroup.add(g); }
 function nearest(d,arr){ let best=null,bd=1e9; arr.forEach(a=>{const x=a.pos.distanceTo(d.pos); if(x<bd){bd=x;best=a;}}); return best; }
 function chainOrder(start,arr){ const rem=[...arr],out=[]; let cur=start; while(rem.length){ let bi=0,bd=1e9; rem.forEach((a,i)=>{const x=a.pos.distanceTo(cur.pos); if(x<bd){bd=x;bi=i;}}); cur=rem[bi]; out.push(cur); rem.splice(bi,1);} return out; }
 const dozas=[];
 function ensureDoza(cid,defPos){ let d=dozas.find(x=>x.circuit===cid); if(!d){ d={id:uid++,circuit:cid,pos:defPos.clone(),mesh:makeDozaMesh()}; d.mesh.userData={el:'doza',id:d.id}; d.mesh.position.copy(d.pos); scene.add(d.mesh); dozas.push(d); } return d; }
-function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find(x=>x.id===dozas[i].circuit); const has=c&&devices.some(dd=>dd.circuit===c.id&&dd.type==='bec'); if(!has){ scene.remove(dozas[i].mesh); dozas.splice(i,1); } } }
+function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find(x=>x.id===dozas[i].circuit); const has=c&&devices.some(dd=>dd.circuit===c.id&&dd.type==='intrerupator'); if(!has){ scene.remove(dozas[i].mesh); dozas.splice(i,1); } } }
 function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); pruneDozas(); const panel=panelDev(); if(!panel) return; assignPhases();
   circuits.forEach(c=>{ const devs=devices.filter(d=>d.circuit===c.id); const Lc=state.system==='tri'?(PHASE_COL[c.phase]||COND.L):COND.L;
     if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec');
-      if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; const doza=ensureDoza(c.id,supply.pos);
+      if(sws.length){ const supply=nearest({pos:panel.pos},sws)||sws[0]; const doza=ensureDoza(c.id,supply.pos);
+        // tablou -> întrerupător (doza): fază, nul, împământare
         drawConductor(panel.pos,doza.pos,Lc,0); drawConductor(panel.pos,doza.pos,COND.N,1); drawConductor(panel.pos,doza.pos,COND.PE,2);
-        sws.forEach(sw=>{ drawConductor(doza.pos,sw.pos,Lc,0); drawConductor(doza.pos,sw.pos,COND.SW,1); });
-        let prev={pos:doza.pos}; chainOrder({pos:doza.pos},lights).forEach(l=>{ drawConductor(prev.pos,l.pos,COND.SW,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); prev=l; }); }
-      else sws.forEach(sw=>drawConductor(panel.pos,sw.pos,Lc,0)); }
-    else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{ drawConductor(prev.pos,o.pos,Lc,0); drawConductor(prev.pos,o.pos,COND.N,1); drawConductor(prev.pos,o.pos,COND.PE,2); prev=o; }); }
+        // întrerupător -> bec(uri): fază comutată + nul + împământare (nul/PE trec prin doză)
+        let prev={pos:doza.pos}; chainOrder({pos:doza.pos},lights).forEach(l=>{ drawConductor(prev.pos,l.pos,COND.SW,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); prev=l; });
+        // întrerupătoare suplimentare alimentate din doză
+        sws.filter(s=>s!==supply).forEach(s=>{ drawConductor(doza.pos,s.pos,Lc,0); drawConductor(doza.pos,s.pos,COND.N,1); drawConductor(doza.pos,s.pos,COND.PE,2); }); }
+      else if(lights.length){ let prev=panel; chainOrder(panel,lights).forEach(l=>{ drawConductor(prev.pos,l.pos,Lc,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); prev=l; }); } }
+    else { const outs=devs.filter(d=>d.type==='priza');
+      if(route.mode==='scurt'){ let prev=panel; chainOrder(panel,outs).forEach((o,i)=>{ const dr=i>0; drawConductor(prev.pos,o.pos,Lc,0,dr); drawConductor(prev.pos,o.pos,COND.N,1,dr); drawConductor(prev.pos,o.pos,COND.PE,2,dr); prev=o; }); }
+      else outs.forEach(o=>{ drawConductor(panel.pos,o.pos,Lc,0,false); drawConductor(panel.pos,o.pos,COND.N,1,false); drawConductor(panel.pos,o.pos,COND.PE,2,false); }); }
   }); }
 
 /* ===== dimensionare ===== */
 function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>s+(d.power||0),0); }
 function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const breaker=STD.find(s=>s>=need)||40; return {P,I,breaker,section:SECT[breaker]}; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0; const devs=devices.filter(d=>d.circuit===c.id);
-  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec'); if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; const dz=dozas.find(x=>x.circuit===c.id); const base=dz?dz.pos:supply.pos; L+=routeLen(panel.pos,base); sws.forEach(s=>L+=routeLen(base,s.pos)); let prev={pos:base}; chainOrder({pos:base},lights).forEach(l=>{L+=routeLen(prev.pos,l.pos);prev=l;}); } else sws.forEach(s=>L+=routeLen(panel.pos,s.pos)); }
-  else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{L+=routeLen(prev.pos,o.pos);prev=o;}); } return L*1.15; }
+  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec'); if(sws.length){ const supply=nearest({pos:panel.pos},sws)||sws[0]; const dz=dozas.find(x=>x.circuit===c.id); const base=dz?dz.pos:supply.pos; L+=routeLen(panel.pos,base); let prev={pos:base}; chainOrder({pos:base},lights).forEach(l=>{L+=routeLen(prev.pos,l.pos);prev=l;}); sws.filter(s=>s!==supply).forEach(s=>L+=routeLen(base,s.pos)); } else lights.forEach(l=>L+=routeLen(panel.pos,l.pos)); }
+  else { const outs=devs.filter(d=>d.type==='priza'); if(route.mode==='scurt'){ let prev=panel; chainOrder(panel,outs).forEach((o,i)=>{ L+=routeLen(prev.pos,o.pos,i>0); prev=o; }); } else outs.forEach(o=>L+=routeLen(panel.pos,o.pos,false)); } return L*1.15; }
 function assignPhases(){ const ph=['L1','L2','L3']; circuits.forEach((c,i)=>{ c.phase=state.system==='tri'?ph[i%3]:'L1'; }); }
 function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); if(state.system==='mono'){ const I=acc.L1/U; return {mono:true,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; } const maxP=Math.max(acc.L1,acc.L2,acc.L3); const I=maxP/U; return {mono:false,I,main:MAINSTD.find(s=>s>=I*1.1)||63,acc}; }
 
@@ -468,7 +492,7 @@ function genTut(){ const main=sizeMain(); let h=`<button class="close" id="mClos
   h+=`<div class="warn">⚠ <b>Securitate:</b> oprește curentul de la general și verifică cu testerul că nu mai e tensiune. Dacă nu ești sigur, cheamă un electrician autorizat.</div>`;
   h+=`<h4>Instalația</h4><p>Sistem <b>${state.system==='mono'?'monofazat (230V)':'trifazat (400V)'}</b>. General estimat: <b>${main.main}A</b>.</p><h4>Culori</h4><p>Fază = maro/negru · Nul = albastru · Împământare = galben-verde.</p>`;
   circuits.forEach(c=>{ const sz=sizeCircuit(c); const dev=devices.filter(d=>d.circuit===c.id); h+=`<h4>Circuit ${c.n} — ${c.kind==='lumina'?'iluminat':'prize'} · ${sz.breaker}A · 3×${sz.section}mm²${state.system==='tri'?' · '+c.phase:''}</h4><p class="muted">${Math.round(sz.P)}W (${sz.I.toFixed(1)}A) — siguranță și secțiune alese automat din puteri.</p>`;
-    if(c.kind==='lumina'){ const nsw=dev.filter(d=>d.type==='intrerupator').length, nb=dev.filter(d=>d.type==='bec').length; h+=`<p>${nsw} întrerupător(e), ${nb} bec(uri). Cablul de la tablou (fază+nul+împământare) ajunge într-o <b>doză</b> lângă bec. Din doză: nulul și împământarea merg direct la bec; faza coboară la întrerupător; faza comutată urcă înapoi la bec. Întrerupătorul taie <b>doar faza</b>.</p>`; }
+    if(c.kind==='lumina'){ const nsw=dev.filter(d=>d.type==='intrerupator').length, nb=dev.filter(d=>d.type==='bec').length; h+=`<p>${nsw} întrerupător(e), ${nb} bec(uri). Cablul de la tablou (fază + nul + împământare) ajunge întâi la <b>întrerupător</b> (acolo e doza). Faza intră în întrerupător și iese ca <b>fază comutată</b> spre bec; <b>nulul</b> și <b>împământarea</b> trec prin cutia întrerupătorului direct la bec. Întrerupătorul taie <b>doar faza</b>.</p>`; }
     else { const np=dev.filter(d=>d.type==='priza').length; h+=`<p>${np} priză(e). Toate 3 firele la fiecare priză; prizele se leagă în paralel (din doză în doză); împământarea e obligatorie.</p>`; } });
   if(!circuits.length) h+=`<p>Adaugă circuite și puteri ca să generez pașii și dimensionarea.</p>`;
   h+=`<h4>Final</h4><p>Strânge bornele, închide dozele, repune tensiunea, testează fiecare circuit.</p></div><div class="dl"><button class="btn act" id="dlTut">⬇ Descarcă (text)</button></div>`;
@@ -482,15 +506,17 @@ document.querySelectorAll('[data-sys-seg]').forEach(b=> b.onclick=()=>setSystem(
 function askSystem(){ openModal(`<h2>Tip instalație electrică</h2><p class="muted">Cum e alimentată casa?</p><div class="cbtns"><button class="btn act" data-sys="mono">Monofazat (230V)</button><button class="btn" data-sys="tri">Trifazat (400V)</button></div>`); $('modalBody').querySelectorAll('[data-sys]').forEach(b=>b.onclick=()=>{ setSystem(b.dataset.sys); closeModal(); }); }
 
 /* ===== comutare moduri ===== */
-$('raise').onclick=()=>{ init3D(); buildRoom3D(); state.mode='3d'; $('planCanvas').style.display='none'; renderer.domElement.style.display='block'; sizeRenderer(); $('planPanel').classList.add('hidden'); $('elecPanel').classList.remove('hidden'); $('legend').classList.remove('hidden'); $('mode').innerHTML='Alege un element, apoi <b>click pe perete/tavan</b>. Drag = rotește. Apasă <b>🖐 Cursor</b> ca să nu plasezi din greșeală.'; $('topHint').textContent='Pasul 2 — adaugă elemente'; renderLists(); renderRoomList(); };
+$('raise').onclick=()=>{ if(!isClosed()){ alert('Închide întâi conturul camerei (buton „Închide contur" sau click pe primul colț).'); return; } init3D(); buildRoom3D(); state.mode='3d'; $('planCanvas').style.display='none'; renderer.domElement.style.display='block'; sizeRenderer(); $('planPanel').classList.add('hidden'); $('elecPanel').classList.remove('hidden'); $('legend').classList.remove('hidden'); $('mode').innerHTML='Alege un element, apoi <b>click pe perete/tavan</b>. Drag = rotește. Apasă <b>🖐 Cursor</b> ca să nu plasezi din greșeală.'; $('topHint').textContent='Pasul 2 — adaugă elemente'; renderLists(); renderRoomList(); };
 $('toggleView').onclick=()=>{ if(state.mode==='plan') $('raise').click(); else $('backPlan').click(); };
 $('undoBtn').onclick=undo;
 $('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent='Mod cursor: rotești / muți vederea, nu se plasează nimic.'; };
+$('routeMode').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); route.mode=b.dataset.rm; renderWires(); });
+$('routePath').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); route.path=b.dataset.rp; renderWires(); });
 $('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('measure').classList.add('hidden'); selectedEl=null; dragging=null; $('topHint').textContent='Pasul 1 — desenează planul camerei în cm'; $('mode').innerHTML='Definește pereții (cm + cotitură). Apasă <b>Ridică 3D</b>.'; drawPlan(); };
 window.addEventListener('resize',()=>{ if(state.mode==='plan') drawPlan(); else if(renderer) sizeRenderer(); });
 
 /* ===== start ===== */
-renderWallRows(); renderOpRows(); refreshPlan(); askSystem();
+setPlanModeUI(); renderWallRows(); renderOpRows(); refreshPlan(); askSystem();
 </script>
 </body>
 </html>
