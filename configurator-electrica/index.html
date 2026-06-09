@@ -709,7 +709,7 @@ function genCheck(){
   circuits.forEach(c=>{ const sz=sizeCircuit(c); const devs=devices.filter(d=>d.circuit===c.id); const np=devs.filter(d=>d.type==='priza').length; const nb=devs.filter(d=>d.type==='bec').length; const rec=c.kind==='lumina'?10:16;
     if(!devs.length){ add('info',`Circuit C${c.n} e gol — scoate-l sau adaugă-i elemente.`); return; }
     if(sz.I>sz.breaker+0.01) add('error',`C${c.n}: consumul ${sz.I.toFixed(1)}A depășește siguranța ${sz.breaker}A. Mărește secțiunea cablului și siguranța, sau împarte pe mai multe circuite.`);
-    else if(sz.breaker>rec) add('warn',`C${c.n}: ${Math.round(sz.P)}W cer ${sz.breaker}A / ${sz.section}mm² — peste tipicul de ${rec}A. Recomand să distribui pe 2 circuite separate.`);
+    else if(sz.breaker>rec) add('info',`C${c.n}: circuit dedicat ${sz.breaker}A pe cablu ${sz.section}mm² (consum ${Math.round(sz.P)}W). OK cât timp cablul susține siguranța (${sz.section}mm² ⇒ max ${sz.cap}A).`);
     else if(sz.I>sz.breaker*0.8) add('warn',`C${c.n}: ești la ${sz.I.toFixed(1)}A din ${sz.breaker}A (peste 80%). Lasă rezervă sau mai adaugă un circuit.`);
     if(c.kind==='prize' && np>10) add('warn',`C${c.n}: ${np} prize pe un circuit. Recomand maxim ~8-10 prize pe un circuit de 16A.`);
     if(c.kind==='lumina' && nb>12) add('info',`C${c.n}: ${nb} corpuri de iluminat pe un circuit — verifică puterea totală.`);
