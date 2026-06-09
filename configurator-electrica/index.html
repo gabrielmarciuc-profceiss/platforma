@@ -21,9 +21,13 @@ header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-
 .sysseg button{border:0;background:transparent;color:var(--muted);font-family:"Chakra Petch";font-weight:600;font-size:12px;padding:7px 12px;border-radius:7px;cursor:pointer}
 .sysseg button.on{background:#16233a;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(255,176,32,.4)}
 .main{flex:1;display:flex;min-height:0}
-.canvaswrap{flex:1;position:relative;min-width:0}
+.canvaswrap{flex:1;position:relative;min-width:0;background:
+  radial-gradient(1100px 700px at 72% -12%, rgba(63,169,255,.12), transparent 60%),
+  radial-gradient(900px 600px at -8% 112%, rgba(255,176,32,.09), transparent 55%),
+  linear-gradient(160deg,#11203a 0%, #16233a 45%, #0e1626 100%)}
+#wmark{position:absolute;right:16px;bottom:12px;z-index:1;pointer-events:none;font-family:"Chakra Petch";font-weight:700;letter-spacing:.2em;font-size:24px;color:rgba(255,255,255,.07)}
 .canvaswrap canvas{display:block;width:100%;height:100%}
-#planCanvas{background:#0a0f1a}
+#planCanvas{background:transparent}
 .hud{position:absolute;background:rgba(7,11,18,.82);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12px;color:var(--muted);backdrop-filter:blur(6px)}
 #mode{top:10px;left:10px;max-width:70%}
 #mode b{color:var(--solar)}
@@ -80,6 +84,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
     <div class="hud" id="mode">Definește pereții în dreapta (lungime în cm + cotitură). Apasă <b>Ridică 3D</b> când e gata.</div>
     <div class="hud hidden" id="measure" style="top:10px;right:10px;text-align:right;max-width:60%"></div>
     <div class="hud hidden" id="legend"><b>Fire:</b><span><i style="background:#e23b3b"></i>fază</span><span><i style="background:#2f6fd0"></i>nul</span><span><i style="background:#e6d200"></i>împământare</span><span><i style="background:#9aa3ad"></i>comutată</span><span style="opacity:.7">· 3~ L1/L2/L3:</span><span><i style="background:#e23b3b"></i></span><span><i style="background:#8a5a2b"></i></span><span><i style="background:#9aa3ad"></i></span></div>
+    <div id="wmark">PROFCEISS</div>
   </div>
 
   <!-- PANOU PLAN -->
@@ -278,9 +283,9 @@ $('addOp').onclick=()=>{
 /* ===== 3D ===== */
 function init3D(){
   if(renderer) return;
-  scene=new THREE.Scene(); scene.background=new THREE.Color(0x0b0f17);
+  scene=new THREE.Scene();
   camera=new THREE.PerspectiveCamera(52, 1, 0.05, 200);
-  renderer=new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true}); renderer.setPixelRatio(devicePixelRatio);
+  renderer=new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true, alpha:true}); renderer.setClearColor(0x000000,0); renderer.setPixelRatio(devicePixelRatio);
   $('canvaswrap').appendChild(renderer.domElement); renderer.domElement.id='glCanvas'; renderer.domElement.style.display='none';
   controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=true;
   scene.add(new THREE.HemisphereLight(0xffffff,0x33384a,1.05));
