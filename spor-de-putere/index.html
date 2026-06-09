@@ -1820,6 +1820,17 @@ async function init() {
 }
 
 window.addEventListener('DOMContentLoaded', init);
+window.PROFCEISS_PROJECT={app:'spor-de-putere',label:'Dosar',
+  getState(){ var g={}; GLOBAL_FIELDS.forEach(function(id){ var el=v(id); if(el) g[id]=el.value; }); return { global:g, fields:JSON.parse(JSON.stringify(state.fields)) }; },
+  setState(s){ if(!s) return;
+    if(s.global) Object.keys(s.global).forEach(function(k){ var el=v(k); if(el) el.value=s.global[k]; });
+    if(s.fields){ state.fields=s.fields; if(typeof DOCS_DEF!=='undefined') DOCS_DEF.forEach(function(doc){ if(!state.fields[doc.id]) state.fields[doc.id]={}; }); }
+    if(typeof renderDocs==='function') renderDocs();
+    if(typeof updateAllStatuses==='function') updateAllStatuses();
+    if(typeof updateSummary==='function') updateSummary();
+  }
+};
 </script>
+<script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>

@@ -864,6 +864,11 @@ window.addEventListener('load', () => {
   toggleBaterieGroup();
   rebuild();
 });
+window.PROFCEISS_PROJECT={app:'schema-monofilara',label:'Schemă',
+  getState(){ return { circuits:circuits.map(c=>({...c})) }; },
+  setState(s){ if(s&&s.circuits){ circuits=s.circuits.map(c=>({...c})); if(typeof renderCircuits==='function') renderCircuits(); if(typeof rebuild==='function') rebuild(); } }
+};
 </script>
+<script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>

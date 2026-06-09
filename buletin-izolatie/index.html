@@ -386,6 +386,11 @@ async function generatePDF(){
     alert('Eroare: '+err.message);
   }
 }
+window.PROFCEISS_PROJECT={app:'buletin-izolatie',label:'Buletin',
+  getState(){return {circuits:circuits.map(c=>({...c}))};},
+  setState(s){ if(s&&s.circuits){ circuits=s.circuits.map(c=>({...c})); renderCircuits(); } }
+};
 </script>
+<script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>

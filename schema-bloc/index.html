@@ -808,6 +808,15 @@ function downloadPNG() {
 }
 
 window.addEventListener('load', initEditor);
+window.PROFCEISS_PROJECT={app:'schema-bloc',label:'Schemă',
+  getState(){ var svg=document.querySelector('#svg-wrapper svg'); var m={}; if(svg) svg.querySelectorAll('text[data-id]').forEach(function(t){ m[t.getAttribute('data-id')]=t.textContent; }); return { texts:m, mode:(document.querySelector('input[name=mode]:checked')||{}).value, strings:(document.querySelector('input[name=strings]:checked')||{}).value }; },
+  setState(s){ if(!s) return;
+    if(s.mode){ var rm=document.querySelector('input[name=mode][value="'+s.mode+'"]'); if(rm && !rm.checked){ rm.checked=true; rm.dispatchEvent(new Event('change',{bubbles:true})); } }
+    if(s.strings){ var rs=document.querySelector('input[name=strings][value="'+s.strings+'"]'); if(rs && !rs.checked){ rs.checked=true; rs.dispatchEvent(new Event('change',{bubbles:true})); } }
+    if(s.texts){ var svg=document.querySelector('#svg-wrapper svg'); Object.keys(s.texts).forEach(function(id){ if(svg){ var t=svg.querySelector('text[data-id="'+id+'"]'); if(t) t.textContent=s.texts[id]; } var inp=document.querySelector('input[data-sel="'+id+'"]'); if(inp) inp.value=s.texts[id]; }); }
+  }
+};
 </script>
+<script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>

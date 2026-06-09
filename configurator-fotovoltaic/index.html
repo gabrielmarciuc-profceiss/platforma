@@ -4071,6 +4071,11 @@ setTimeout(()=>{
   try { renderInv2Brands(); populateInv2(); }
   catch(e){ console.error('[init] renderInv2Brands/populateInv2:', e); }
 }, 100);
+window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Ofertă',full:true,
+  getState(){ return (typeof captureOfferState==='function')? captureOfferState():null; },
+  setState(s){ if(s && typeof restoreOfferState==='function') restoreOfferState(s); }
+};
 </script>
+<script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>

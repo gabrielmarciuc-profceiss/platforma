@@ -1585,6 +1585,15 @@ window.addEventListener('load', () => {
   // Re-render câmpurile invertoarelor când se schimbă numărul
   document.getElementById('f_nr_invertoare').addEventListener('change', renderInvertoare);
 });
+window.PROFCEISS_PROJECT={app:'dosar-prosumator',label:'Dosar',
+  getState(){return {circuits:circuits.map(c=>({...c})), invertoare:invertoare.map(c=>({...c})), opisChecked:Object.assign({},opisChecked)};},
+  setState(s){ if(!s) return;
+    if(s.circuits){ circuits=s.circuits.map(c=>({...c})); if(typeof renderCircuits==='function') renderCircuits(); }
+    if(s.invertoare){ invertoare=s.invertoare.map(c=>({...c})); if(typeof renderInvertoare==='function') renderInvertoare(); }
+    if(s.opisChecked){ opisChecked=Object.assign({},s.opisChecked); if(typeof renderOpis==='function') renderOpis(); }
+  }
+};
 </script>
+<script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>
