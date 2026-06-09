@@ -49,6 +49,8 @@ aside{width:300px;flex:none;border-left:1px solid var(--line);background:var(--p
 .wallrow .idx{font-family:"Chakra Petch";color:var(--muted);font-size:12px;width:18px}
 input,select{background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px;font-size:12.5px;font-family:inherit;width:100%}
 .x{cursor:pointer;color:var(--muted);background:none;border:0;font-size:15px}
+.editbtn{border:1px solid #bcd0ea;background:#eaf1fb;color:var(--ink);border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer;font-family:"Chakra Petch";white-space:nowrap}
+.editbtn:hover{background:#dceaf9}
 .list{display:flex;flex-direction:column;gap:6px}
 .row{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px}
 .row .dot{width:11px;height:11px;border-radius:3px;flex:none}
@@ -151,7 +153,8 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
       </div>
       <p class="muted" id="addInfo" style="margin-top:8px"></p>
     </div>
-    <div class="sec"><h3>Cameră · plasate</h3><div class="list" id="roomList"><p class="muted">Nimic.</p></div></div>
+    <div class="sec"><h3>Cameră · plasate</h3><div class="list" id="roomList"><p class="muted">Nimic.</p></div>
+      <p class="muted" style="margin-top:7px">Aici apar ușile, golurile, ferestrele și mobilierul. Apasă <b>✎ dim.</b> ca să editezi lățimea / înălțimea (și adâncimea la mobilier).</p></div>
     <div class="sec"><h3>Circuite</h3><div class="list" id="circuitList"><p class="muted">Niciun circuit încă.</p></div></div>
     <div class="sec"><h3>Elemente · putere</h3><div class="list" id="devList"><p class="muted">Nimic plasat.</p></div>
       <p class="muted" style="margin-top:8px">Setează puterea (W) la becuri/prize — dimensionez cablul și siguranța din ea.</p></div>
@@ -163,6 +166,8 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
       <button class="btn gen full" id="genPanel">🗄️ Schema tablou electric</button>
       <button class="btn gen full" id="genPDF">📄 Export PDF schiță (2D + 3D)</button>
       <button class="btn gen full" id="genCheck" style="background:#e3f5ea;border-color:#bfe3cc">🩺 Verifică instalația (asistent)</button>
+      <button class="btn gen full" id="genDXF">📐 Export DXF (pentru CAD)</button>
+      <button class="btn gen full" id="genSTL">🧱 Export STL (3D mesh)</button>
     </div></div>
   </aside>
 </div>
@@ -356,11 +361,12 @@ $('cancelAdd').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]
 function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera); const hits=raycaster.intersectObjects(surfaces,false); if(!hits.length) return;
   const want=(ROOMEL[addType]==='furniture')?'floor':(addType==='bec'?'ceiling':(addType==='doza'?null:'wall'));
   const h=want?(hits.find(x=>x.object.userData.kind===want)||hits[0]):hits[0];
-  if(ROOMEL[addType]==='opening'){ addOpeningAt(addType,h); controls.enabled=true; }
-  else if(ROOMEL[addType]==='furniture'){ placeFurniture(addType,h); controls.enabled=true; }
-  else if(addType==='doza'){ placeDoza(h); controls.enabled=true; }
-  else placeDevice(addType,h).then(()=>{ controls.enabled=true; }).catch(()=>{ controls.enabled=true; });
+  if(ROOMEL[addType]==='opening'){ addOpeningAt(addType,h); clearAddTool(); }
+  else if(ROOMEL[addType]==='furniture'){ placeFurniture(addType,h); clearAddTool(); }
+  else if(addType==='doza'){ placeDoza(h); clearAddTool(); }
+  else placeDevice(addType,h).then(()=>clearAddTool()).catch(()=>clearAddTool());
 }
+function clearAddTool(){ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); const ai=$('addInfo'); if(ai) ai.textContent='Element plasat. Pentru altul, apasă din nou butonul. (Acum poți roti liber.)'; if(controls) controls.enabled=true; }
 async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.userData; let pos=hit.point.clone(); let normal=ud.normal?ud.normal.clone():new THREE.Vector3(0,-1,0);
   if(ud.kind==='wall'){ pos.add(normal.clone().multiplyScalar(0.03)); if(a.h!=null) pos.y=a.h; pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); } else if(ud.kind==='ceiling'){ pos.y=H-0.02; }
   if(type==='tablou'&&devices.some(d=>d.type==='tablou')){ alert('Există deja un tablou.'); return; }
@@ -438,7 +444,11 @@ function editOpening(idx){ const o=plan.openings[idx]; if(!o) return; const win=
 function removeProp(id){ const i=props.findIndex(p=>p.id===id); if(i<0) return; scene.remove(props[i].mesh); props.splice(i,1); renderRoomList(); }
 function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[...dozas.map(z=>({k:'doza',id:z.id,label:'Doza '+z.n,col:'#f2c14e'})), ...props.map(p=>({k:'prop',id:p.id,label:p.label,col:'#7c93b3'})), ...plan.openings.map((o,i)=>({k:'op',idx:i,label:OPEN_DEF[o.type].label+' (P'+(o.wall+1)+')',col:'#7c93b3'}))];
   if(!items.length){ el.innerHTML='<p class="muted">Nimic.</p>'; return; } el.innerHTML='';
-  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns=''; if(it.k==='op') btns+=`<button class="x" data-ek="${it.idx}" title="Editează dimensiuni">✎</button>`; if(it.k==='prop') btns+=`<button class="x" data-fe="${it.id}" title="Editează dimensiuni">✎</button>`; btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='op'?it.idx:it.id}">✕</button>`; d.innerHTML=`<span class="dot" style="background:${it.col}"></span>${it.label}${btns}`; el.appendChild(d); });
+  items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns='';
+    if(it.k==='op') btns+=`<button class="editbtn" data-ek="${it.idx}">✎ dim.</button>`;
+    if(it.k==='prop') btns+=`<button class="editbtn" data-fe="${it.id}">✎ dim.</button>`;
+    btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='op'?it.idx:it.id}">✕</button>`;
+    d.innerHTML=`<span class="dot" style="background:${it.col}"></span><span style="flex:1">${it.label}</span>${btns}`; el.appendChild(d); });
   el.querySelectorAll('[data-ek]').forEach(b=> b.onclick=()=>editOpening(parseInt(b.dataset.ek,10)));
   el.querySelectorAll('[data-fe]').forEach(b=> b.onclick=()=>editFurniture(parseInt(b.dataset.fe,10)));
   el.querySelectorAll('[data-rk]').forEach(b=> b.onclick=()=>{ const k=b.dataset.rk, ri=parseInt(b.dataset.ri,10); if(k==='prop') removeProp(ri); else if(k==='doza') removeDoza(ri); else { plan.openings.splice(ri,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
@@ -703,7 +713,32 @@ function genCheck(){
   msgs.forEach(m=> h+=`<p style="color:${col[m.sev]};margin:7px 0;line-height:1.5">${icon[m.sev]} ${m.t}</p>`);
   h+=`</div>`; openModal(h); $('mClose').onclick=closeModal;
 }
-$('genBOM').onclick=genBOM; $('genSchema').onclick=sendToSchema; $('genTut').onclick=genTut; $('genPanel').onclick=genPanel; $('genPDF').onclick=exportPDF; $('genCheck').onclick=genCheck;
+function genDXF(){
+  const S=1000; let e=''; const eo=edges().out;
+  const line=(x1,y1,x2,y2,layer)=>{ e+=`0\nLINE\n8\n${layer}\n10\n${(x1*S).toFixed(1)}\n20\n${(y1*S).toFixed(1)}\n11\n${(x2*S).toFixed(1)}\n21\n${(y2*S).toFixed(1)}\n`; };
+  const circle=(x,y,r,layer)=>{ e+=`0\nCIRCLE\n8\n${layer}\n10\n${(x*S).toFixed(1)}\n20\n${(y*S).toFixed(1)}\n40\n${(r*S).toFixed(1)}\n`; };
+  const text=(x,y,h,s,layer)=>{ e+=`0\nTEXT\n8\n${layer}\n10\n${(x*S).toFixed(1)}\n20\n${(y*S).toFixed(1)}\n40\n${(h*S).toFixed(1)}\n1\n${String(s).replace(/\n/g,' ')}\n`; };
+  eo.forEach(g=> line(g.p1.x,g.p1.z,g.p2.x,g.p2.z,'PERETI'));
+  plan.openings.forEach(o=>{ const g=eo[o.wall]; if(!g) return; const dx=g.p2.x-g.p1.x,dz=g.p2.z-g.p1.z; const L=Math.hypot(dx,dz)||1; const ux=dx/L,uz=dz/L; const a={x:g.p1.x+ux*o.pos,z:g.p1.z+uz*o.pos}, b={x:g.p1.x+ux*(o.pos+o.w),z:g.p1.z+uz*(o.pos+o.w)}; line(a.x,a.z,b.x,b.z, o.type.includes('fereastra')?'FERESTRE':'USI'); });
+  const lay={tablou:'TABLOU',intrerupator:'INTRERUPATOARE',bec:'BECURI',priza:'PRIZE'};
+  devices.forEach(d=>{ const lr=lay[d.type]||'APARATAJ'; circle(d.pos.x,d.pos.z,d.type==='tablou'?0.1:0.05,lr); text(d.pos.x+0.07,d.pos.z,0.08,(d.name||d.type),lr); });
+  dozas.forEach(z=>{ circle(z.pos.x,z.pos.z,0.06,'DOZE'); text(z.pos.x+0.07,z.pos.z,0.08,'Doza '+z.n,'DOZE'); });
+  devices.filter(d=>d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); line(d.pos.x,d.pos.z,sp.x,sp.z,'TRASEE'); });
+  const dxf=`0\nSECTION\n2\nENTITIES\n${e}0\nENDSEC\n0\nEOF\n`;
+  download('plan-instalatie.dxf', dxf);
+}
+function genSTL(){
+  if(state.mode!=='3d'||!scene){ alert('Ridică întâi planul în 3D, apoi exportă STL.'); return; }
+  const S=1000; const a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3(), n=new THREE.Vector3(), ab=new THREE.Vector3(), ac=new THREE.Vector3();
+  let out='solid profceiss\n';
+  scene.traverse(o=>{ if(!o.isMesh || !o.geometry) return; const g=o.geometry; const pos=g.attributes.position; if(!pos) return; o.updateWorldMatrix(true,false); const m=o.matrixWorld; const idx=g.index;
+    const tri=(i0,i1,i2)=>{ a.fromBufferAttribute(pos,i0).applyMatrix4(m); b.fromBufferAttribute(pos,i1).applyMatrix4(m); c.fromBufferAttribute(pos,i2).applyMatrix4(m); ab.subVectors(b,a); ac.subVectors(c,a); n.crossVectors(ab,ac); if(n.lengthSq()===0) return; n.normalize();
+      out+=`facet normal ${n.x.toFixed(4)} ${n.y.toFixed(4)} ${n.z.toFixed(4)}\nouter loop\nvertex ${(a.x*S).toFixed(2)} ${(a.y*S).toFixed(2)} ${(a.z*S).toFixed(2)}\nvertex ${(b.x*S).toFixed(2)} ${(b.y*S).toFixed(2)} ${(b.z*S).toFixed(2)}\nvertex ${(c.x*S).toFixed(2)} ${(c.y*S).toFixed(2)} ${(c.z*S).toFixed(2)}\nendloop\nendfacet\n`; };
+    if(idx){ for(let i=0;i<idx.count;i+=3) tri(idx.getX(i),idx.getX(i+1),idx.getX(i+2)); } else { for(let i=0;i<pos.count;i+=3) tri(i,i+1,i+2); }
+  });
+  out+='endsolid profceiss\n'; download('model-instalatie.stl', out);
+}
+$('genBOM').onclick=genBOM; $('genSchema').onclick=sendToSchema; $('genTut').onclick=genTut; $('genPanel').onclick=genPanel; $('genPDF').onclick=exportPDF; $('genCheck').onclick=genCheck; $('genDXF').onclick=genDXF; $('genSTL').onclick=genSTL;
 
 /* ===== sistem mono/tri ===== */
 function setSystem(s){ state.system=s; document.querySelectorAll('[data-sys-seg]').forEach(x=>x.classList.toggle('on',x.dataset.sysSeg===s)); if(circuits.length) renderLists(); }
