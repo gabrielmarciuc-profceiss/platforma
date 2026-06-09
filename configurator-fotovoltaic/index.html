@@ -188,6 +188,28 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   .rt-eq-noprice th:nth-child(4),.rt-eq-noprice td:nth-child(4){width:10%;}   /* Cant. */
 }
 @page{margin:12mm;}
+
+/* Responsive tablet / mobile — colapseaza randurile multi-coloana la o coloana,
+   container pe toata latimea cu padding mic, navigatia pasilor scrollabila
+   orizontal, controale prietenoase la atingere (min-height ~40px, input >=16px
+   ca sa nu declanseze zoom-ul automat iOS). */
+@media (max-width:768px){
+  body{padding:10px;}
+  .app{max-width:100%;padding:1.2rem;}
+
+  /* Toate randurile/grid-urile de formular pe o singura coloana */
+  .fg2,.fg3,.fg4{grid-template-columns:1fr;}
+  .mg{grid-template-columns:1fr 1fr;}
+
+  /* Navigatia pasilor scrollabila orizontal daca depaseste */
+  .steps-nav{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  /* Controale prietenoase la atingere; 16px previne zoom-ul iOS */
+  .f input,.f select{font-size:16px;min-height:40px;}
+  .eur-rate-row input{font-size:16px;min-height:40px;}
+  .btn{min-height:40px;}
+  .ptab{min-height:40px;}
+}
 </style>
 </head>
 <body>

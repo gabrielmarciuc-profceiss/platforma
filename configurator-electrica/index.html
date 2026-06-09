@@ -69,6 +69,27 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
 .tut .warn{background:#2a1316;border:1px solid #5b2740;border-radius:9px;padding:10px;color:#f4b6b6;margin:10px 0}
 .dl{margin-top:14px}
 .hidden{display:none!important}
+/* ===== mobil / tableta ===== */
+@media (max-width:860px){
+  header{padding:8px 10px;gap:8px}
+  .brand{font-size:15px}
+  .hint{display:none}
+  .sysseg{margin-left:auto}
+  .sysseg button{padding:6px 9px;font-size:11px}
+  .main{flex-direction:column}
+  .canvaswrap{flex:none;height:48vh;min-height:300px}
+  aside{width:100%;flex:1 1 auto;border-left:0;border-top:1px solid var(--line);max-height:none}
+  #mode{max-width:92%}
+  #wmark{font-size:18px;right:10px;bottom:8px}
+  .modal{padding:14px;border-radius:13px}
+}
+@media (max-width:480px){
+  .canvaswrap{height:44vh;min-height:240px}
+  .grid2{grid-template-columns:1fr}
+  .btn{padding:12px 8px}
+  input,select{padding:9px;font-size:14px}
+  table{font-size:12px} th,td{padding:6px 6px}
+}
 </style>
 </head>
 <body>

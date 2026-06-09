@@ -126,6 +126,25 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 .summary-bar .count{font-weight:600;color:#0F6E56;}
 .summary-bar .count.partial{color:#854F0B;}
 .summary-bar .count.empty{color:#A32D2D;}
+
+/* ===== Responsive: mobile / tablet (<=760px) ===== */
+@media(max-width:760px){
+  /* tighter page gutters */
+  body{padding:10px;}
+  /* container full width, smaller inner padding */
+  .app{padding:1rem;border-radius:8px;}
+  /* multi-column form grids collapse to a single column */
+  .fg2,.fg3{grid-template-columns:1fr;}
+  /* generated-external two-column option block stacks */
+  .doc-body > div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
+  /* prevent iOS zoom on focus + comfortable tap targets */
+  .f input,.f select,.f textarea{font-size:16px;min-height:40px;}
+  /* brand bar wraps so the back button never overflows */
+  .brand-bar{flex-wrap:wrap;}
+  /* submit / action button row wraps and buttons stretch full width */
+  .btn-row{flex-direction:column;align-items:stretch;}
+  .btn-row .btn{justify-content:center;width:100%;}
+}
 </style>
 </head>
 <body>

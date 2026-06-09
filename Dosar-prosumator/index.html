@@ -102,6 +102,31 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 .loading .box{background:#fff;border:0.5px solid #d8d8d0;border-radius:10px;padding:20px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.12);text-align:center;}
 .loading .spinner{display:inline-block;width:24px;height:24px;border:3px solid #e0e0e0;border-top-color:#1D9E75;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px;}
 @keyframes spin{to{transform:rotate(360deg);}}
+
+/* ===== Responsive: mobile / tablet (<=760px) ===== */
+@media(max-width:760px){
+  /* tighter page gutters */
+  body{padding:10px;}
+  /* container full width, smaller inner padding */
+  .app{padding:1rem;border-radius:8px;}
+  /* multi-column form rows collapse to a single column */
+  .row{grid-template-columns:1fr;}
+  /* label + input pairs stack (label above input) */
+  .field,.field.full,.field.full.tall{grid-template-columns:1fr;align-items:start;}
+  /* photos one per row */
+  .photo-grid{grid-template-columns:1fr;}
+  /* prevent iOS zoom on focus + comfortable tap targets */
+  .field input[type=text],.field input[type=date],.field input[type=number],.field select,.field textarea{font-size:16px;min-height:40px;}
+  /* brand bar wraps so the back button never overflows */
+  .brand-bar{flex-wrap:wrap;}
+  /* opis cards wrap their badges/status instead of overflowing */
+  .opis-card{flex-wrap:wrap;}
+  .opis-card .title{flex:1 1 100%;}
+  /* submit row wraps and buttons stretch full width */
+  .submit-row{flex-direction:column;align-items:stretch;}
+  .submit-row .btn{justify-content:center;width:100%;}
+  #status{margin-left:0;}
+}
 </style>
 </head>
 <body>
