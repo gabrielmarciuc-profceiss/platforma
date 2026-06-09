@@ -12,12 +12,12 @@ O platforma care preia un plan electric (din AutoCAD) si, prin realitate augment
   - AR-ul interactiv in browser = **doar Android** (WebXR + ARCore).
   - Pentru iPhone in viitor → **aplicatie nativa** (ARKit + ARCore, ex. Unity AR Foundation).
 - **Localizare/aliniere:** scanarea (SLAM) imbunatateste tracking-ul, dar NU aliniaza planul la realitate singura. Solutie: **2 puncte de reper cunoscute** (plan ↔ realitate) → transformare (rotatie, translatie, scara) + **calibrare cu ruleta** (orizontal + vertical). Se afiseaza eroarea reziduala de scara ca indicator de incredere.
-- **Înaltimea (verticala)** e fiabila: AR cunoaste podeaua aliniata la gravitatie; cotele de montaj se masoara de la podea.
+- **Inaltimea (verticala)** e fiabila: AR cunoaste podeaua aliniata la gravitatie; cotele de montaj se masoara de la podea.
 - **Limite oneste:** precizie de cativa cm langa reper, drift cu distanta (re-ancorare per camera); plan vs. executie reala pot diferi (de aceea ruleta e adevarul de teren).
 
 ## Arhitectura pe etape
 - **Etapa 0 — editor** (`etapa0-editor.html`): DXF → randare plan 2D → marcare dispozitive (tip, x, y, inaltime) + trasee → export JSON (geometrie + dispozitive + trasee + factor de scara). Independent de platforma. **GATA.**
-- **Etapa 1 — referinta 2D pe santier** (iOS+Android): plan + pozitii + cote, interactiv, fara AR. **DE FĂCUT** (util mai ales pentru iPhone).
+- **Etapa 1 — referinta 2D pe santier** (iOS+Android): plan + pozitii + cote, interactiv, fara AR. **DE FACUT** (util mai ales pentru iPhone).
 - **Etapa 2 — AR** (`etapa2-ar.html`, Android): selecteaza harta → scanare → 2 repere + calibrare orizontala/verticala → afisare dispozitive + trasee pe pereti, cu bife (circuite / doze / aparataj). **VERSIUNE 1, de testat pe teren.**
 
 ## Model de date (JSON exportat)
@@ -46,7 +46,7 @@ Straturi (bife): aparataj / doza / circuite.
 5. Baza de date online (Supabase/Firebase) pentru sincronizare multi-dispozitiv.
 6. Pe termen lung: aplicatie nativa pentru AR si pe iPhone (LiDAR pentru potrivire automata pe pereti).
 
-## Întrebari deschise pentru tine
+## Intrebari deschise pentru tine
 - Cum sunt desenati peretii in DXF-urile tale reale (linii simple, duble, polilinii)?
-- Înaltimile/cotele apar ca text pe plan sau le introduci manual?
+- Inaltimile/cotele apar ca text pe plan sau le introduci manual?
 - Ai iPhone Pro (cu LiDAR)? Conteaza pentru varianta nativa viitoare.
