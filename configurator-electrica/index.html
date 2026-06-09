@@ -141,8 +141,10 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
       <h3>Aparataj electric</h3>
       <div class="grid2">
         <button class="btn" data-add="tablou">🔲 Tablou</button>
-        <button class="btn" data-add="intrerupator">🔘 Întrerupător</button>
         <button class="btn" data-add="bec">💡 Bec</button>
+        <button class="btn" data-add="intrerupator" data-sub="simplu">🔘 Întrerupător</button>
+        <button class="btn" data-add="intrerupator" data-sub="scara">🔘 Cap-scară</button>
+        <button class="btn" data-add="intrerupator" data-sub="cruce">🔘 Cap-cruce</button>
         <button class="btn" data-add="priza">🔌 Priză</button>
         <button class="btn" data-add="doza">🟡 Doză</button>
         <button class="btn" id="cancelAdd">✖ Anulează</button>
@@ -156,8 +158,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
     <div class="sec"><h3>Traseu cablaj</h3>
       <div class="seg" id="routeMode"><button data-rm="chain" class="active">Punte (în lanț)</button><button data-rm="each">Din doză separat</button></div>
       <div class="seg" id="routePath" style="margin-top:8px"><button data-rp="tavan" class="active">Pe tavan</button><button data-rp="podea">Pe podea</button></div>
-      <button class="btn full" id="shortLight" style="margin-top:8px">💡 Traseu scurt iluminat: oprit</button>
-      <p class="muted" style="margin-top:7px">„Punte": piesele de pe aceeași doză se leagă în lanț (economie). „Tavan / Podea": nivelul firelor. „Traseu scurt iluminat": becurile/spoturile se leagă <b>direct pe tavan</b>, nu pe perimetru.</p>
+      <p class="muted" style="margin-top:7px">„Punte/Separat": cum se leagă implicit sursele. „Tavan/Podea": nivelul firelor. <b>Tipul de traseu (perimetru vs direct) îl alegi individual la fiecare piesă</b>, lângă sursă.</p>
     </div>
     <div class="sec"><h3>Generează</h3><div class="list">
       <button class="btn gen full" id="genBOM">📋 Listă de materiale</button>
@@ -200,7 +201,7 @@ const props=[]; const history=[];
 let scene,camera,renderer,controls,raycaster; const pointer=new THREE.Vector2();
 const roomGroup=new THREE.Group(), wireGroup=new THREE.Group();
 const surfaces=[], deviceMeshes=[];
-let addType=null, uid=1, cuid=1;
+let addType=null, addSub='simplu', uid=1, cuid=1;
 const devices=[], circuits=[];
 
 /* ===== PLAN: geometrie ===== */
@@ -351,7 +352,7 @@ function makeLabel(text,color){ text=String(text||''); const fs=26, pad=18; cons
 function labelText(dev){ const c=circuits.find(x=>x.id===dev.circuit); return (dev.name||ADD[dev.type].label)+(c?(' · C'+c.n):''); }
 function labelColor(dev){ const c=circuits.find(x=>x.id===dev.circuit); return c?c.color:'#cfd6df'; }
 function updateDevLabel(dev){ if(dev.lab){ dev.mesh.remove(dev.lab); dev.lab=null; } if(dev.type==='tablou') return; const s=makeLabel(labelText(dev),labelColor(dev)); s.position.set(0,0.18,0); dev.mesh.add(s); dev.lab=s; }
-document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.dataset.add; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); $('addInfo').innerHTML=addType==='bec'?'Click pe <b>tavan</b>.':'Click pe un <b>perete</b>.'; });
+document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.dataset.add; addSub=b.dataset.sub||'simplu'; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); $('addInfo').innerHTML=addType==='bec'?'Click pe <b>tavan</b>.':'Click pe un <b>perete</b>.'; });
 $('cancelAdd').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent=''; };
 function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera); const hits=raycaster.intersectObjects(surfaces,false); if(!hits.length) return;
   const want=(ROOMEL[addType]==='furniture')?'floor':(addType==='bec'?'ceiling':(addType==='doza'?null:'wall'));
@@ -368,7 +369,8 @@ async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.use
   let source={kind:'panel'};
   if(doza){ if(route.mode==='chain' && (type==='priza'||type==='bec')){ const sib=devices.filter(x=>x.type===type&&x.doza===doza&&x.circuit===circuit); source=sib.length?{kind:'dev',id:sib[sib.length-1].id}:{kind:'doza',id:doza}; } else source={kind:'doza',id:doza}; }
   const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
-  const dev={id:uid++,type,circuit,doza,source,power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind,name:ADD[type].label+' '+(devices.filter(x=>x.type===type).length+1)}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
+  const subName = type==='intrerupator' ? ({simplu:'Întrerupător',scara:'Cap-scară',cruce:'Cap-cruce'}[addSub]||'Întrerupător') : ADD[type].label;
+  const dev={id:uid++,type,circuit,doza,source,sub:(type==='intrerupator'?addSub:undefined),power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind,name:subName+' '+(devices.filter(x=>x.type===type).length+1)}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
   updateDevLabel(dev);
   renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id)); }
 function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit); const col=cc?new THREE.Color(cc.color):new THREE.Color(0xcfd6df); const g=new THREE.Group();
@@ -507,12 +509,14 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
   // doze -> sursa lor (doar dacă au copii)
   dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); drawConductor(z.pos,sp,Lcol(c),0,false,rd); drawConductor(z.pos,sp,COND.N,1,false,rd); drawConductor(z.pos,sp,COND.PE,2,false,rd); });
   // dispozitive -> sursa lor (lanț până la tablou)
-  devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source);
-    if(d.type==='priza'){ drawConductor(d.pos,sp,Lc,0,false,rd); drawConductor(d.pos,sp,COND.N,1,false,rd); drawConductor(d.pos,sp,COND.PE,2,false,rd); }
-    else if(d.type==='bec'){ const dr=route.shortLight && sp.y>H*0.6; const src=d.source; const swDev=(src&&src.kind==='dev')?devices.find(x=>x.id===src.id):null;
-      if(swDev && swDev.type==='intrerupator'){ const np=srcPos(swDev.source); drawConductor(d.pos,swDev.pos,COND.SW,0,dr,rd); drawConductor(d.pos,np,COND.N,1,false,rd); drawConductor(d.pos,np,COND.PE,2,false,rd); }
-      else { drawConductor(d.pos,sp,COND.SW,0,dr,rd); drawConductor(d.pos,sp,COND.N,1,dr,rd); drawConductor(d.pos,sp,COND.PE,2,dr,rd); } }
-    else if(d.type==='intrerupator'){ drawConductor(d.pos,sp,Lc,0,false,rd); drawConductor(d.pos,sp,COND.SW,1,false,rd); }
+  devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const dir=!!d.direct;
+    if(d.type==='priza'){ drawConductor(d.pos,sp,Lc,0,dir,rd); drawConductor(d.pos,sp,COND.N,1,dir,rd); drawConductor(d.pos,sp,COND.PE,2,dir,rd); }
+    else if(d.type==='bec'){ const src=d.source; const swDev=(src&&src.kind==='dev')?devices.find(x=>x.id===src.id):null;
+      if(swDev && swDev.type==='intrerupator'){ const np=srcPos(swDev.source); drawConductor(d.pos,swDev.pos,COND.SW,0,dir,rd); drawConductor(d.pos,np,COND.N,1,false,rd); drawConductor(d.pos,np,COND.PE,2,false,rd); }
+      else { drawConductor(d.pos,sp,COND.SW,0,dir,rd); drawConductor(d.pos,sp,COND.N,1,dir,rd); drawConductor(d.pos,sp,COND.PE,2,dir,rd); } }
+    else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
+      if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ drawConductor(d.pos,srcDev.pos,Lc,0,dir,rd); drawConductor(d.pos,srcDev.pos,COND.SW,1,dir,rd); }
+      else { drawConductor(d.pos,sp,Lc,0,dir,rd); drawConductor(d.pos,sp,COND.SW,1,dir,rd); } }
   }); }
 
 /* ===== dimensionare ===== */
@@ -520,7 +524,7 @@ function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>
 function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const breaker=STD.find(s=>s>=need)||40; return {P,I,breaker,section:SECT[breaker]}; }
 function condRad(c){ const sec=c?sizeCircuit(c).section:'1,5'; return ({'1,5':0.004,'2,5':0.008,'4':0.010,'6':0.012,'10':0.015})[sec]||0.006; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0;
-  devices.filter(d=>d.circuit===c.id && d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); const dr=d.type==='bec'&&route.shortLight&&sp.y>H*0.6; L+=routeLen(d.pos, sp, dr); });
+  devices.filter(d=>d.circuit===c.id && d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); L+=routeLen(d.pos, sp, !!d.direct); });
   dozas.forEach(z=>{ const child=devices.find(d=>d.circuit===c.id && d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(child) L+=routeLen(z.pos, srcPos(z.source)); });
   return L*1.15; }
 function assignPhases(){ if(state.system!=='tri'){ circuits.forEach(c=>{ c.phase='L1'; }); return; } let i=0; circuits.forEach(c=>{ if(!['L1','L2','L3'].includes(c.phase)){ c.phase=['L1','L2','L3'][i%3]; } i++; }); }
@@ -541,7 +545,7 @@ function renderLists(){ const cl=$('circuitList');
     const srcOpts=`<option value="panel" ${srcSel.kind==='panel'?'selected':''}>Tablou</option>`+dozOk.map(z=>`<option value="doza:${z.id}" ${(srcSel.kind==='doza'&&srcSel.id===z.id)?'selected':''}>Doza ${z.n}</option>`).join('')+devices.filter(x=>x.id!==d.id&&x.type!=='tablou'&&ADD[x.type].kind===myKind).map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${(x.name||ADD[x.type].label).replace(/"/g,'&quot;')}</option>`).join('');
     const load=(d.type==='bec'||d.type==='priza');
     el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#0a0f1a;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
-      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursă</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select>`
+      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursă</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="0" ${!d.direct?'selected':''}>perimetru</option><option value="1" ${d.direct?'selected':''}>direct</option></select>`
       +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto;width:54px"> W`:'')+`</div>`;
     return el; };
   [['tablou','Tablou'],['intrerupator','Întrerupătoare'],['bec','Becuri / spoturi'],['priza','Prize']].forEach(([tp,tl])=>{ const list=devices.filter(d=>d.type===tp); if(!list.length) return; const open=listOpen[tp]!==false;
@@ -555,7 +559,8 @@ function renderLists(){ const cl=$('circuitList');
     if(v==='panel') d.source={kind:'panel'};
     else if(v.startsWith('doza:')) d.source={kind:'doza',id:parseInt(v.slice(5),10)};
     else { const did=parseInt(v.slice(4),10); d.source={kind:'dev',id:did}; const sd=devices.find(x=>x.id===did); if(sd) d.circuit=sd.circuit; }
-    updateDevLabel(d); renderWires(); renderLists(); }); }
+    updateDevLabel(d); renderWires(); renderLists(); });
+  dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.direct=(sel.value==='1'); renderWires(); } }); }
 function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; const fb=devices[i].source||{kind:'panel'}; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); devices.forEach(d=>{ if(d.source&&d.source.kind==='dev'&&d.source.id===id) d.source={...fb}; }); renderWires(); renderLists(); }
 
 /* ===== generatoare ===== */
@@ -664,7 +669,6 @@ $('toggleView').onclick=()=>{ if(state.mode==='plan') $('raise').click(); else $
 $('undoBtn').onclick=undo; $('undoBtn2').onclick=undo;
 $('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent='Mod cursor: rotești / muți vederea, nu se plasează nimic.'; };
 $('routeMode').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); route.mode=b.dataset.rm; applyRouteMode(); renderWires(); renderLists(); });
-$('shortLight').onclick=()=>{ route.shortLight=!route.shortLight; $('shortLight').textContent='💡 Traseu scurt iluminat: '+(route.shortLight?'pornit':'oprit'); $('shortLight').classList.toggle('on',route.shortLight); renderWires(); };
 $('routePath').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; [...e.currentTarget.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); route.path=b.dataset.rp; renderWires(); });
 $('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('measure').classList.add('hidden'); selectedEl=null; dragging=null; $('topHint').textContent='Pasul 1 — desenează planul camerei în cm'; $('mode').innerHTML='Definește pereții (cm + cotitură). Apasă <b>Ridică 3D</b>.'; drawPlan(); };
 window.addEventListener('resize',()=>{ if(state.mode==='plan') drawPlan(); else if(renderer) sizeRenderer(); });
