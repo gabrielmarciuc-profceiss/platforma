@@ -518,13 +518,14 @@ function renderLists(){ const cl=$('circuitList');
       +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto;width:54px"> W`:'')+`</div>`;
     dl.appendChild(el); });
   dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
+  dl.querySelectorAll('[data-nm]').forEach(inp=> inp.oninput=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.nm,10)); if(d){ d.name=inp.value; updateDevLabel(d); } });
   dl.querySelectorAll('[data-pw]').forEach(inp=> inp.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.pw,10)); if(d){ d.power=Math.max(0,parseInt(inp.value,10)||0); renderLists(); } });
-  dl.querySelectorAll('[data-c]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.c,10)); if(d){ d.circuit=parseInt(sel.value,10); renderWires(); renderLists(); } });
+  dl.querySelectorAll('[data-c]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.c,10)); if(d){ d.circuit=parseInt(sel.value,10); updateDevLabel(d); renderWires(); renderLists(); } });
   dl.querySelectorAll('[data-s]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.s,10)); if(!d) return; const v=sel.value;
     if(v==='panel') d.source={kind:'panel'};
     else if(v.startsWith('doza:')) d.source={kind:'doza',id:parseInt(v.slice(5),10)};
     else { const did=parseInt(v.slice(4),10); d.source={kind:'dev',id:did}; const sd=devices.find(x=>x.id===did); if(sd) d.circuit=sd.circuit; }
-    renderWires(); renderLists(); }); }
+    updateDevLabel(d); renderWires(); renderLists(); }); }
 function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; const fb=devices[i].source||{kind:'panel'}; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); devices.forEach(d=>{ if(d.source&&d.source.kind==='dev'&&d.source.id===id) d.source={...fb}; }); renderWires(); renderLists(); }
 
 /* ===== generatoare ===== */
