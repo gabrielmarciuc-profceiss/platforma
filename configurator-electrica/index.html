@@ -166,6 +166,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
       <button class="btn gen full" id="genTut">🎓 Tutorial cablare</button>
       <button class="btn gen full" id="genPanel">🗄️ Schema tablou electric</button>
       <button class="btn gen full" id="genPDF">📄 Export PDF schiță (2D + 3D)</button>
+      <button class="btn gen full" id="genCheck" style="background:#1a3a2a;border-color:#2a5c3f">🩺 Verifică instalația (asistent)</button>
     </div></div>
   </aside>
 </div>
@@ -485,14 +486,20 @@ function buildPerim(){ const {v}=edges(); const pts=v.slice(0,-1); if(pts.length
 function projPerim(P){ if(!PERIM) return {x:P.x,z:P.z,s:0,edge:null}; let best=null; for(let i=0;i<PERIM.m;i++){ const a=PERIM.pts[i], b=PERIM.pts[(i+1)%PERIM.m]; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; let t=((P.x-a.x)*dx+(P.z-a.z)*dz)/(ln*ln); t=Math.max(0,Math.min(1,t)); const cx=a.x+t*dx, cz=a.z+t*dz; const d=Math.hypot(P.x-cx,P.z-cz); if(!best||d<best.d) best={d,x:cx,z:cz,s:PERIM.cum[i]+t*ln,edge:i}; } return best; }
 function perimMids(sA,sB){ if(!PERIM) return []; const Lt=PERIM.Ltot; const fwdDist=((sB-sA)%Lt+Lt)%Lt; const fwd=fwdDist<=Lt-fwdDist; const dist=fwd?fwdDist:Lt-fwdDist; const out=[]; for(let k=0;k<PERIM.m;k++){ const cs=PERIM.cum[k]; const dd=fwd?(((cs-sA)%Lt+Lt)%Lt):(((sA-cs)%Lt+Lt)%Lt); if(dd>0.001 && dd<dist-0.001) out.push({d:dd,p:PERIM.pts[k]}); } out.sort((x,y)=>x.d-y.d); return out.map(o=>o.p); }
 function routeWaypoints(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [{x:a.x,z:a.z},{x:b.x,z:b.z}]; return [{x:pa.x,z:pa.z}, ...perimMids(pa.s,pb.s), {x:pb.x,z:pb.z}]; }
+// traseu pe suprafețe, pe drumul cel mai scurt prin colțuri (înălțime interpolată) — fără fire prin aer/exterior
+function surfaceRoute(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [a.clone(),b.clone()];
+  const startH=a.y>H*0.7?H:a.y, endH=b.y>H*0.7?H:b.y; const mids=perimMids(pa.s,pb.s);
+  const xz=[{x:pa.x,z:pa.z}, ...mids, {x:pb.x,z:pb.z}]; const cum=[0]; for(let i=1;i<xz.length;i++) cum.push(cum[i-1]+Math.hypot(xz[i].x-xz[i-1].x,xz[i].z-xz[i-1].z)); const tot=cum[cum.length-1]||1;
+  const path=[a.clone()]; xz.forEach((p,i)=> path.push(new THREE.Vector3(p.x, startH+(endH-startH)*(cum[i]/tot), p.z))); path.push(b.clone()); return path; }
 function routeLen(a,b,direct){ if(!PERIM) buildPerim(); const level=direct?a.y:(route.path==='podea'?0.08:(H-0.05)); const pa=projPerim(a), pb=projPerim(b); let horiz; if(PERIM){ const Lt=PERIM.Ltot; const fwd=((pb.s-pa.s)%Lt+Lt)%Lt; horiz=Math.min(fwd,Lt-fwd); } else horiz=Math.hypot(b.x-a.x,b.z-a.z); const dA=Math.abs(level-a.y)+Math.hypot(a.x-pa.x,a.z-pa.z); const dB=Math.abs(level-b.y)+Math.hypot(b.x-pb.x,b.z-pb.z); return horiz+dA+dB; }
 function drawConductor(a,b,colorHex,idx,direct,rad){
   let pts=null;
-  if(direct){ // permis doar dacă ambele capete sunt pe ACEEAȘI suprafață (tavan sau același perete) — altfel ar pluti prin aer
+  if(direct){ // drumul cel mai scurt PE SUPRAFEȚE: drept pe aceeași latură, prin colț pe laterale diferite
     const ceilBoth = a.y>H*0.7 && b.y>H*0.7;
     let sameWall=false; if(!ceilBoth){ const pa=projPerim(a), pb=projPerim(b); sameWall=(pa.edge!=null && pa.edge===pb.edge); }
     if(ceilBoth){ const lvl=Math.max(a.y,b.y)-idx*0.012; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; const ox=-dz/ln*(idx*0.02), oz=dx/ln*(idx*0.02); pts=[a.clone(), new THREE.Vector3(a.x+ox,lvl,a.z+oz), new THREE.Vector3(b.x+ox,lvl,b.z+oz), b.clone()]; }
     else if(sameWall){ const off=idx*0.014; pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
+    else { pts=surfaceRoute(a,b); for(let i=1;i<pts.length-1;i++) pts[i].y-=idx*0.012; }
   }
   if(!pts){ const level=(route.path==='podea'?0.08:(H-0.06))-idx*0.014; const way=routeWaypoints(a,b); pts=[a.clone()]; way.forEach(w=>pts.push(new THREE.Vector3(w.x,level,w.z))); pts.push(b.clone()); }
   const curve=new THREE.CatmullRomCurve3(pts,false,'catmullrom',0.0); const geo=new THREE.TubeGeometry(curve, Math.max(8,pts.length*6), rad||0.006, 7, false);
@@ -533,7 +540,14 @@ function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEac
 /* ===== liste 3D ===== */
 function renderLists(){ const cl=$('circuitList');
   if(!circuits.length) cl.innerHTML='<p class="muted">Niciun circuit încă.</p>';
-  else { cl.innerHTML=''; circuits.forEach(c=>{ const sz=sizeCircuit(c); const el=document.createElement('div'); el.className='row'; el.innerHTML=`<span class="dot" style="background:${c.color}"></span>C${c.n} ${c.kind==='lumina'?'ilum.':'prize'} · ${Math.round(sz.P)}W → <b style="color:var(--ink)">${sz.breaker}A/${sz.section}mm²</b>${state.system==='tri'?(' · '+c.phase):''}`; cl.appendChild(el); }); }
+  else { cl.innerHTML=''; circuits.forEach(c=>{ const sz=sizeCircuit(c); const el=document.createElement('div'); el.className='row'; el.style.flexWrap='wrap';
+    el.innerHTML=`<span class="dot" style="background:${c.color}"></span><span style="flex:1">C${c.n} ${c.kind==='lumina'?'ilum.':'prize'} · ${Math.round(sz.P)}W → <b style="color:var(--ink)">${sz.breaker}A/${sz.section}mm²</b>${state.system==='tri'?(' · '+c.phase):''}</span>`;
+    const rec=c.kind==='lumina'?10:16; let warn='';
+    if(sz.I>sz.breaker+0.01) warn=`⚠ Depășește siguranța ${sz.breaker}A (consum ${sz.I.toFixed(1)}A)! Mărește secțiunea/siguranța sau împarte circuitul.`;
+    else if(sz.breaker>rec) warn=`⚠ Supraîncărcat: ${Math.round(sz.P)}W cer ${sz.breaker}A / ${sz.section}mm². Recomand să distribui pe mai multe circuite.`;
+    else if(sz.I>sz.breaker*0.8) warn=`ℹ Aproape de limită: ${sz.I.toFixed(1)}A din ${sz.breaker}A.`;
+    if(warn) el.innerHTML+=`<div style="flex-basis:100%;margin-top:4px;font-size:11px;line-height:1.4;color:${warn[0]==='⚠'?'#f87171':'#ffb020'}">${warn}</div>`;
+    cl.appendChild(el); }); }
   const dl=$('devList'); if(!devices.length){ dl.innerHTML='<p class="muted">Nimic plasat.</p>'; return; }
   dl.innerHTML='';
   const buildRow=(d)=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row'; el.style.flexWrap='wrap';
@@ -558,7 +572,10 @@ function renderLists(){ const cl=$('circuitList');
   dl.querySelectorAll('[data-s]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.s,10)); if(!d) return; const v=sel.value;
     if(v==='panel') d.source={kind:'panel'};
     else if(v.startsWith('doza:')) d.source={kind:'doza',id:parseInt(v.slice(5),10)};
-    else { const did=parseInt(v.slice(4),10); d.source={kind:'dev',id:did}; const sd=devices.find(x=>x.id===did); if(sd) d.circuit=sd.circuit; }
+    else { const did=parseInt(v.slice(4),10); const sd=devices.find(x=>x.id===did);
+      if(sd && sd.circuit!==d.circuit){ const cn=circuits.find(c=>c.id===d.circuit), scn=circuits.find(c=>c.id===sd.circuit);
+        if(!confirm(`Atenție: „${d.name}" e pe circuit C${cn?cn.n:'?'}, iar sursa „${sd.name}" e pe C${scn?scn.n:'?'}.\nPuntea le leagă electric — trebuie să fie pe ACELAȘI circuit.\n\nOK = le pun pe C${scn?scn.n:'?'} (al sursei).\nAnulează = nu fac puntea.`)){ renderLists(); return; } }
+      d.source={kind:'dev',id:did}; if(sd) d.circuit=sd.circuit; }
     updateDevLabel(d); renderWires(); renderLists(); });
   dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.direct=(sel.value==='1'); renderWires(); } }); }
 function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; const fb=devices[i].source||{kind:'panel'}; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); devices.forEach(d=>{ if(d.source&&d.source.kind==='dev'&&d.source.id===id) d.source={...fb}; }); renderWires(); renderLists(); }
@@ -656,7 +673,31 @@ async function exportPDF(){
   camera.position.copy(savePos); controls.target.copy(saveTgt); controls.enabled=saveEnabled; controls.update(); if(sel) selectEl(sel);
   doc.save('schita-instalatie-electrica.pdf');
 }
-$('genBOM').onclick=genBOM; $('genSchema').onclick=sendToSchema; $('genTut').onclick=genTut; $('genPanel').onclick=genPanel; $('genPDF').onclick=exportPDF;
+function genCheck(){
+  const msgs=[]; const add=(sev,t)=>msgs.push({sev,t}); const panel=panelDev();
+  if(!panel) add('error','Nu ai pus un tablou electric. Adaugă-l primul — el e sursa întregii instalații.');
+  if(!circuits.length) add('info','Nu ai circuite încă. Adaugă întrerupătoare/prize și atribuie-le pe circuite.');
+  circuits.forEach(c=>{ const sz=sizeCircuit(c); const devs=devices.filter(d=>d.circuit===c.id); const np=devs.filter(d=>d.type==='priza').length; const nb=devs.filter(d=>d.type==='bec').length; const rec=c.kind==='lumina'?10:16;
+    if(!devs.length){ add('info',`Circuit C${c.n} e gol — scoate-l sau adaugă-i elemente.`); return; }
+    if(sz.I>sz.breaker+0.01) add('error',`C${c.n}: consumul ${sz.I.toFixed(1)}A depășește siguranța ${sz.breaker}A. Mărește secțiunea cablului și siguranța, sau împarte pe mai multe circuite.`);
+    else if(sz.breaker>rec) add('warn',`C${c.n}: ${Math.round(sz.P)}W cer ${sz.breaker}A / ${sz.section}mm² — peste tipicul de ${rec}A. Recomand să distribui pe 2 circuite separate.`);
+    else if(sz.I>sz.breaker*0.8) add('warn',`C${c.n}: ești la ${sz.I.toFixed(1)}A din ${sz.breaker}A (peste 80%). Lasă rezervă sau mai adaugă un circuit.`);
+    if(c.kind==='prize' && np>10) add('warn',`C${c.n}: ${np} prize pe un circuit. Recomand maxim ~8-10 prize pe un circuit de 16A.`);
+    if(c.kind==='lumina' && nb>12) add('info',`C${c.n}: ${nb} corpuri de iluminat pe un circuit — verifică puterea totală.`);
+  });
+  if(state.system==='tri' && circuits.length){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); const vals=[acc.L1,acc.L2,acc.L3]; const mx=Math.max(...vals),mn=Math.min(...vals),avg=(vals.reduce((a,b)=>a+b,0)/3)||1;
+    if(mx-mn>avg*0.35 && mx>0){ const big=acc.L1===mx?'L1':acc.L2===mx?'L2':'L3', small=acc.L1===mn?'L1':acc.L2===mn?'L2':'L3'; add('warn',`Faze dezechilibrate: L1 ${Math.round(acc.L1)}W · L2 ${Math.round(acc.L2)}W · L3 ${Math.round(acc.L3)}W. Mută un circuit de pe ${big} pe ${small} ca să echilibrezi.`); }
+    else add('ok','Fazele sunt echilibrate rezonabil.');
+  }
+  if(panel){ const main=sizeMain(); add('info',`Siguranță generală recomandată: ${main.main}A (${state.system==='tri'?'3P':'1P'}) + diferențial (RCD) 30mA pentru protecție la electrocutare.`); }
+  add('ok','Înainte de orice: oprește curentul de la general și verifică cu testerul că nu mai e tensiune. Strânge bine toate bornele, închide dozele.');
+  if(panel && circuits.length && !msgs.some(m=>m.sev==='error'||m.sev==='warn')) add('ok','Instalația arată corect dimensionată și împărțită. ✓');
+  const icon={ok:'✅',info:'ℹ️',warn:'⚠️',error:'⛔'}; const col={ok:'#34d399',info:'#8696b0',warn:'#ffb020',error:'#f87171'};
+  let h=`<button class="close" id="mClose">✕</button><h2>🩺 Asistent — verificarea instalației</h2><div class="tut">`;
+  msgs.forEach(m=> h+=`<p style="color:${col[m.sev]};margin:7px 0;line-height:1.5">${icon[m.sev]} ${m.t}</p>`);
+  h+=`</div>`; openModal(h); $('mClose').onclick=closeModal;
+}
+$('genBOM').onclick=genBOM; $('genSchema').onclick=sendToSchema; $('genTut').onclick=genTut; $('genPanel').onclick=genPanel; $('genPDF').onclick=exportPDF; $('genCheck').onclick=genCheck;
 
 /* ===== sistem mono/tri ===== */
 function setSystem(s){ state.system=s; document.querySelectorAll('[data-sys-seg]').forEach(x=>x.classList.toggle('on',x.dataset.sysSeg===s)); if(circuits.length) renderLists(); }
