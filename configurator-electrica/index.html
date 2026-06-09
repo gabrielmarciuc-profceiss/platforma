@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Configurator electrică · plan 2D → 3D</title>
+<title>Configurator electrica · plan 2D → 3D</title>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
@@ -74,8 +74,8 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
 <body>
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" style="height:30px;width:auto;max-width:150px;object-fit:contain" onerror="this.style.display='none'">
-  <div class="brand">Configurator <b>electrică</b></div>
-  <div class="hint" id="topHint">Pasul 1 — desenează planul camerei în cm</div>
+  <div class="brand">Configurator <b>electrica</b></div>
+  <div class="hint" id="topHint">Pasul 1 — deseneaza planul camerei in cm</div>
   <button class="btn" id="toggleView" style="padding:7px 12px;flex:none">⇆ 2D / 3D</button>
   <button class="btn" id="undoBtn" style="padding:7px 12px;flex:none">↩ Undo</button>
   <div class="sysseg" id="sysSeg"><button data-sys-seg="mono">Monofazat</button><button data-sys-seg="tri">Trifazat</button></div>
@@ -84,57 +84,57 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
 <div class="main">
   <div class="canvaswrap" id="canvaswrap">
     <canvas id="planCanvas"></canvas>
-    <div class="hud" id="mode">Definește pereții în dreapta (lungime în cm + cotitură). Apasă <b>Ridică 3D</b> când e gata.</div>
+    <div class="hud" id="mode">Defineste peretii in dreapta (lungime in cm + cotitura). Apasa <b>Ridica 3D</b> cand e gata.</div>
     <div class="hud hidden" id="measure" style="top:10px;right:10px;text-align:right;max-width:60%"></div>
-    <div class="hud hidden" id="legend"><b>Fire:</b><span><i style="background:#e23b3b"></i>fază</span><span><i style="background:#2f6fd0"></i>nul</span><span><i style="background:#e6d200"></i>împământare</span><span><i style="background:#9aa3ad"></i>comutată</span><span style="opacity:.7">· 3~ L1/L2/L3:</span><span><i style="background:#e23b3b"></i></span><span><i style="background:#8a5a2b"></i></span><span><i style="background:#9aa3ad"></i></span></div>
+    <div class="hud hidden" id="legend"><b>Fire:</b><span><i style="background:#e23b3b"></i>faza</span><span><i style="background:#2f6fd0"></i>nul</span><span><i style="background:#e6d200"></i>impamantare</span><span><i style="background:#9aa3ad"></i>comutata</span><span style="opacity:.7">· 3~ L1/L2/L3:</span><span><i style="background:#e23b3b"></i></span><span><i style="background:#8a5a2b"></i></span><span><i style="background:#9aa3ad"></i></span></div>
     <div id="wmark">PROFCEISS</div>
   </div>
 
   <!-- PANOU PLAN -->
   <aside id="planPanel">
     <div class="sec"><div class="grid2">
-      <button class="btn" id="drawMode">✏️ Desenează</button>
-      <button class="btn on" id="editMode">🖐 Mută colțuri</button>
-      <button class="btn" id="closeShape">⭙ Închide contur</button>
-      <button class="btn" id="clearShape">🗑 Golește</button>
-    </div><p class="muted" id="planTool" style="margin-top:7px">Mută: trage colțurile. „Desenează": click adaugă colțuri.</p></div>
+      <button class="btn" id="drawMode">✏️ Deseneaza</button>
+      <button class="btn on" id="editMode">🖐 Muta colturi</button>
+      <button class="btn" id="closeShape">⭙ Inchide contur</button>
+      <button class="btn" id="clearShape">🗑 Goleste</button>
+    </div><p class="muted" id="planTool" style="margin-top:7px">Muta: trage colturile. „Deseneaza": click adauga colturi.</p></div>
     <div class="sec">
-      <h3>Pereți (segmente)</h3>
+      <h3>Pereti (segmente)</h3>
       <div id="wallRows"></div>
-      <button class="btn full" id="addWall">＋ Adaugă perete</button>
+      <button class="btn full" id="addWall">＋ Adauga perete</button>
       <p class="muted" id="planStatus" style="margin-top:8px"></p>
     </div>
     <div class="sec">
-      <h3>Înălțime cameră</h3>
+      <h3>Inaltime camera</h3>
       <div style="display:flex;align-items:center;gap:8px"><input id="height" type="number" min="200" max="400" value="260" style="width:90px"> <span class="muted">cm</span></div>
     </div>
     <div class="sec">
-      <h3>Goluri · uși · ferestre</h3>
+      <h3>Goluri · usi · ferestre</h3>
       <div id="opRows"></div>
-      <button class="btn full" id="addOp">＋ Adaugă gol/ușă/fereastră</button>
+      <button class="btn full" id="addOp">＋ Adauga gol/usa/fereastra</button>
     </div>
     <div class="sec">
-      <button class="btn act full" id="raise">⬆ Ridică planul în 3D</button>
+      <button class="btn act full" id="raise">⬆ Ridica planul in 3D</button>
     </div>
   </aside>
 
   <!-- PANOU 3D -->
   <aside id="elecPanel" class="hidden">
     <div class="sec">
-      <button class="btn full" id="backPlan">← Înapoi la plan</button>
+      <button class="btn full" id="backPlan">← Inapoi la plan</button>
     </div>
     <div class="sec">
-      <button class="btn full" id="cursorTool">🖐 Cursor — rotește / lucrează (nu plasează)</button>
-      <button class="btn full" id="undoBtn2" style="margin-top:8px">↩ Undo — anulează ultima acțiune</button>
+      <button class="btn full" id="cursorTool">🖐 Cursor — roteste / lucreaza (nu plaseaza)</button>
+      <button class="btn full" id="undoBtn2" style="margin-top:8px">↩ Undo — anuleaza ultima actiune</button>
     </div>
     <div class="sec">
-      <h3>Elemente cameră</h3>
+      <h3>Elemente camera</h3>
       <div class="grid2">
-        <button class="btn" data-add="usa">🚪 Ușă</button>
-        <button class="btn" data-add="gol_usa">⬚ Gol ușă</button>
-        <button class="btn" data-add="fereastra">🪟 Fereastră</button>
-        <button class="btn" data-add="gol_fereastra">⬚ Gol fereastră</button>
-        <button class="btn" data-add="treapta">▤ Treaptă</button>
+        <button class="btn" data-add="usa">🚪 Usa</button>
+        <button class="btn" data-add="gol_usa">⬚ Gol usa</button>
+        <button class="btn" data-add="fereastra">🪟 Fereastra</button>
+        <button class="btn" data-add="gol_fereastra">⬚ Gol fereastra</button>
+        <button class="btn" data-add="treapta">▤ Treapta</button>
         <button class="btn" data-add="pat">🛏️ Pat</button>
         <button class="btn" data-add="mobilier">🗄️ Mobilier</button>
       </div>
@@ -144,32 +144,32 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
       <div class="grid2">
         <button class="btn" data-add="tablou">🔲 Tablou</button>
         <button class="btn" data-add="bec">💡 Bec</button>
-        <button class="btn" data-add="intrerupator" data-sub="simplu">🔘 Întrerupător</button>
-        <button class="btn" data-add="intrerupator" data-sub="scara">🔘 Cap-scară</button>
+        <button class="btn" data-add="intrerupator" data-sub="simplu">🔘 Intrerupator</button>
+        <button class="btn" data-add="intrerupator" data-sub="scara">🔘 Cap-scara</button>
         <button class="btn" data-add="intrerupator" data-sub="cruce">🔘 Cap-cruce</button>
-        <button class="btn" data-add="priza">🔌 Priză</button>
-        <button class="btn" data-add="doza">🟡 Doză</button>
-        <button class="btn" id="cancelAdd">✖ Anulează</button>
+        <button class="btn" data-add="priza">🔌 Priza</button>
+        <button class="btn" data-add="doza">🟡 Doza</button>
+        <button class="btn" id="cancelAdd">✖ Anuleaza</button>
       </div>
       <p class="muted" id="addInfo" style="margin-top:8px"></p>
     </div>
-    <div class="sec"><h3>Cameră · plasate</h3><div class="list" id="roomList"><p class="muted">Nimic.</p></div>
-      <p class="muted" style="margin-top:7px">Aici apar ușile, golurile, ferestrele și mobilierul. Apasă <b>✎ dim.</b> ca să editezi lățimea / înălțimea (și adâncimea la mobilier).</p></div>
-    <div class="sec"><h3>Circuite</h3><div class="list" id="circuitList"><p class="muted">Niciun circuit încă.</p></div></div>
+    <div class="sec"><h3>Camera · plasate</h3><div class="list" id="roomList"><p class="muted">Nimic.</p></div>
+      <p class="muted" style="margin-top:7px">Aici apar usile, golurile, ferestrele si mobilierul. Apasa <b>✎ dim.</b> ca sa editezi latimea / inaltimea (si adancimea la mobilier).</p></div>
+    <div class="sec"><h3>Circuite</h3><div class="list" id="circuitList"><p class="muted">Niciun circuit inca.</p></div></div>
     <div class="sec"><h3>Elemente · putere</h3><div class="list" id="devList"><p class="muted">Nimic plasat.</p></div>
-      <p class="muted" style="margin-top:8px">Setează puterea (W) la becuri/prize — dimensionez cablul și siguranța din ea.</p></div>
-    <div class="sec"><p class="muted">Sursa și <b>tipul de traseu</b> (standard / pe sus / direct) se aleg <b>individual la fiecare piesă</b>, în lista de mai jos.</p></div>
+      <p class="muted" style="margin-top:8px">Seteaza puterea (W) la becuri/prize — dimensionez cablul si siguranta din ea.</p></div>
+    <div class="sec"><p class="muted">Sursa si <b>tipul de traseu</b> (standard / pe sus / direct) se aleg <b>individual la fiecare piesa</b>, in lista de mai jos.</p></div>
     <div class="sec"><h3>Proiect</h3><div class="list">
-      <button class="btn gen full" id="saveProj" style="background:#fff4e0;border-color:#ecd0a0">💾 Salvează proiect</button>
+      <button class="btn gen full" id="saveProj" style="background:#fff4e0;border-color:#ecd0a0">💾 Salveaza proiect</button>
       <button class="btn gen full" id="openProj">📂 Proiectele mele</button>
-    </div><p class="muted" style="margin-top:6px">Lucrarea se salvează <b>automat</b>. La reîncărcarea paginii o reiei de unde ai rămas. Apasă „Salvează" ca să o păstrezi cu nume și să o poți reîncărca oricând.</p></div>
-    <div class="sec"><h3>Generează</h3><div class="list">
-      <button class="btn gen full" id="genBOM">📋 Listă de materiale</button>
-      <button class="btn gen full" id="genSchema">📐 Trimite în schema monofilară</button>
+    </div><p class="muted" style="margin-top:6px">Lucrarea se salveaza <b>automat</b>. La reincarcarea paginii o reiei de unde ai ramas. Apasa „Salveaza" ca sa o pastrezi cu nume si sa o poti reincarca oricand.</p></div>
+    <div class="sec"><h3>Genereaza</h3><div class="list">
+      <button class="btn gen full" id="genBOM">📋 Lista de materiale</button>
+      <button class="btn gen full" id="genSchema">📐 Trimite in schema monofilara</button>
       <button class="btn gen full" id="genTut">🎓 Tutorial cablare</button>
       <button class="btn gen full" id="genPanel">🗄️ Editor tablou electric</button>
-      <button class="btn gen full" id="genPDF">📄 Export PDF schiță (2D + 3D)</button>
-      <button class="btn gen full" id="genCheck" style="background:#e3f5ea;border-color:#bfe3cc">🩺 Verifică instalația (asistent)</button>
+      <button class="btn gen full" id="genPDF">📄 Export PDF schita (2D + 3D)</button>
+      <button class="btn gen full" id="genCheck" style="background:#e3f5ea;border-color:#bfe3cc">🩺 Verifica instalatia (asistent)</button>
       <button class="btn gen full" id="genDXF">📐 Export DXF (pentru CAD)</button>
       <button class="btn gen full" id="genSTL">🧱 Export STL (3D mesh)</button>
     </div></div>
@@ -186,23 +186,23 @@ const U=230, COLORS=['#ffb020','#46b4ff','#34d399','#f87171','#a78bfa','#fb7185'
 const STD=[10,16,20,25,32,40], MAINSTD=[16,20,25,32,40,50,63];
 const SECT={10:'1,5',16:'2,5',20:'2,5',25:'4',32:'6',40:'10'};
 const AMP={'1,5':16,'2,5':20,'4':25,'6':32,'10':50}; const SECTIONS=['1,5','2,5','4','6','10'];
-const COND={ L:'#e23b3b', N:'#2f6fd0', PE:'#e6d200', SW:'#9aa3ad' };  // fază roșu, nul albastru, împământare galben, comutată gri
-const PHASE_COL={ L1:'#e23b3b', L2:'#8a5a2b', L3:'#9aa3ad' };          // trifazat: roșu / maro / gri
+const COND={ L:'#e23b3b', N:'#2f6fd0', PE:'#e6d200', SW:'#9aa3ad' };  // faza rosu, nul albastru, impamantare galben, comutata gri
+const PHASE_COL={ L1:'#e23b3b', L2:'#8a5a2b', L3:'#9aa3ad' };          // trifazat: rosu / maro / gri
 const $=id=>document.getElementById(id);
 
 /* ===== stare ===== */
 const state={system:'mono', mode:'plan'};
-const route={mode:'chain', path:'tavan', shortLight:false};   // mode: chain|each · path: tavan|podea · shortLight: punte directă pe tavan la iluminat
-const listOpen={};   // expand/collapse categorii în listă
-let H=2.6;                                   // înălțime cameră (m)
+const route={mode:'chain', path:'tavan', shortLight:false};   // mode: chain|each · path: tavan|podea · shortLight: punte directa pe tavan la iluminat
+const listOpen={};   // expand/collapse categorii in lista
+let H=2.6;                                   // inaltime camera (m)
 const plan={ points:[ {x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3} ], closed:true, openings:[] };
 let planMode='edit', planDrag=-1, planMap={s:1,ox:0,oy:0};
-const OPEN_DEF={ usa:{sill:0,head:2.05,w:0.9,label:'Ușă'}, gol_usa:{sill:0,head:2.05,w:0.9,label:'Gol ușă'}, fereastra:{sill:0.9,head:2.1,w:1.2,label:'Fereastră'}, gol_fereastra:{sill:0.9,head:2.1,w:1.2,label:'Gol fereastră'} };
+const OPEN_DEF={ usa:{sill:0,head:2.05,w:0.9,label:'Usa'}, gol_usa:{sill:0,head:2.05,w:0.9,label:'Gol usa'}, fereastra:{sill:0.9,head:2.1,w:1.2,label:'Fereastra'}, gol_fereastra:{sill:0.9,head:2.1,w:1.2,label:'Gol fereastra'} };
 
 const DEF_POWER={bec:10,priza:2000,intrerupator:0,tablou:0};
-const ADD={ tablou:{label:'Tablou electric',h:1.45,kind:null}, intrerupator:{label:'Întrerupător',h:1.10,kind:'lumina'}, bec:{label:'Bec',h:null,kind:'lumina'}, priza:{label:'Priză',h:0.30,kind:'prize'} };
+const ADD={ tablou:{label:'Tablou electric',h:1.45,kind:null}, intrerupator:{label:'Intrerupator',h:1.10,kind:'lumina'}, bec:{label:'Bec',h:null,kind:'lumina'}, priza:{label:'Priza',h:0.30,kind:'prize'} };
 const ROOMEL={ usa:'opening', gol_usa:'opening', fereastra:'opening', gol_fereastra:'opening', treapta:'furniture', pat:'furniture', mobilier:'furniture' };
-const FURN={ pat:{w:1.6,h:0.5,d:2.0,color:0x5a6472,label:'Pat'}, mobilier:{w:0.8,h:2.0,d:0.6,color:0x8a6d3b,label:'Mobilier'}, treapta:{w:1.0,h:0.15,d:0.4,color:0x44505f,label:'Treaptă'} };
+const FURN={ pat:{w:1.6,h:0.5,d:2.0,color:0x5a6472,label:'Pat'}, mobilier:{w:0.8,h:2.0,d:0.6,color:0x8a6d3b,label:'Mobilier'}, treapta:{w:1.0,h:0.15,d:0.4,color:0x44505f,label:'Treapta'} };
 const props=[]; const history=[];
 
 let scene,camera,renderer,controls,raycaster; const pointer=new THREE.Vector2();
@@ -241,7 +241,7 @@ function drawPlan(){
     const a={x:e.p1.x+ux*o.pos, z:e.p1.z+uz*o.pos}, b={x:e.p1.x+ux*(o.pos+o.w), z:e.p1.z+uz*(o.pos+o.w)};
     px.strokeStyle=o.type.startsWith('gol')?'#34d399':'#f2c14e'; px.lineWidth=6; px.beginPath(); px.moveTo(X(a.x),Y(a.z)); px.lineTo(X(b.x),Y(b.z)); px.stroke(); });
 }
-/* screen → world + interacțiune mouse pe plan */
+/* screen → world + interactiune mouse pe plan */
 function pcWorld(e){ const r=pc.getBoundingClientRect(); const sx=e.clientX-r.left, sy=e.clientY-r.top; return {x:(sx-planMap.ox)/planMap.s, z:(planMap.oy-sy)/planMap.s}; }
 const snap=v=>Math.round(v/0.05)*0.05;
 pc.addEventListener('pointerdown',e=>{ if(state.mode!=='plan') return; const w=pcWorld(e);
@@ -249,7 +249,7 @@ pc.addEventListener('pointerdown',e=>{ if(state.mode!=='plan') return; const w=p
   else { let bi=-1,bd=0.3; plan.points.forEach((p,i)=>{ const d=Math.hypot(w.x-p.x,w.z-p.z); if(d<bd){bd=d;bi=i;} }); planDrag=bi; } });
 pc.addEventListener('pointermove',e=>{ if(state.mode!=='plan'||planDrag<0) return; const w=pcWorld(e); plan.points[planDrag].x=snap(w.x); plan.points[planDrag].z=snap(w.z); renderWallRows(); refreshPlan(); });
 window.addEventListener('pointerup',()=>{ planDrag=-1; });
-function setPlanModeUI(){ $('drawMode').classList.toggle('on',planMode==='draw'); $('editMode').classList.toggle('on',planMode==='edit'); $('planTool').textContent= planMode==='draw'?'Desenează: click adaugă colțuri; click pe primul colț (verde) închide conturul.':'Mută: trage colțurile (punctele galbene).'; }
+function setPlanModeUI(){ $('drawMode').classList.toggle('on',planMode==='draw'); $('editMode').classList.toggle('on',planMode==='edit'); $('planTool').textContent= planMode==='draw'?'Deseneaza: click adauga colturi; click pe primul colt (verde) inchide conturul.':'Muta: trage colturile (punctele galbene).'; }
 
 /* ===== PLAN: UI ===== */
 function renderWallRows(){
@@ -269,7 +269,7 @@ function renderOpRows(){
     el.innerHTML=`<div style="font-size:12px">${OPEN_DEF[o.type].label} · P${o.wall+1} · la ${Math.round(o.pos*100)}cm · lat ${Math.round(o.w*100)}cm</div><button class="x" data-delo="${i}">✕</button>`; c.appendChild(el); });
   c.querySelectorAll('[data-delo]').forEach(b=> b.onclick=()=>{ plan.openings.splice(+b.dataset.delo,1); renderOpRows(); refreshPlan(); });
 }
-function refreshPlan(){ const closed=isClosed(); $('planStatus').innerHTML = closed?('<span style="color:var(--good)">✓ Contur închis · '+plan.points.length+' colțuri</span>'):'<span style="color:var(--bad)">Contur deschis — închide-l (buton sau click pe primul colț)</span>'; drawPlan(); }
+function refreshPlan(){ const closed=isClosed(); $('planStatus').innerHTML = closed?('<span style="color:var(--good)">✓ Contur inchis · '+plan.points.length+' colturi</span>'):'<span style="color:var(--bad)">Contur deschis — inchide-l (buton sau click pe primul colt)</span>'; drawPlan(); }
 $('addWall').onclick=()=>{ const p=plan.points[plan.points.length-1]||{x:0,z:0}; plan.points.push({x:p.x+1,z:p.z}); plan.closed=false; renderWallRows(); refreshPlan(); };
 $('drawMode').onclick=()=>{ planMode='draw'; setPlanModeUI(); };
 $('editMode').onclick=()=>{ planMode='edit'; setPlanModeUI(); };
@@ -279,12 +279,12 @@ $('height').onchange=e=>{ H=Math.max(2.0,Math.min(4.0,(parseInt(e.target.value,1
 $('addOp').onclick=()=>{
   const opts=Object.entries(OPEN_DEF).map(([k,d])=>`<option value="${k}">${d.label}</option>`).join('');
   const wopts=edges().out.map(e=>`<option value="${e.i}">P${e.i+1} (${Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100)}cm)</option>`).join('');
-  openModal(`<button class="close" id="mClose">✕</button><h2>Adaugă gol / ușă / fereastră</h2>
+  openModal(`<button class="close" id="mClose">✕</button><h2>Adauga gol / usa / fereastra</h2>
     <label class="fld">Tip</label><select id="opType">${opts}</select>
     <label class="fld" style="margin-top:8px">Pe ce perete</label><select id="opWall">${wopts}</select>
-    <label class="fld" style="margin-top:8px">Poziție de la început (cm)</label><input id="opPos" type="number" min="0" value="20">
-    <label class="fld" style="margin-top:8px">Lățime (cm)</label><input id="opW" type="number" min="20" value="90">
-    <div class="dl"><button class="btn act" id="opAdd">Adaugă</button></div>`);
+    <label class="fld" style="margin-top:8px">Pozitie de la inceput (cm)</label><input id="opPos" type="number" min="0" value="20">
+    <label class="fld" style="margin-top:8px">Latime (cm)</label><input id="opW" type="number" min="20" value="90">
+    <div class="dl"><button class="btn act" id="opAdd">Adauga</button></div>`);
   $('mClose').onclick=closeModal;
   $('opAdd').onclick=()=>{ const type=$('opType').value, d=OPEN_DEF[type]; plan.openings.push({type, wall:parseInt($('opWall').value,10), pos:(parseInt($('opPos').value,10)||0)/100, w:(parseInt($('opW').value,10)||90)/100, sill:d.sill, head:d.head}); closeModal(); renderOpRows(); refreshPlan(); };
 };
@@ -314,11 +314,11 @@ function animate(){ requestAnimationFrame(animate); if(controls) controls.update
 function buildRoom3D(){
   while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]); surfaces.length=0;
   const {v,out}=edges(); const c=centroid();
-  // podea + tavan (formă poligon)
+  // podea + tavan (forma poligon)
   const shape=new THREE.Shape(); v.slice(0,-1).forEach((p,i)=> i?shape.lineTo(p.x,p.z):shape.moveTo(p.x,p.z)); shape.closePath();
   const floor=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0xdbe4f0,roughness:.95,side:THREE.DoubleSide})); floor.rotation.x=Math.PI/2; floor.userData={kind:'floor'}; roomGroup.add(floor); surfaces.push(floor);
   const ceil=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0xeef3f9,roughness:.95,transparent:true,opacity:.35,side:THREE.DoubleSide})); ceil.rotation.x=Math.PI/2; ceil.position.y=H; ceil.userData={kind:'ceiling'}; roomGroup.add(ceil); surfaces.push(ceil);
-  // pereți cu goluri
+  // pereti cu goluri
   out.forEach(e=>{
     const p1=new THREE.Vector3(e.p1.x,0,e.p1.z), p2=new THREE.Vector3(e.p2.x,0,e.p2.z);
     const dir=p2.clone().sub(p1); const L=dir.length(); dir.normalize();
@@ -330,12 +330,12 @@ function buildRoom3D(){
     solids.forEach(([u0,u1,v0,v1])=> addPanel(p1,dir,nrm,u0,u1,v0,v1,e.i));
     ops.forEach(o=>{ if(o.type==='usa') addFill(p1,dir,nrm,o,0x6b4a2f,1); else if(o.type==='fereastra') addFill(p1,dir,nrm,o,0x9fd2ff,0.45); });
   });
-  // structură groasă: stâlpi în colțuri + grinzi sus/jos
+  // structura groasa: stalpi in colturi + grinzi sus/jos
   const frameMat=new THREE.MeshStandardMaterial({color:0x8593ad,roughness:.8});
   const beam=(p1,p2,th)=>{ const dir=new THREE.Vector3().subVectors(p2,p1); const len=dir.length(); if(len<0.001) return; const m=new THREE.Mesh(new THREE.BoxGeometry(len,th,th), frameMat); m.position.copy(p1).addScaledVector(dir,0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), dir.clone().normalize()); roomGroup.add(m); };
   v.slice(0,-1).forEach(c2=>{ beam(new THREE.Vector3(c2.x,0,c2.z), new THREE.Vector3(c2.x,H,c2.z), 0.12); });
   out.forEach(e=>{ beam(new THREE.Vector3(e.p1.x,0,e.p1.z), new THREE.Vector3(e.p2.x,0,e.p2.z), 0.09); beam(new THREE.Vector3(e.p1.x,H,e.p1.z), new THREE.Vector3(e.p2.x,H,e.p2.z), 0.09); });
-  // cameră încadrare
+  // camera incadrare
   let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; v.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
   const cx=(mnx+mxx)/2, cz=(mnz+mxz)/2, span=Math.max(mxx-mnx,mxz-mnz,2);
   controls.target.set(cx,H*0.45,cz); camera.position.set(cx+span*1.1, H*1.6, cz+span*1.3); controls.update();
@@ -371,15 +371,15 @@ function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.dom
   else if(addType==='doza'){ placeDoza(h); clearAddTool(); }
   else placeDevice(addType,h).then(()=>clearAddTool()).catch(()=>clearAddTool());
 }
-function clearAddTool(){ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); const ai=$('addInfo'); if(ai) ai.textContent='Element plasat. Pentru altul, apasă din nou butonul. (Acum poți roti liber.)'; if(controls) controls.enabled=true; }
+function clearAddTool(){ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); const ai=$('addInfo'); if(ai) ai.textContent='Element plasat. Pentru altul, apasa din nou butonul. (Acum poti roti liber.)'; if(controls) controls.enabled=true; }
 async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.userData; let pos=hit.point.clone(); let normal=ud.normal?ud.normal.clone():new THREE.Vector3(0,-1,0);
   if(ud.kind==='wall'){ pos.add(normal.clone().multiplyScalar(0.03)); if(a.h!=null) pos.y=a.h; pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); } else if(ud.kind==='ceiling'){ pos.y=H-0.02; }
-  if(type==='tablou'&&devices.some(d=>d.type==='tablou')){ alert('Există deja un tablou.'); return; }
+  if(type==='tablou'&&devices.some(d=>d.type==='tablou')){ alert('Exista deja un tablou.'); return; }
   let circuit=null, doza=null; if(a.kind){ const asg=await chooseAssignment(a.kind); if(!asg) return; circuit=asg.circuit; doza=asg.doza; }
   let source={kind:'panel'};
   if(doza){ if(route.mode==='chain' && (type==='priza'||type==='bec')){ const sib=devices.filter(x=>x.type===type&&x.doza===doza&&x.circuit===circuit); source=sib.length?{kind:'dev',id:sib[sib.length-1].id}:{kind:'doza',id:doza}; } else source={kind:'doza',id:doza}; }
   const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
-  const subName = type==='intrerupator' ? ({simplu:'Întrerupător',scara:'Cap-scară',cruce:'Cap-cruce'}[addSub]||'Întrerupător') : ADD[type].label;
+  const subName = type==='intrerupator' ? ({simplu:'Intrerupator',scara:'Cap-scara',cruce:'Cap-cruce'}[addSub]||'Intrerupator') : ADD[type].label;
   const dev={id:uid++,type,circuit,doza,source,sub:(type==='intrerupator'?addSub:undefined),route:'sus',power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind,name:subName+' '+(devices.filter(x=>x.type===type).length+1)}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
   updateDevLabel(dev);
   renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id)); }
@@ -390,25 +390,25 @@ function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit
   else if(type==='bec'){ g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.02,16),new THREE.MeshStandardMaterial({color:0xdddddf}))); const b=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,12),new THREE.MeshStandardMaterial({color:0xfff2b0,emissive:0xffd24d,emissiveIntensity:.7})); b.position.y=-0.08; g.add(b); }
   return g; }
 
-/* ===== elemente cameră · doze manuale · undo ===== */
+/* ===== elemente camera · doze manuale · undo ===== */
 function pushHistory(fn){ history.push(fn); }
 function undo(){ const f=history.pop(); if(f) f(); }
-function makeDozaMesh(text){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.03,20),new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.1,roughness:.6}))); const r=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.008,8,24),new THREE.MeshStandardMaterial({color:0x6b4a10})); r.rotation.x=Math.PI/2; g.add(r); const lab=makeLabel(text||'doză','#f2c14e'); g.add(lab); lab.position.set(0,0.13,0); return g; }
-function addOpeningAt(type,hit){ const ud=hit.object.userData; if(ud.kind!=='wall'){ alert('Click pe un perete pentru ușă/fereastră/gol.'); return; }
+function makeDozaMesh(text){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.03,20),new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.1,roughness:.6}))); const r=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.008,8,24),new THREE.MeshStandardMaterial({color:0x6b4a10})); r.rotation.x=Math.PI/2; g.add(r); const lab=makeLabel(text||'doza','#f2c14e'); g.add(lab); lab.position.set(0,0.13,0); return g; }
+function addOpeningAt(type,hit){ const ud=hit.object.userData; if(ud.kind!=='wall'){ alert('Click pe un perete pentru usa/fereastra/gol.'); return; }
   const e=edges().out[ud.wall]; if(!e) return; const p1=new THREE.Vector3(e.p1.x,0,e.p1.z); const dir=new THREE.Vector3(e.p2.x-e.p1.x,0,e.p2.z-e.p1.z); const L=dir.length(); dir.normalize();
   const along=Math.max(0,Math.min(L,hit.point.clone().sub(p1).dot(dir))); const d=OPEN_DEF[type]; const w=Math.min(d.w,L); const pos=Math.max(0,Math.min(Math.max(0,L-w),along-w/2));
   const op={type,wall:ud.wall,pos,w,sill:d.sill,head:Math.min(d.head,H)}; plan.openings.push(op); buildRoom3D(); renderWires(); renderRoomList();
   pushHistory(()=>{ const i=plan.openings.indexOf(op); if(i>=0){ plan.openings.splice(i,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
 function placeFurniture(type,hit){ const f=FURN[type]; const dim={w:f.w,h:f.h,d:f.d}; const m=new THREE.Mesh(new THREE.BoxGeometry(dim.w,dim.h,dim.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); const p=hit.point.clone(); p.y=dim.h/2; m.position.copy(p); scene.add(m); const pr={id:uid++,type,mesh:m,label:f.label,kind:'prop',dim}; props.push(pr); m.userData={el:'prop',id:pr.id}; renderRoomList(); pushHistory(()=>removeProp(pr.id)); }
 function editFurniture(id){ const pr=props.find(p=>p.id===id); if(!pr||!pr.dim) return; const d=pr.dim;
-  openModal(`<button class="close" id="mClose">✕</button><h2>Editează ${pr.label}</h2><label class="fld">Lățime (cm)</label><input id="fW" type="number" value="${Math.round(d.w*100)}"><label class="fld" style="margin-top:8px">Înălțime (cm)</label><input id="fH" type="number" value="${Math.round(d.h*100)}"><label class="fld" style="margin-top:8px">Adâncime (cm)</label><input id="fD" type="number" value="${Math.round(d.d*100)}"><div class="dl"><button class="btn act" id="fApply">Aplică</button></div>`);
+  openModal(`<button class="close" id="mClose">✕</button><h2>Editeaza ${pr.label}</h2><label class="fld">Latime (cm)</label><input id="fW" type="number" value="${Math.round(d.w*100)}"><label class="fld" style="margin-top:8px">Inaltime (cm)</label><input id="fH" type="number" value="${Math.round(d.h*100)}"><label class="fld" style="margin-top:8px">Adancime (cm)</label><input id="fD" type="number" value="${Math.round(d.d*100)}"><div class="dl"><button class="btn act" id="fApply">Aplica</button></div>`);
   $('mClose').onclick=closeModal;
   $('fApply').onclick=()=>{ d.w=Math.max(0.05,(parseInt($('fW').value,10)||50)/100); d.h=Math.max(0.05,(parseInt($('fH').value,10)||50)/100); d.d=Math.max(0.05,(parseInt($('fD').value,10)||50)/100); const keep=pr.mesh.position.clone(); keep.y=d.h/2; pr.mesh.geometry.dispose(); pr.mesh.geometry=new THREE.BoxGeometry(d.w,d.h,d.d); pr.mesh.position.copy(keep); closeModal(); }; }
 function placeDoza(hit){ const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03));
   const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); scene.add(g);
   const dz={id:uid++,n,pos:p.clone(),mesh:g,source:{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); renderLists(); renderWires(); pushHistory(()=>removeDoza(dz.id)); }
 function removeDoza(id){ const i=dozas.findIndex(d=>d.id===id); if(i<0) return; const fb=dozas[i].source||{kind:'panel'}; scene.remove(dozas[i].mesh); dozas.splice(i,1); devices.forEach(d=>{ if(d.doza===id) d.doza=null; if(d.source&&d.source.kind==='doza'&&d.source.id===id) d.source={...fb}; }); renderRoomList(); renderLists(); renderWires(); }
-/* ===== selecție + mutare (drag) ===== */
+/* ===== selectie + mutare (drag) ===== */
 let selectedEl=null, dragging=null, wireTO=null;
 function elObj(sel){ return sel.kind==='dev'?devices.find(d=>d.id===sel.id):(sel.kind==='prop'?props.find(p=>p.id===sel.id):dozas.find(d=>d.id===sel.id)); }
 function elPos(el){ return el.pos?el.pos:el.mesh.position; }
@@ -436,14 +436,14 @@ function updateMeasure(el){ const p=elPos(el); const dw=Math.round(distToWalls(p
     `<span style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;justify-content:flex-end"><span style="font-size:11px">podea</span><input id="mFloor" type="number" value="${Math.round(p.y*100)}" style="${inp}"><span style="font-size:11px">tavan</span><input id="mCeil" type="number" value="${Math.round((H-p.y)*100)}" style="${inp}"></span>`;
   const f=$('mFloor'), c=$('mCeil'); if(f) f.onchange=()=>setElY(el,(parseInt(f.value,10)||0)/100); if(c) c.onchange=()=>setElY(el,H-(parseInt(c.value,10)||0)/100); }
 function setElY(el,y){ y=Math.max(0,Math.min(H,y)); if(el.pos) el.pos.y=y; el.mesh.position.y=y; renderWires(); updateMeasure(el); }
-/* editează dimensiuni gol */
+/* editeaza dimensiuni gol */
 function editOpening(idx){ const o=plan.openings[idx]; if(!o) return; const win=o.type.includes('fereastra');
-  openModal(`<button class="close" id="mClose">✕</button><h2>Editează ${OPEN_DEF[o.type].label}</h2>
-   <label class="fld">Lățime (cm)</label><input id="eW" type="number" value="${Math.round(o.w*100)}">
-   <label class="fld" style="margin-top:8px">Înălțime gol (cm)</label><input id="eH" type="number" value="${Math.round((o.head-o.sill)*100)}">
-   ${win?`<label class="fld" style="margin-top:8px">Înălțime prag de la podea (cm)</label><input id="eS" type="number" value="${Math.round(o.sill*100)}">`:''}
-   <label class="fld" style="margin-top:8px">Poziție de la început (cm)</label><input id="eP" type="number" value="${Math.round(o.pos*100)}">
-   <div class="dl"><button class="btn act" id="eApply">Aplică</button></div>`);
+  openModal(`<button class="close" id="mClose">✕</button><h2>Editeaza ${OPEN_DEF[o.type].label}</h2>
+   <label class="fld">Latime (cm)</label><input id="eW" type="number" value="${Math.round(o.w*100)}">
+   <label class="fld" style="margin-top:8px">Inaltime gol (cm)</label><input id="eH" type="number" value="${Math.round((o.head-o.sill)*100)}">
+   ${win?`<label class="fld" style="margin-top:8px">Inaltime prag de la podea (cm)</label><input id="eS" type="number" value="${Math.round(o.sill*100)}">`:''}
+   <label class="fld" style="margin-top:8px">Pozitie de la inceput (cm)</label><input id="eP" type="number" value="${Math.round(o.pos*100)}">
+   <div class="dl"><button class="btn act" id="eApply">Aplica</button></div>`);
   $('mClose').onclick=closeModal;
   $('eApply').onclick=()=>{ o.w=Math.max(0.2,(parseInt($('eW').value,10)||90)/100); const hh=Math.max(0.2,(parseInt($('eH').value,10)||205)/100); o.sill=win?Math.max(0,(parseInt($('eS').value,10)||90)/100):0; o.head=Math.min(H,o.sill+hh); o.pos=Math.max(0,(parseInt($('eP').value,10)||0)/100); closeModal(); buildRoom3D(); renderWires(); renderRoomList(); }; }
 function removeProp(id){ const i=props.findIndex(p=>p.id===id); if(i<0) return; scene.remove(props[i].mesh); props.splice(i,1); renderRoomList(); }
@@ -472,7 +472,7 @@ function chooseCircuit(kind){ return new Promise(resolve=>{ const existing=circu
   }
   function step2(){
     assignPhases(); const load={L1:0,L2:0,L3:0}; circuits.forEach(c=>{ load[c.phase]=(load[c.phase]||0)+circPower(c); });
-    let html=`<button class="close" id="mClose">✕</button><h2>Pe ce fază pui circuitul nou?</h2><p class="muted">Echilibrează încărcarea pe cele 3 faze:</p><div class="cbtns">`;
+    let html=`<button class="close" id="mClose">✕</button><h2>Pe ce faza pui circuitul nou?</h2><p class="muted">Echilibreaza incarcarea pe cele 3 faze:</p><div class="cbtns">`;
     ['L1','L2','L3'].forEach(ph=>{ html+=`<button class="btn" data-ph="${ph}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${PHASE_COL[ph]};margin-right:8px"></span>Faza ${ph} — ${Math.round(load[ph])} W deja</button>`; });
     html+=`</div>`; openModal(html);
     $('mClose').onclick=()=>done(null);
@@ -482,11 +482,11 @@ function chooseCircuit(kind){ return new Promise(resolve=>{ const existing=circu
   step1(); }); }
 function chooseDoza(kind){ return new Promise(resolve=>{ const done=v=>{ closeModal(); resolve(v); };
   const avail=dozas.filter(z=>{ const k=dozaKind(z); return k===null||k===kind; });
-  let html=`<button class="close" id="mClose">✕</button><h2>Pe ce doză te legi?</h2>`;
-  if(!avail.length) html+=`<p class="muted">Nu ai doze libere pentru <b>${kind==='lumina'?'iluminat':'prize'}</b>. Pune o doză nouă, sau leagă direct la tablou. (Dozele de prize și de iluminat nu se amestecă.)</p>`;
+  let html=`<button class="close" id="mClose">✕</button><h2>Pe ce doza te legi?</h2>`;
+  if(!avail.length) html+=`<p class="muted">Nu ai doze libere pentru <b>${kind==='lumina'?'iluminat':'prize'}</b>. Pune o doza noua, sau leaga direct la tablou. (Dozele de prize si de iluminat nu se amesteca.)</p>`;
   html+=`<div class="cbtns">`;
-  avail.forEach(d=>{ const k=dozaKind(d); html+=`<button class="btn" data-dz="${d.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#f2c14e;margin-right:8px"></span>Doza ${d.n}${k?(' · '+(k==='lumina'?'iluminat':'prize')):' · liberă'}</button>`; });
-  html+=`<button class="btn" data-dz="0">Direct la tablou (fără doză)</button></div>`;
+  avail.forEach(d=>{ const k=dozaKind(d); html+=`<button class="btn" data-dz="${d.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#f2c14e;margin-right:8px"></span>Doza ${d.n}${k?(' · '+(k==='lumina'?'iluminat':'prize')):' · libera'}</button>`; });
+  html+=`<button class="btn" data-dz="0">Direct la tablou (fara doza)</button></div>`;
   openModal(html); $('mClose').onclick=()=>done(false);
   $('modalBody').querySelectorAll('[data-dz]').forEach(b=> b.onclick=()=>{ const v=parseInt(b.dataset.dz,10); done(v===0?null:v); });
   $('modal').onclick=e=>{ if(e.target===$('modal')) done(false); }; }); }
@@ -498,13 +498,13 @@ function closeModal(){ $('modal').classList.remove('on'); $('modal').onclick=nul
 function panelDev(){ return devices.find(d=>d.type==='tablou'); }
 function srcPos(src){ const pn=panelDev(); const def=pn?pn.pos:new THREE.Vector3(); if(!src||src.kind==='panel') return def; if(src.kind==='doza'){ const z=dozas.find(d=>d.id===src.id); return z?z.pos:def; } const dv=devices.find(d=>d.id===src.id); return dv?dv.pos:def; }
 function dozaKind(z){ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return null; const c=circuits.find(x=>x.id===child.circuit); return c?c.kind:null; }
-/* ===== rutare pe perimetrul camerei (firele nu ies din spațiu) ===== */
+/* ===== rutare pe perimetrul camerei (firele nu ies din spatiu) ===== */
 let PERIM=null;
 function buildPerim(){ const {v}=edges(); const pts=v.slice(0,-1); if(pts.length<2){ PERIM=null; return; } const m=pts.length; const cum=[0]; let L=0; for(let i=0;i<m;i++){ const a=pts[i], b=pts[(i+1)%m]; L+=Math.hypot(b.x-a.x,b.z-a.z); cum.push(L); } PERIM={pts,cum,Ltot:L,m}; }
 function projPerim(P){ if(!PERIM) return {x:P.x,z:P.z,s:0,edge:null}; let best=null; for(let i=0;i<PERIM.m;i++){ const a=PERIM.pts[i], b=PERIM.pts[(i+1)%PERIM.m]; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; let t=((P.x-a.x)*dx+(P.z-a.z)*dz)/(ln*ln); t=Math.max(0,Math.min(1,t)); const cx=a.x+t*dx, cz=a.z+t*dz; const d=Math.hypot(P.x-cx,P.z-cz); if(!best||d<best.d) best={d,x:cx,z:cz,s:PERIM.cum[i]+t*ln,edge:i}; } return best; }
 function perimMids(sA,sB){ if(!PERIM) return []; const Lt=PERIM.Ltot; const fwdDist=((sB-sA)%Lt+Lt)%Lt; const fwd=fwdDist<=Lt-fwdDist; const dist=fwd?fwdDist:Lt-fwdDist; const out=[]; for(let k=0;k<PERIM.m;k++){ const cs=PERIM.cum[k]; const dd=fwd?(((cs-sA)%Lt+Lt)%Lt):(((sA-cs)%Lt+Lt)%Lt); if(dd>0.001 && dd<dist-0.001) out.push({d:dd,p:PERIM.pts[k]}); } out.sort((x,y)=>x.d-y.d); return out.map(o=>o.p); }
 function routeWaypoints(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [{x:a.x,z:a.z},{x:b.x,z:b.z}]; return [{x:pa.x,z:pa.z}, ...perimMids(pa.s,pb.s), {x:pb.x,z:pb.z}]; }
-// traseu pe suprafețe, pe drumul cel mai scurt prin colțuri (înălțime interpolată) — fără fire prin aer/exterior
+// traseu pe suprafete, pe drumul cel mai scurt prin colturi (inaltime interpolata) — fara fire prin aer/exterior
 function surfaceRoute(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [a.clone(),b.clone()];
   const startH=a.y>H*0.7?H:a.y, endH=b.y>H*0.7?H:b.y; const mids=perimMids(pa.s,pb.s);
   const xz=[{x:pa.x,z:pa.z}, ...mids, {x:pb.x,z:pb.z}]; const cum=[0]; for(let i=1;i<xz.length;i++) cum.push(cum[i-1]+Math.hypot(xz[i].x-xz[i-1].x,xz[i].z-xz[i-1].z)); const tot=cum[cum.length-1]||1;
@@ -513,7 +513,7 @@ function routeLen(a,b,rmode){ if(!PERIM) buildPerim(); const direct=rmode==='dir
 function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
   rmode=rmode||'standard'; let pts=null;
   if(straight){ const off=idx*0.014; pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
-  else if(rmode==='direct'){ // drumul cel mai scurt PE SUPRAFEȚE: drept pe aceeași latură, prin colț pe laterale diferite
+  else if(rmode==='direct'){ // drumul cel mai scurt PE SUPRAFETE: drept pe aceeasi latura, prin colt pe laterale diferite
     const ceilBoth = a.y>H*0.7 && b.y>H*0.7;
     let sameWall=false; if(!ceilBoth){ const pa=projPerim(a), pb=projPerim(b); sameWall=(pa.edge!=null && pa.edge===pb.edge); }
     if(ceilBoth){ const lvl=Math.max(a.y,b.y)-idx*0.012; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; const ox=-dz/ln*(idx*0.02), oz=dx/ln*(idx*0.02); pts=[a.clone(), new THREE.Vector3(a.x+ox,lvl,a.z+oz), new THREE.Vector3(b.x+ox,lvl,b.z+oz), b.clone()]; }
@@ -532,9 +532,9 @@ function ensureDoza(cid,defPos){ let d=dozas.find(x=>x.circuit===cid); if(!d){ d
 function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find(x=>x.id===dozas[i].circuit); const has=c&&devices.some(dd=>dd.circuit===c.id&&dd.type==='intrerupator'); if(!has){ scene.remove(dozas[i].mesh); dozas.splice(i,1); } } }
 function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases();
   const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
-  // doze -> sursa lor (doar dacă au copii)
+  // doze -> sursa lor (doar daca au copii)
   dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
-  // dispozitive -> sursa lor (lanț până la tablou)
+  // dispozitive -> sursa lor (lant pana la tablou)
   const samePlane=(d,o)=> d&&o&&d.normal&&o.normal && d.normal.dot(o.normal)>0.95;
   devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=d.route||'sus';
     const sd=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const str=(rm==='direct')&&samePlane(d,sd);
@@ -561,13 +561,13 @@ function recommendPanel(){ const perBr=1; const mainMod=(state.mainPoles||(state
 
 /* ===== liste 3D ===== */
 function renderLists(){ const cl=$('circuitList');
-  if(!circuits.length) cl.innerHTML='<p class="muted">Niciun circuit încă.</p>';
+  if(!circuits.length) cl.innerHTML='<p class="muted">Niciun circuit inca.</p>';
   else { cl.innerHTML=''; circuits.forEach(c=>{ const sz=sizeCircuit(c); const el=document.createElement('div'); el.className='row'; el.style.flexWrap='wrap';
     el.innerHTML=`<span class="dot" style="background:${c.color}"></span><span style="flex:1">C${c.n} ${c.kind==='lumina'?'ilum.':'prize'} · ${Math.round(sz.P)}W → <b style="color:var(--ink)">${sz.breaker}A/${sz.section}mm²</b>${state.system==='tri'?(' · '+c.phase):''}</span>`;
     const rec=c.kind==='lumina'?10:16; let warn='';
-    if(sz.I>sz.breaker+0.01) warn=`⚠ Depășește siguranța ${sz.breaker}A (consum ${sz.I.toFixed(1)}A)! Mărește secțiunea/siguranța sau împarte circuitul.`;
-    else if(sz.breaker>rec) warn=`⚠ Supraîncărcat: ${Math.round(sz.P)}W cer ${sz.breaker}A / ${sz.section}mm². Recomand să distribui pe mai multe circuite.`;
-    else if(sz.I>sz.breaker*0.8) warn=`ℹ Aproape de limită: ${sz.I.toFixed(1)}A din ${sz.breaker}A.`;
+    if(sz.I>sz.breaker+0.01) warn=`⚠ Depaseste siguranta ${sz.breaker}A (consum ${sz.I.toFixed(1)}A)! Mareste sectiunea/siguranta sau imparte circuitul.`;
+    else if(sz.breaker>rec) warn=`⚠ Supraincarcat: ${Math.round(sz.P)}W cer ${sz.breaker}A / ${sz.section}mm². Recomand sa distribui pe mai multe circuite.`;
+    else if(sz.I>sz.breaker*0.8) warn=`ℹ Aproape de limita: ${sz.I.toFixed(1)}A din ${sz.breaker}A.`;
     if(warn) el.innerHTML+=`<div style="flex-basis:100%;margin-top:4px;font-size:11px;line-height:1.4;color:${warn[0]==='⚠'?'#f87171':'#ffb020'}">${warn}</div>`;
     cl.appendChild(el); }); }
   const dl=$('devList'); if(!devices.length){ dl.innerHTML='<p class="muted">Nimic plasat.</p>'; return; }
@@ -581,10 +581,10 @@ function renderLists(){ const cl=$('circuitList');
     const srcOpts=`<option value="panel" ${srcSel.kind==='panel'?'selected':''}>Tablou</option>`+dozOk.map(z=>`<option value="doza:${z.id}" ${(srcSel.kind==='doza'&&srcSel.id===z.id)?'selected':''}>Doza ${z.n}</option>`).join('')+devices.filter(x=>x.id!==d.id&&x.type!=='tablou'&&ADD[x.type].kind===myKind).map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${(x.name||ADD[x.type].label).replace(/"/g,'&quot;')}</option>`).join('');
     const load=(d.type==='bec'||d.type==='priza');
     el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
-      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursă</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="sus" ${(d.route||'sus')==='sus'?'selected':''}>pe sus</option><option value="podea" ${d.route==='podea'?'selected':''}>pe podea</option><option value="direct" ${d.route==='direct'?'selected':''}>punte</option></select>`
+      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursa</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="sus" ${(d.route||'sus')==='sus'?'selected':''}>pe sus</option><option value="podea" ${d.route==='podea'?'selected':''}>pe podea</option><option value="direct" ${d.route==='direct'?'selected':''}>punte</option></select>`
       +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto;width:54px"> W`:'')+`</div>`;
     return el; };
-  [['tablou','Tablou'],['intrerupator','Întrerupătoare'],['bec','Becuri / spoturi'],['priza','Prize']].forEach(([tp,tl])=>{ const list=devices.filter(d=>d.type===tp); if(!list.length) return; const open=listOpen[tp]!==false;
+  [['tablou','Tablou'],['intrerupator','Intrerupatoare'],['bec','Becuri / spoturi'],['priza','Prize']].forEach(([tp,tl])=>{ const list=devices.filter(d=>d.type===tp); if(!list.length) return; const open=listOpen[tp]!==false;
     const hd=document.createElement('div'); hd.className='row'; hd.style.cssText='cursor:pointer;background:#e3ecf7'; hd.innerHTML=`<span style="flex:1;font-family:Chakra Petch;font-size:12px;letter-spacing:.04em">${open?'▾':'▸'} ${tl} (${list.length})</span>`; hd.onclick=()=>{ listOpen[tp]=!open; renderLists(); }; dl.appendChild(hd);
     if(open) list.forEach(d=> dl.appendChild(buildRow(d))); });
   dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
@@ -596,16 +596,16 @@ function renderLists(){ const cl=$('circuitList');
     else if(v.startsWith('doza:')) d.source={kind:'doza',id:parseInt(v.slice(5),10)};
     else { const did=parseInt(v.slice(4),10); const sd=devices.find(x=>x.id===did);
       if(sd && sd.circuit!==d.circuit){ const cn=circuits.find(c=>c.id===d.circuit), scn=circuits.find(c=>c.id===sd.circuit);
-        if(!confirm(`Atenție: „${d.name}" e pe circuit C${cn?cn.n:'?'}, iar sursa „${sd.name}" e pe C${scn?scn.n:'?'}.\nPuntea le leagă electric — trebuie să fie pe ACELAȘI circuit.\n\nOK = le pun pe C${scn?scn.n:'?'} (al sursei).\nAnulează = nu fac puntea.`)){ renderLists(); return; } }
+        if(!confirm(`Atentie: „${d.name}" e pe circuit C${cn?cn.n:'?'}, iar sursa „${sd.name}" e pe C${scn?scn.n:'?'}.\nPuntea le leaga electric — trebuie sa fie pe ACELASI circuit.\n\nOK = le pun pe C${scn?scn.n:'?'} (al sursei).\nAnuleaza = nu fac puntea.`)){ renderLists(); return; } }
       d.source={kind:'dev',id:did}; if(sd) d.circuit=sd.circuit; }
     updateDevLabel(d); renderWires(); renderLists(); });
   dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.route=sel.value; renderWires(); } }); }
 function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; const fb=devices[i].source||{kind:'panel'}; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); devices.forEach(d=>{ if(d.source&&d.source.kind==='dev'&&d.source.id===id) d.source={...fb}; }); renderWires(); renderLists(); }
 
-/* ===== salvare / încărcare proiecte ===== */
+/* ===== salvare / incarcare proiecte ===== */
 const PKEY='pce_projects', AKEY='pce_autosave';
 function loadStore(){ try{ return JSON.parse(localStorage.getItem(PKEY)||'{}'); }catch(e){ return {}; } }
-function saveStore(s){ try{ localStorage.setItem(PKEY, JSON.stringify(s)); }catch(e){ alert('Nu pot salva (memoria browserului e plină).'); } }
+function saveStore(s){ try{ localStorage.setItem(PKEY, JSON.stringify(s)); }catch(e){ alert('Nu pot salva (memoria browserului e plina).'); } }
 function serializeProject(){
   return { v:1, savedAt:Date.now(), name:state.projName||'', mode:state.mode,
     H, system:state.system, mainOverride:state.mainOverride||null, mainPoles:state.mainPoles||null,
@@ -648,82 +648,82 @@ function openProject(o){
   if(want3D){
     state.mode='3d'; $('planCanvas').style.display='none'; renderer.domElement.style.display='block'; sizeRenderer();
     $('planPanel').classList.add('hidden'); $('elecPanel').classList.remove('hidden'); $('legend').classList.remove('hidden');
-    $('topHint').textContent='Pasul 2 — adaugă elemente'; $('mode').innerHTML='Proiect încărcat. Continuă editarea — totul se salvează automat.';
+    $('topHint').textContent='Pasul 2 — adauga elemente'; $('mode').innerHTML='Proiect incarcat. Continua editarea — totul se salveaza automat.';
   } else { state.mode='plan'; renderWallRows(); refreshPlan(); }
 }
 function saveProject(name){ name=(name||'').trim(); if(!name) return false; const s=loadStore(); state.projName=name; s[name]=serializeProject(); saveStore(s); return true; }
 function autosave(){ try{ localStorage.setItem(AKEY, JSON.stringify(serializeProject())); }catch(e){} }
 setInterval(autosave, 4000); window.addEventListener('beforeunload', autosave);
-function quickSave(){ const def=state.projName||('Proiect '+new Date().toLocaleDateString('ro-RO')); const name=prompt('Salvează proiectul cu numele:', def); if(name===null) return; if(saveProject(name)){ autosave(); alert('✅ Proiect salvat: '+name+'\nÎl găsești în „📂 Proiectele mele".'); } }
+function quickSave(){ const def=state.projName||('Proiect '+new Date().toLocaleDateString('ro-RO')); const name=prompt('Salveaza proiectul cu numele:', def); if(name===null) return; if(saveProject(name)){ autosave(); alert('✅ Proiect salvat: '+name+'\nIl gasesti in „📂 Proiectele mele".'); } }
 function projectModal(){ const s=loadStore(); const names=Object.keys(s).sort((a,b)=>(s[b].savedAt||0)-(s[a].savedAt||0));
-  const rows = names.length? names.map(n=>{ const d=new Date(s[n].savedAt||0); const when=isNaN(d)?'':d.toLocaleString('ro-RO'); return `<div class="row" style="justify-content:space-between"><span style="flex:1">📁 <b>${n}</b><br><span class="muted" style="font-size:11px">${when}</span></span><button class="btn" data-load="${encodeURIComponent(n)}">Deschide</button><button class="btn" data-del="${encodeURIComponent(n)}" style="border-color:#e6b8b8">🗑</button></div>`; }).join('') : '<p class="muted">Niciun proiect salvat încă.</p>';
+  const rows = names.length? names.map(n=>{ const d=new Date(s[n].savedAt||0); const when=isNaN(d)?'':d.toLocaleString('ro-RO'); return `<div class="row" style="justify-content:space-between"><span style="flex:1">📁 <b>${n}</b><br><span class="muted" style="font-size:11px">${when}</span></span><button class="btn" data-load="${encodeURIComponent(n)}">Deschide</button><button class="btn" data-del="${encodeURIComponent(n)}" style="border-color:#e6b8b8">🗑</button></div>`; }).join('') : '<p class="muted">Niciun proiect salvat inca.</p>';
   openModal(`<button class="close" id="mClose">✕</button><h2>📂 Proiectele mele</h2>
-    <div class="row" style="gap:6px;margin-bottom:10px"><input id="pName" placeholder="Nume proiect nou…" value="${(state.projName||'').replace(/"/g,'&quot;')}" style="flex:1"><button class="btn act" id="pSave">💾 Salvează</button></div>
+    <div class="row" style="gap:6px;margin-bottom:10px"><input id="pName" placeholder="Nume proiect nou…" value="${(state.projName||'').replace(/"/g,'&quot;')}" style="flex:1"><button class="btn act" id="pSave">💾 Salveaza</button></div>
     <div class="list" style="max-height:320px;overflow:auto">${rows}</div>
-    <div class="dl" style="gap:6px;flex-wrap:wrap"><button class="btn" id="pExport">⬇ Backup în fișier</button><button class="btn" id="pImport">⬆ Încarcă din fișier</button></div>
+    <div class="dl" style="gap:6px;flex-wrap:wrap"><button class="btn" id="pExport">⬇ Backup in fisier</button><button class="btn" id="pImport">⬆ Incarca din fisier</button></div>
     <input type="file" id="pFile" accept="application/json,.json" style="display:none">`);
   $('mClose').onclick=closeModal;
   $('pSave').onclick=()=>{ const n=($('pName').value||'').trim(); if(!n){ alert('Scrie un nume.'); return; } saveProject(n); autosave(); projectModal(); };
   document.querySelectorAll('[data-load]').forEach(b=> b.onclick=()=>{ const n=decodeURIComponent(b.dataset.load); const st=loadStore(); if(st[n]){ closeModal(); openProject(st[n]); } });
-  document.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ const n=decodeURIComponent(b.dataset.del); if(confirm('Ștergi proiectul „'+n+'"?')){ const st=loadStore(); delete st[n]; saveStore(st); projectModal(); } });
+  document.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ const n=decodeURIComponent(b.dataset.del); if(confirm('Stergi proiectul „'+n+'"?')){ const st=loadStore(); delete st[n]; saveStore(st); projectModal(); } });
   $('pExport').onclick=()=>{ const n=(state.projName||'proiect').replace(/[^\w\-]+/g,'_'); download(n+'.pce.json', JSON.stringify(serializeProject(),null,1)); };
   $('pImport').onclick=()=>$('pFile').click();
-  $('pFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ const o=JSON.parse(rd.result); closeModal(); openProject(o); if(o.name) saveProject(o.name); }catch(err){ alert('Fișier invalid.'); } }; rd.readAsText(f); };
+  $('pFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ const o=JSON.parse(rd.result); closeModal(); openProject(o); if(o.name) saveProject(o.name); }catch(err){ alert('Fisier invalid.'); } }; rd.readAsText(f); };
 }
 
 /* ===== generatoare ===== */
 function genBOM(){ const panel=panelDev(); const main=sizeMain(); const cableBy={}; circuits.forEach(c=>{ const sz=sizeCircuit(c); const L=circuitLength(c); const key=`3×${sz.section} mm²`; cableBy[key]=(cableBy[key]||0)+L; });
   const sw=devices.filter(d=>d.type==='intrerupator').length, bec=devices.filter(d=>d.type==='bec').length, priza=devices.filter(d=>d.type==='priza').length;
-  const rows=[]; rows.push(['Tablou electric (cofret)',panel?1:0,'buc']); rows.push([`Întrerupător general ${state.system==='tri'?'3P':'1P'} ${main.main}A`,panel?1:0,'buc']); rows.push([`Protecție diferențială (RCD) 30mA ${state.system==='tri'?'4P':'2P'}`,panel?1:0,'buc']);
-  circuits.forEach(c=>{ const sz=sizeCircuit(c); rows.push([`Siguranță automată C${c.n} (${c.kind==='lumina'?'iluminat':'prize'}) ${sz.breaker}A`,1,'buc']); });
-  rows.push(['Întrerupător de perete',sw,'buc']); rows.push(['Bec + dulie',bec,'buc']); rows.push(['Priză cu împământare',priza,'buc']); rows.push(['Doză derivație',sw+bec+Math.ceil(priza/2),'buc']);
+  const rows=[]; rows.push(['Tablou electric (cofret)',panel?1:0,'buc']); rows.push([`Intrerupator general ${state.system==='tri'?'3P':'1P'} ${main.main}A`,panel?1:0,'buc']); rows.push([`Protectie diferentiala (RCD) 30mA ${state.system==='tri'?'4P':'2P'}`,panel?1:0,'buc']);
+  circuits.forEach(c=>{ const sz=sizeCircuit(c); rows.push([`Siguranta automata C${c.n} (${c.kind==='lumina'?'iluminat':'prize'}) ${sz.breaker}A`,1,'buc']); });
+  rows.push(['Intrerupator de perete',sw,'buc']); rows.push(['Bec + dulie',bec,'buc']); rows.push(['Priza cu impamantare',priza,'buc']); rows.push(['Doza derivatie',sw+bec+Math.ceil(priza/2),'buc']);
   Object.entries(cableBy).forEach(([k,v])=> rows.push([`Cablu ${k}`,v.toFixed(1),'m'])); const tot=Object.values(cableBy).reduce((a,b)=>a+b,0); if(tot>0) rows.push(['Tub copex / canal cablu',tot.toFixed(1),'m']);
-  let html=`<button class="close" id="mClose">✕</button><h2>📋 Listă de materiale</h2><p class="muted">Sistem: <b>${state.system==='mono'?'monofazat 230V':'trifazat 400V'}</b> · General: <b>${main.main}A</b>${state.system==='tri'?` · faze L1/L2/L3: ${Math.round(main.acc.L1)}/${Math.round(main.acc.L2)}/${Math.round(main.acc.L3)} W`:''}</p>`;
-  if(!panel) html+=`<p class="muted" style="color:var(--bad)">Adaugă un tablou pentru calculul cablajului.</p>`;
-  html+=`<table><thead><tr><th>Material</th><th>Cant.</th><th>UM</th></tr></thead><tbody>`; rows.filter(r=>Number(r[1])>0).forEach(r=>html+=`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`); html+=`</tbody></table><div class="dl"><button class="btn act" id="dlBOM">⬇ Descarcă (CSV)</button></div>`;
+  let html=`<button class="close" id="mClose">✕</button><h2>📋 Lista de materiale</h2><p class="muted">Sistem: <b>${state.system==='mono'?'monofazat 230V':'trifazat 400V'}</b> · General: <b>${main.main}A</b>${state.system==='tri'?` · faze L1/L2/L3: ${Math.round(main.acc.L1)}/${Math.round(main.acc.L2)}/${Math.round(main.acc.L3)} W`:''}</p>`;
+  if(!panel) html+=`<p class="muted" style="color:var(--bad)">Adauga un tablou pentru calculul cablajului.</p>`;
+  html+=`<table><thead><tr><th>Material</th><th>Cant.</th><th>UM</th></tr></thead><tbody>`; rows.filter(r=>Number(r[1])>0).forEach(r=>html+=`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`); html+=`</tbody></table><div class="dl"><button class="btn act" id="dlBOM">⬇ Descarca (CSV)</button></div>`;
   openModal(html); $('mClose').onclick=closeModal; $('dlBOM').onclick=()=>download('lista-materiale.csv','Material,Cantitate,UM\n'+rows.filter(r=>Number(r[1])>0).map(r=>`${r[0]},${r[1]},${r[2]}`).join('\n')); }
 function genSchema(){ const main=sizeMain(); const W=760,rowH=72,top=86,busX=170,Hs=top+Math.max(1,circuits.length)*rowH+44;
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${Hs}" font-family="IBM Plex Sans, sans-serif"><rect width="${W}" height="${Hs}" fill="#0b0f17"/>`;
-  s+=`<text x="20" y="28" fill="#e7eef8" font-size="15" font-weight="700">Schema monofilară — ${state.system==='mono'?'monofazat 230V':'trifazat 400V'}</text><text x="20" y="50" fill="#8696b0" font-size="12">General ${main.main}A → RCD 30mA → circuite</text>`;
+  s+=`<text x="20" y="28" fill="#e7eef8" font-size="15" font-weight="700">Schema monofilara — ${state.system==='mono'?'monofazat 230V':'trifazat 400V'}</text><text x="20" y="50" fill="#8696b0" font-size="12">General ${main.main}A → RCD 30mA → circuite</text>`;
   s+=`<line x1="${busX}" y1="${top-18}" x2="${busX}" y2="${Hs-22}" stroke="#5fb6e6" stroke-width="3"/><rect x="${busX-118}" y="${top-28}" width="26" height="18" fill="none" stroke="#ffb020" stroke-width="2"/><text x="${busX-105}" y="${top-15}" fill="#e7eef8" font-size="9" text-anchor="middle">${main.main}A</text>`;
   circuits.forEach((c,i)=>{ const y=top+i*rowH+14; const sz=sizeCircuit(c); const dev=devices.filter(d=>d.circuit===c.id);
     s+=`<line x1="${busX}" y1="${y}" x2="${W-40}" y2="${y}" stroke="${c.color}" stroke-width="2.5"/><rect x="${busX+16}" y="${y-12}" width="30" height="24" fill="#0b0f17" stroke="${c.color}" stroke-width="2"/><text x="${busX+31}" y="${y+4}" fill="#e7eef8" font-size="10" text-anchor="middle">${sz.breaker}A</text>`;
     s+=`<text x="${busX+58}" y="${y-15}" fill="#e7eef8" font-size="12" font-weight="600">Circuit ${c.n} · ${c.kind==='lumina'?'iluminat':'prize'} · ${sz.section}mm²${state.system==='tri'?(' · '+c.phase):''}</text><text x="${busX+58}" y="${y+18}" fill="#8696b0" font-size="10">${Math.round(sz.P)}W · ${sz.I.toFixed(1)}A</text>`;
     let dx=busX+330; dev.filter(d=>d.type!=='tablou').forEach(d=>{ const sym=d.type==='intrerupator'?'⟋':(d.type==='bec'?'⊗':(d.type==='priza'?'⊟':'?')); s+=`<circle cx="${dx}" cy="${y}" r="11" fill="#0b0f17" stroke="${c.color}" stroke-width="1.6"/><text x="${dx}" y="${y+4}" fill="#e7eef8" font-size="12" text-anchor="middle">${sym}</text>`; dx+=40; }); });
-  if(!circuits.length) s+=`<text x="${busX+30}" y="${top+20}" fill="#8696b0" font-size="13">Adaugă circuite.</text>`;
-  s+=`<text x="20" y="${Hs-12}" fill="#5a6b86" font-size="10">⟋ întrerupător · ⊗ corp iluminat · ⊟ priză · PROFCEISS</text></svg>`;
-  openModal(`<button class="close" id="mClose">✕</button><h2>📐 Schema monofilară</h2><div style="background:#0b0f17;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div><div class="dl"><button class="btn act" id="dlSchema">⬇ Descarcă (SVG)</button></div>`); $('mClose').onclick=closeModal; $('dlSchema').onclick=()=>download('schema-monofilara.svg',s); }
+  if(!circuits.length) s+=`<text x="${busX+30}" y="${top+20}" fill="#8696b0" font-size="13">Adauga circuite.</text>`;
+  s+=`<text x="20" y="${Hs-12}" fill="#5a6b86" font-size="10">⟋ intrerupator · ⊗ corp iluminat · ⊟ priza · PROFCEISS</text></svg>`;
+  openModal(`<button class="close" id="mClose">✕</button><h2>📐 Schema monofilara</h2><div style="background:#0b0f17;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div><div class="dl"><button class="btn act" id="dlSchema">⬇ Descarca (SVG)</button></div>`); $('mClose').onclick=closeModal; $('dlSchema').onclick=()=>download('schema-monofilara.svg',s); }
 function genTut(){ const main=sizeMain(); let h=`<button class="close" id="mClose">✕</button><h2>🎓 Tutorial cablare</h2><div class="tut">`;
-  h+=`<div class="warn">⚠ <b>Securitate:</b> oprește curentul de la general și verifică cu testerul că nu mai e tensiune. Dacă nu ești sigur, cheamă un electrician autorizat.</div>`;
-  h+=`<h4>Instalația</h4><p>Sistem <b>${state.system==='mono'?'monofazat (230V)':'trifazat (400V)'}</b>. General estimat: <b>${main.main}A</b>.</p><h4>Culori</h4><p>Fază = maro/negru · Nul = albastru · Împământare = galben-verde.</p>`;
-  circuits.forEach(c=>{ const sz=sizeCircuit(c); const dev=devices.filter(d=>d.circuit===c.id); h+=`<h4>Circuit ${c.n} — ${c.kind==='lumina'?'iluminat':'prize'} · ${sz.breaker}A · 3×${sz.section}mm²${state.system==='tri'?' · '+c.phase:''}</h4><p class="muted">${Math.round(sz.P)}W (${sz.I.toFixed(1)}A) — siguranță și secțiune alese automat din puteri.</p>`;
-    if(c.kind==='lumina'){ const nsw=dev.filter(d=>d.type==='intrerupator').length, nb=dev.filter(d=>d.type==='bec').length; h+=`<p>${nsw} întrerupător(e), ${nb} bec(uri). Cablul de la tablou (fază + nul + împământare) ajunge întâi la <b>întrerupător</b> (acolo e doza). Faza intră în întrerupător și iese ca <b>fază comutată</b> spre bec; <b>nulul</b> și <b>împământarea</b> trec prin cutia întrerupătorului direct la bec. Întrerupătorul taie <b>doar faza</b>.</p>`; }
-    else { const np=dev.filter(d=>d.type==='priza').length; h+=`<p>${np} priză(e). Toate 3 firele la fiecare priză; prizele se leagă în paralel (din doză în doză); împământarea e obligatorie.</p>`; } });
-  if(!circuits.length) h+=`<p>Adaugă circuite și puteri ca să generez pașii și dimensionarea.</p>`;
-  h+=`<h4>Final</h4><p>Strânge bornele, închide dozele, repune tensiunea, testează fiecare circuit.</p></div><div class="dl"><button class="btn act" id="dlTut">⬇ Descarcă (text)</button></div>`;
-  openModal(h); $('mClose').onclick=closeModal; $('dlTut').onclick=()=>download('tutorial-cablare.txt',$('modalBody').innerText.replace('⬇ Descarcă (text)','')); }
+  h+=`<div class="warn">⚠ <b>Securitate:</b> opreste curentul de la general si verifica cu testerul ca nu mai e tensiune. Daca nu esti sigur, cheama un electrician autorizat.</div>`;
+  h+=`<h4>Instalatia</h4><p>Sistem <b>${state.system==='mono'?'monofazat (230V)':'trifazat (400V)'}</b>. General estimat: <b>${main.main}A</b>.</p><h4>Culori</h4><p>Faza = maro/negru · Nul = albastru · Impamantare = galben-verde.</p>`;
+  circuits.forEach(c=>{ const sz=sizeCircuit(c); const dev=devices.filter(d=>d.circuit===c.id); h+=`<h4>Circuit ${c.n} — ${c.kind==='lumina'?'iluminat':'prize'} · ${sz.breaker}A · 3×${sz.section}mm²${state.system==='tri'?' · '+c.phase:''}</h4><p class="muted">${Math.round(sz.P)}W (${sz.I.toFixed(1)}A) — siguranta si sectiune alese automat din puteri.</p>`;
+    if(c.kind==='lumina'){ const nsw=dev.filter(d=>d.type==='intrerupator').length, nb=dev.filter(d=>d.type==='bec').length; h+=`<p>${nsw} intrerupator(e), ${nb} bec(uri). Cablul de la tablou (faza + nul + impamantare) ajunge intai la <b>intrerupator</b> (acolo e doza). Faza intra in intrerupator si iese ca <b>faza comutata</b> spre bec; <b>nulul</b> si <b>impamantarea</b> trec prin cutia intrerupatorului direct la bec. Intrerupatorul taie <b>doar faza</b>.</p>`; }
+    else { const np=dev.filter(d=>d.type==='priza').length; h+=`<p>${np} priza(e). Toate 3 firele la fiecare priza; prizele se leaga in paralel (din doza in doza); impamantarea e obligatorie.</p>`; } });
+  if(!circuits.length) h+=`<p>Adauga circuite si puteri ca sa generez pasii si dimensionarea.</p>`;
+  h+=`<h4>Final</h4><p>Strange bornele, inchide dozele, repune tensiunea, testeaza fiecare circuit.</p></div><div class="dl"><button class="btn act" id="dlTut">⬇ Descarca (text)</button></div>`;
+  openModal(h); $('mClose').onclick=closeModal; $('dlTut').onclick=()=>download('tutorial-cablare.txt',$('modalBody').innerText.replace('⬇ Descarca (text)','')); }
 function download(name,content){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'})); a.download=name; a.click(); }
 function sendToSchema(){ assignPhases(); const payload={ branch:state.system, circuits:circuits.map(c=>{ const sz=sizeCircuit(c); return { cod:'C'+c.n, dest:(c.kind==='lumina'?'Iluminat':'Prize')+' '+c.n, sig:'C'+sz.breaker+'-'+(c.kind==='lumina'?'1P+N':'2P+N'), cablu:'3x'+sz.section+' CYY-F', dif:'30mA', faza: state.system==='tri'?c.phase:'L' }; }) };
-  if(!payload.circuits.length){ alert('Adaugă întâi circuite (becuri/prize pe circuite), apoi trimite.'); return; }
+  if(!payload.circuits.length){ alert('Adauga intai circuite (becuri/prize pe circuite), apoi trimite.'); return; }
   window.open('../schema-monofilara/#data='+encodeURIComponent(JSON.stringify(payload)),'_blank'); }
 function genPanel(){
   assignPhases(); const main=sizeMain(); const tri=state.system==='tri'; const cs=circuits;
-  if(!panelDev()){ alert('Adaugă întâi un tablou și circuite.'); return; }
+  if(!panelDev()){ alert('Adauga intai un tablou si circuite.'); return; }
   const n=Math.max(cs.length,1); const bx0=215, step=Math.max(58,Math.min(86,640/n)), bw=42, bTop=170, bH=60;
   const W=Math.max(780,bx0+n*step+30), Hs=380;
   const phaseList=tri?['L1','L2','L3']:['L']; const busY={L:122,L1:104,L2:122,L3:140};
   const pcol=ph=> ph==='L'?'#e23b3b':({L1:'#e23b3b',L2:'#8a5a2b',L3:'#9aa3ad'}[ph]);
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${Hs}" font-family="Arial, sans-serif"><rect width="${W}" height="${Hs}" fill="#ffffff"/>`;
   s+=`<rect x="10" y="40" width="${W-20}" height="${Hs-80}" fill="none" stroke="#1B2A4A" stroke-width="2" rx="6"/>`;
-  s+=`<text x="20" y="27" font-size="15" font-weight="bold" fill="#1B2A4A">Schemă tablou electric — ${tri?'trifazat 400V':'monofazat 230V'}</text>`;
+  s+=`<text x="20" y="27" font-size="15" font-weight="bold" fill="#1B2A4A">Schema tablou electric — ${tri?'trifazat 400V':'monofazat 230V'}</text>`;
   const sup=tri?[['L1','#e23b3b'],['L2','#8a5a2b'],['L3','#9aa3ad'],['N','#2f6fd0'],['PE','#e6d200']]:[['L','#e23b3b'],['N','#2f6fd0'],['PE','#e6d200']];
   s+=`<text x="24" y="58" font-size="11" fill="#555">Alimentare</text>`;
   sup.forEach((p,i)=>{ const y=70+i*15; s+=`<circle cx="34" cy="${y}" r="5" fill="${p[1]}"/><text x="44" y="${y+4}" font-size="11" fill="#111">${p[0]}</text>`; });
   s+=`<rect x="92" y="82" width="46" height="40" fill="#f4f6fa" stroke="#1B2A4A"/><text x="115" y="100" font-size="9" text-anchor="middle">General</text><text x="115" y="114" font-size="9" text-anchor="middle">${main.main}A</text>`;
   s+=`<rect x="146" y="82" width="46" height="40" fill="#eafaf0" stroke="#1a7a3a"/><text x="169" y="100" font-size="9" text-anchor="middle">RCD</text><text x="169" y="114" font-size="9" text-anchor="middle">30mA</text>`;
   phaseList.forEach(ph=>{ const col=pcol(ph), y=busY[ph]; s+=`<line x1="200" y1="${y}" x2="${bx0+(n-1)*step+bw}" y2="${y}" stroke="${col}" stroke-width="3"/><text x="200" y="${y-4}" font-size="9" fill="${col}">punte ${ph}</text>`; s+=`<line x1="192" y1="102" x2="200" y2="${y}" stroke="${col}" stroke-width="2"/>`; });
-  const nY=270, peY=300; s+=`<line x1="92" y1="${nY}" x2="${W-26}" y2="${nY}" stroke="#2f6fd0" stroke-width="3"/><text x="94" y="${nY-5}" font-size="10" fill="#2f6fd0">Bară nul (N)</text>`;
-  s+=`<line x1="92" y1="${peY}" x2="${W-26}" y2="${peY}" stroke="#e6d200" stroke-width="3"/><text x="94" y="${peY-5}" font-size="10" fill="#b59f00">Bară împământare (PE)</text>`;
+  const nY=270, peY=300; s+=`<line x1="92" y1="${nY}" x2="${W-26}" y2="${nY}" stroke="#2f6fd0" stroke-width="3"/><text x="94" y="${nY-5}" font-size="10" fill="#2f6fd0">Bara nul (N)</text>`;
+  s+=`<line x1="92" y1="${peY}" x2="${W-26}" y2="${peY}" stroke="#e6d200" stroke-width="3"/><text x="94" y="${peY-5}" font-size="10" fill="#b59f00">Bara impamantare (PE)</text>`;
   s+=`<line x1="115" y1="122" x2="115" y2="${nY}" stroke="#2f6fd0" stroke-width="0"/>`;
   cs.forEach((c,i)=>{ const x=bx0+i*step; const sz=sizeCircuit(c); const ph=tri?c.phase:'L'; const col=pcol(ph);
     s+=`<line x1="${x+bw/2}" y1="${bTop}" x2="${x+bw/2}" y2="${busY[ph]}" stroke="${col}" stroke-width="2"/>`;
@@ -733,11 +733,11 @@ function genPanel(){
     s+=`<line x1="${x+bw/2+7}" y1="${peY}" x2="${x+bw/2+7}" y2="${peY+16}" stroke="#e6d200" stroke-width="2"/>`;
     s+=`<text x="${x+bw/2}" y="${peY+30}" font-size="8.5" text-anchor="middle" fill="#111">${c.kind==='lumina'?'ilum.':'prize'} ${sz.section}mm²</text>`;
   });
-  s+=`<text x="20" y="${Hs-12}" font-size="9" fill="#777">Roșu = fază · albastru = nul · galben-verde = împământare. Puntea de sus duce faza la toate siguranțele${tri?' de pe aceeași fază':''}. Nulul și împământarea pleacă din barele de jos spre fiecare circuit. Siguranța întrerupe doar faza.</text>`;
+  s+=`<text x="20" y="${Hs-12}" font-size="9" fill="#777">Rosu = faza · albastru = nul · galben-verde = impamantare. Puntea de sus duce faza la toate sigurantele${tri?' de pe aceeasi faza':''}. Nulul si impamantarea pleaca din barele de jos spre fiecare circuit. Siguranta intrerupe doar faza.</text>`;
   s+=`</svg>`;
   const rec=recommendPanel(); const mp=state.mainPoles||(tri?'tetra':'mono');
   const ist='padding:4px 6px;font-size:12px';
-  const ctrl=`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 10px;font-size:13px"><b>Siguranță generală:</b>
+  const ctrl=`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 10px;font-size:13px"><b>Siguranta generala:</b>
     <select id="edMainPoles" style="${ist};width:auto">${[['mono','Monofazat 1P+N'],['tetra','Tetrapolar 4P']].map(p=>`<option value="${p[0]}" ${p[0]===mp?'selected':''}>${p[1]}</option>`).join('')}</select>
     <select id="edMainA" style="${ist};width:auto">${MAINSTD.map(a=>`<option value="${a}" ${a===main.main?'selected':''}>${a}A</option>`).join('')}</select>
     <span class="muted">+ RCD 30mA · recomandat auto: ${main.auto}A</span></div>`;
@@ -746,9 +746,9 @@ function genPanel(){
     const brOpts=STD.filter(a=>a<=sz.cap).map(a=>`<option value="${a}" ${a===sz.breaker?'selected':''}>${a}A</option>`).join('');
     const ovr=sz.I>sz.breaker?`<span style="color:#c0392b">⚠ ${Math.round(sz.I)}A consum > ${sz.breaker}A</span>`:`OK ${Math.round(sz.I)}A`;
     return `<tr><td>${c.cod||('C'+c.n)} · ${c.kind==='lumina'?'ilum.':'prize'}${tri?(' · '+c.phase):''}<br><span class="muted" style="font-size:11px">${Math.round(sz.P)}W</span></td><td><select data-edsec="${c.id}" style="${ist};width:auto">${secOpts}</select></td><td><select data-edbr="${c.id}" style="${ist};width:auto">${brOpts}</select></td><td class="muted" style="font-size:11px">≤${sz.cap}A · auto ${sz.auto}A${over?' · <span style="color:#d98200">manual</span>':''}<br>${ovr}</td></tr>`; }).join('');
-  const tbl=`<table style="margin-top:10px"><thead><tr><th>Circuit</th><th>Cablu</th><th>Siguranță</th><th>Verificare</th></tr></thead><tbody>${tblRows}</tbody></table><div class="muted" style="font-size:11px;margin-top:4px">Regula: siguranța nu poate depăși secțiunea cablului. Mărește întâi cablul ca să poți pune o siguranță peste 16A.</div>`;
-  const recHtml=`<div style="margin-top:10px;padding:10px 12px;border:1px solid #bcd0ea;background:#eef5fd;border-radius:8px;font-size:13px;line-height:1.5">📦 <b>Tablou recomandat: ${rec.pick} module</b> (≈ ${rec.rows} ${rec.rows===1?'rând':'rânduri'}). Folosite acum ~${rec.used} module (siguranțe + general + RCD); cu <b>25% rezervă</b> pentru viitoare circuite → minim ${rec.need} module.</div>`;
-  openModal(`<button class="close" id="mClose">✕</button><h2>🗄️ Editor tablou electric</h2>${ctrl}<div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div>${recHtml}${tbl}<div class="dl"><button class="btn act" id="dlPanel">⬇ Descarcă schema (SVG)</button></div>`);
+  const tbl=`<table style="margin-top:10px"><thead><tr><th>Circuit</th><th>Cablu</th><th>Siguranta</th><th>Verificare</th></tr></thead><tbody>${tblRows}</tbody></table><div class="muted" style="font-size:11px;margin-top:4px">Regula: siguranta nu poate depasi sectiunea cablului. Mareste intai cablul ca sa poti pune o siguranta peste 16A.</div>`;
+  const recHtml=`<div style="margin-top:10px;padding:10px 12px;border:1px solid #bcd0ea;background:#eef5fd;border-radius:8px;font-size:13px;line-height:1.5">📦 <b>Tablou recomandat: ${rec.pick} module</b> (≈ ${rec.rows} ${rec.rows===1?'rand':'randuri'}). Folosite acum ~${rec.used} module (sigurante + general + RCD); cu <b>25% rezerva</b> pentru viitoare circuite → minim ${rec.need} module.</div>`;
+  openModal(`<button class="close" id="mClose">✕</button><h2>🗄️ Editor tablou electric</h2>${ctrl}<div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto">${s}</div>${recHtml}${tbl}<div class="dl"><button class="btn act" id="dlPanel">⬇ Descarca schema (SVG)</button></div>`);
   $('mClose').onclick=closeModal; $('dlPanel').onclick=()=>download('schema-tablou.svg',s);
   $('edMainPoles').onchange=e=>{ state.mainPoles=e.target.value; state.mainOverride=null; genPanel(); };
   $('edMainA').onchange=e=>{ state.mainOverride=parseInt(e.target.value,10); genPanel(); };
@@ -758,18 +758,18 @@ function genPanel(){
 function loadJsPDF(){ return new Promise((res,rej)=>{ if(window.jspdf&&window.jspdf.jsPDF){ res(window.jspdf); return; } const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; sc.onload=()=>res(window.jspdf); sc.onerror=()=>rej(new Error('jsPDF')); document.head.appendChild(sc); }); }
 function roomBBox(){ const p=plan.points; let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; p.forEach(q=>{mnx=Math.min(mnx,q.x);mnz=Math.min(mnz,q.z);mxx=Math.max(mxx,q.x);mxz=Math.max(mxz,q.z);}); return {cx:(mnx+mxx)/2,cz:(mnz+mxz)/2,span:Math.max(mxx-mnx,mxz-mnz,2)}; }
 async function exportPDF(){
-  if(state.mode!=='3d'){ alert('Ridică întâi planul în 3D (butonul ⬆ sau ⇆ 2D/3D), apoi exportă.'); return; }
-  let lib; try{ lib=await loadJsPDF(); }catch(e){ alert('Nu am putut încărca librăria PDF (verifică internetul).'); return; }
+  if(state.mode!=='3d'){ alert('Ridica intai planul in 3D (butonul ⬆ sau ⇆ 2D/3D), apoi exporta.'); return; }
+  let lib; try{ lib=await loadJsPDF(); }catch(e){ alert('Nu am putut incarca libraria PDF (verifica internetul).'); return; }
   const { jsPDF }=lib; const doc=new jsPDF('landscape','mm','a4'); const PW=297, PH=210;
   const title=(state.system==='mono'?'Monofazat 230V':'Trifazat 400V');
   // pagina 1: plan 2D
-  doc.setFontSize(15); doc.text('Schiță instalație electrică — '+title, 14, 14);
+  doc.setFontSize(15); doc.text('Schita instalatie electrica — '+title, 14, 14);
   try{ const img2d=pc.toDataURL('image/png'); doc.setFontSize(11); doc.text('Plan 2D (cm)', 14, 24); doc.addImage(img2d,'PNG',14,28,160,120); }catch(e){}
-  doc.setFontSize(9); doc.text('PROFCEISS · configurator electrică', 14, PH-8);
+  doc.setFontSize(9); doc.text('PROFCEISS · configurator electrica', 14, PH-8);
   // unghiuri 3D
   const bb=roomBBox(); const sel=selectedEl; selectEl(null);
   const savePos=camera.position.clone(), saveTgt=controls.target.clone(), saveEnabled=controls.enabled; controls.enabled=false;
-  const views=[ {a:0.30,h:1.7,t:'Vedere 3D — față'}, {a:Math.PI*0.6,h:1.7,t:'Vedere 3D — lateral'}, {a:Math.PI*1.1,h:1.7,t:'Vedere 3D — spate'}, {a:Math.PI*1.6,h:1.7,t:'Vedere 3D — colț'}, {a:0.6,h:4.2,t:'Vedere de sus'} ];
+  const views=[ {a:0.30,h:1.7,t:'Vedere 3D — fata'}, {a:Math.PI*0.6,h:1.7,t:'Vedere 3D — lateral'}, {a:Math.PI*1.1,h:1.7,t:'Vedere 3D — spate'}, {a:Math.PI*1.6,h:1.7,t:'Vedere 3D — colt'}, {a:0.6,h:4.2,t:'Vedere de sus'} ];
   for(const V of views){ camera.position.set(bb.cx+Math.cos(V.a)*bb.span*1.35, H*V.h, bb.cz+Math.sin(V.a)*bb.span*1.35); controls.target.set(bb.cx,H*0.45,bb.cz); camera.lookAt(bb.cx,H*0.45,bb.cz); renderer.render(scene,camera); let img; try{ img=renderer.domElement.toDataURL('image/png'); }catch(e){ continue; }
     doc.addPage(); doc.setFontSize(13); doc.text(V.t+' — '+title, 14, 14); const w=PW-28, h=w*0.62; doc.addImage(img,'PNG',14,22,w,Math.min(h,PH-34)); }
   camera.position.copy(savePos); controls.target.copy(saveTgt); controls.enabled=saveEnabled; controls.update(); if(sel) selectEl(sel);
@@ -777,25 +777,25 @@ async function exportPDF(){
 }
 function genCheck(){
   const msgs=[]; const add=(sev,t)=>msgs.push({sev,t}); const panel=panelDev();
-  if(!panel) add('error','Nu ai pus un tablou electric. Adaugă-l primul — el e sursa întregii instalații.');
-  if(!circuits.length) add('info','Nu ai circuite încă. Adaugă întrerupătoare/prize și atribuie-le pe circuite.');
+  if(!panel) add('error','Nu ai pus un tablou electric. Adauga-l primul — el e sursa intregii instalatii.');
+  if(!circuits.length) add('info','Nu ai circuite inca. Adauga intrerupatoare/prize si atribuie-le pe circuite.');
   circuits.forEach(c=>{ const sz=sizeCircuit(c); const devs=devices.filter(d=>d.circuit===c.id); const np=devs.filter(d=>d.type==='priza').length; const nb=devs.filter(d=>d.type==='bec').length; const rec=c.kind==='lumina'?10:16;
-    if(!devs.length){ add('info',`Circuit C${c.n} e gol — scoate-l sau adaugă-i elemente.`); return; }
-    if(sz.I>sz.breaker+0.01) add('error',`C${c.n}: consumul ${sz.I.toFixed(1)}A depășește siguranța ${sz.breaker}A. Mărește secțiunea cablului și siguranța, sau împarte pe mai multe circuite.`);
-    else if(sz.breaker>rec) add('info',`C${c.n}: circuit dedicat ${sz.breaker}A pe cablu ${sz.section}mm² (consum ${Math.round(sz.P)}W). OK cât timp cablul susține siguranța (${sz.section}mm² ⇒ max ${sz.cap}A).`);
-    else if(sz.I>sz.breaker*0.8) add('warn',`C${c.n}: ești la ${sz.I.toFixed(1)}A din ${sz.breaker}A (peste 80%). Lasă rezervă sau mai adaugă un circuit.`);
+    if(!devs.length){ add('info',`Circuit C${c.n} e gol — scoate-l sau adauga-i elemente.`); return; }
+    if(sz.I>sz.breaker+0.01) add('error',`C${c.n}: consumul ${sz.I.toFixed(1)}A depaseste siguranta ${sz.breaker}A. Mareste sectiunea cablului si siguranta, sau imparte pe mai multe circuite.`);
+    else if(sz.breaker>rec) add('info',`C${c.n}: circuit dedicat ${sz.breaker}A pe cablu ${sz.section}mm² (consum ${Math.round(sz.P)}W). OK cat timp cablul sustine siguranta (${sz.section}mm² ⇒ max ${sz.cap}A).`);
+    else if(sz.I>sz.breaker*0.8) add('warn',`C${c.n}: esti la ${sz.I.toFixed(1)}A din ${sz.breaker}A (peste 80%). Lasa rezerva sau mai adauga un circuit.`);
     if(c.kind==='prize' && np>10) add('warn',`C${c.n}: ${np} prize pe un circuit. Recomand maxim ~8-10 prize pe un circuit de 16A.`);
-    if(c.kind==='lumina' && nb>12) add('info',`C${c.n}: ${nb} corpuri de iluminat pe un circuit — verifică puterea totală.`);
+    if(c.kind==='lumina' && nb>12) add('info',`C${c.n}: ${nb} corpuri de iluminat pe un circuit — verifica puterea totala.`);
   });
   if(state.system==='tri' && circuits.length){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); const vals=[acc.L1,acc.L2,acc.L3]; const mx=Math.max(...vals),mn=Math.min(...vals),avg=(vals.reduce((a,b)=>a+b,0)/3)||1;
-    if(mx-mn>avg*0.35 && mx>0){ const big=acc.L1===mx?'L1':acc.L2===mx?'L2':'L3', small=acc.L1===mn?'L1':acc.L2===mn?'L2':'L3'; add('warn',`Faze dezechilibrate: L1 ${Math.round(acc.L1)}W · L2 ${Math.round(acc.L2)}W · L3 ${Math.round(acc.L3)}W. Mută un circuit de pe ${big} pe ${small} ca să echilibrezi.`); }
+    if(mx-mn>avg*0.35 && mx>0){ const big=acc.L1===mx?'L1':acc.L2===mx?'L2':'L3', small=acc.L1===mn?'L1':acc.L2===mn?'L2':'L3'; add('warn',`Faze dezechilibrate: L1 ${Math.round(acc.L1)}W · L2 ${Math.round(acc.L2)}W · L3 ${Math.round(acc.L3)}W. Muta un circuit de pe ${big} pe ${small} ca sa echilibrezi.`); }
     else add('ok','Fazele sunt echilibrate rezonabil.');
   }
-  if(panel){ const main=sizeMain(); add('info',`Siguranță generală recomandată: ${main.main}A (${state.system==='tri'?'3P':'1P'}) + diferențial (RCD) 30mA pentru protecție la electrocutare.`); }
-  add('ok','Înainte de orice: oprește curentul de la general și verifică cu testerul că nu mai e tensiune. Strânge bine toate bornele, închide dozele.');
-  if(panel && circuits.length && !msgs.some(m=>m.sev==='error'||m.sev==='warn')) add('ok','Instalația arată corect dimensionată și împărțită. ✓');
+  if(panel){ const main=sizeMain(); add('info',`Siguranta generala recomandata: ${main.main}A (${state.system==='tri'?'3P':'1P'}) + diferential (RCD) 30mA pentru protectie la electrocutare.`); }
+  add('ok','Inainte de orice: opreste curentul de la general si verifica cu testerul ca nu mai e tensiune. Strange bine toate bornele, inchide dozele.');
+  if(panel && circuits.length && !msgs.some(m=>m.sev==='error'||m.sev==='warn')) add('ok','Instalatia arata corect dimensionata si impartita. ✓');
   const icon={ok:'✅',info:'ℹ️',warn:'⚠️',error:'⛔'}; const col={ok:'#34d399',info:'#8696b0',warn:'#ffb020',error:'#f87171'};
-  let h=`<button class="close" id="mClose">✕</button><h2>🩺 Asistent — verificarea instalației</h2><div class="tut">`;
+  let h=`<button class="close" id="mClose">✕</button><h2>🩺 Asistent — verificarea instalatiei</h2><div class="tut">`;
   msgs.forEach(m=> h+=`<p style="color:${col[m.sev]};margin:7px 0;line-height:1.5">${icon[m.sev]} ${m.t}</p>`);
   h+=`</div>`; openModal(h); $('mClose').onclick=closeModal;
 }
@@ -814,7 +814,7 @@ function genDXF(){
   download('plan-instalatie.dxf', dxf);
 }
 function genSTL(){
-  if(state.mode!=='3d'||!scene){ alert('Ridică întâi planul în 3D, apoi exportă STL.'); return; }
+  if(state.mode!=='3d'||!scene){ alert('Ridica intai planul in 3D, apoi exporta STL.'); return; }
   const S=1000; const a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3(), n=new THREE.Vector3(), ab=new THREE.Vector3(), ac=new THREE.Vector3();
   let out='solid profceiss\n';
   scene.traverse(o=>{ if(!o.isMesh || !o.geometry) return; const g=o.geometry; const pos=g.attributes.position; if(!pos) return; o.updateWorldMatrix(true,false); const m=o.matrixWorld; const idx=g.index;
@@ -830,14 +830,14 @@ $('saveProj').onclick=quickSave; $('openProj').onclick=projectModal;
 /* ===== sistem mono/tri ===== */
 function setSystem(s){ state.system=s; document.querySelectorAll('[data-sys-seg]').forEach(x=>x.classList.toggle('on',x.dataset.sysSeg===s)); if(circuits.length) renderLists(); }
 document.querySelectorAll('[data-sys-seg]').forEach(b=> b.onclick=()=>setSystem(b.dataset.sysSeg));
-function askSystem(){ openModal(`<h2>Tip instalație electrică</h2><p class="muted">Cum e alimentată casa?</p><div class="cbtns"><button class="btn act" data-sys="mono">Monofazat (230V)</button><button class="btn" data-sys="tri">Trifazat (400V)</button></div>`); $('modalBody').querySelectorAll('[data-sys]').forEach(b=>b.onclick=()=>{ setSystem(b.dataset.sys); closeModal(); }); }
+function askSystem(){ openModal(`<h2>Tip instalatie electrica</h2><p class="muted">Cum e alimentata casa?</p><div class="cbtns"><button class="btn act" data-sys="mono">Monofazat (230V)</button><button class="btn" data-sys="tri">Trifazat (400V)</button></div>`); $('modalBody').querySelectorAll('[data-sys]').forEach(b=>b.onclick=()=>{ setSystem(b.dataset.sys); closeModal(); }); }
 
 /* ===== comutare moduri ===== */
-$('raise').onclick=()=>{ if(!isClosed()){ alert('Închide întâi conturul camerei (buton „Închide contur" sau click pe primul colț).'); return; } init3D(); buildRoom3D(); state.mode='3d'; $('planCanvas').style.display='none'; renderer.domElement.style.display='block'; sizeRenderer(); $('planPanel').classList.add('hidden'); $('elecPanel').classList.remove('hidden'); $('legend').classList.remove('hidden'); $('mode').innerHTML='Alege un element, apoi <b>click pe perete/tavan</b>. Drag = rotește. Apasă <b>🖐 Cursor</b> ca să nu plasezi din greșeală.'; $('topHint').textContent='Pasul 2 — adaugă elemente'; renderLists(); renderRoomList(); };
+$('raise').onclick=()=>{ if(!isClosed()){ alert('Inchide intai conturul camerei (buton „Inchide contur" sau click pe primul colt).'); return; } init3D(); buildRoom3D(); state.mode='3d'; $('planCanvas').style.display='none'; renderer.domElement.style.display='block'; sizeRenderer(); $('planPanel').classList.add('hidden'); $('elecPanel').classList.remove('hidden'); $('legend').classList.remove('hidden'); $('mode').innerHTML='Alege un element, apoi <b>click pe perete/tavan</b>. Drag = roteste. Apasa <b>🖐 Cursor</b> ca sa nu plasezi din greseala.'; $('topHint').textContent='Pasul 2 — adauga elemente'; renderLists(); renderRoomList(); };
 $('toggleView').onclick=()=>{ if(state.mode==='plan') $('raise').click(); else $('backPlan').click(); };
 $('undoBtn').onclick=undo; $('undoBtn2').onclick=undo;
-$('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent='Mod cursor: rotești / muți vederea, nu se plasează nimic.'; };
-$('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('measure').classList.add('hidden'); selectedEl=null; dragging=null; $('topHint').textContent='Pasul 1 — desenează planul camerei în cm'; $('mode').innerHTML='Definește pereții (cm + cotitură). Apasă <b>Ridică 3D</b>.'; drawPlan(); };
+$('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent='Mod cursor: rotesti / muti vederea, nu se plaseaza nimic.'; };
+$('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('measure').classList.add('hidden'); selectedEl=null; dragging=null; $('topHint').textContent='Pasul 1 — deseneaza planul camerei in cm'; $('mode').innerHTML='Defineste peretii (cm + cotitura). Apasa <b>Ridica 3D</b>.'; drawPlan(); };
 window.addEventListener('resize',()=>{ if(state.mode==='plan') drawPlan(); else if(renderer) sizeRenderer(); });
 
 /* ===== start ===== */
@@ -845,10 +845,11 @@ setPlanModeUI(); renderWallRows(); renderOpRows(); refreshPlan();
 let _last=null; try{ _last=JSON.parse(localStorage.getItem(AKEY)||'null'); }catch(e){ _last=null; }
 if(projHasContent(_last)){
   const when=_last.savedAt?new Date(_last.savedAt).toLocaleString('ro-RO'):'';
-  openModal(`<h2>↩ Reluăm ultima sesiune?</h2><p class="muted">Ai o lucrare nesalvată din ${when}${_last.name?(' · „'+_last.name+'"'):''}. Vrei să continui de unde ai rămas?</p><div class="cbtns"><button class="btn act" id="rsYes">Da, continuă</button><button class="btn" id="rsNo">Nu, începe nou</button></div>`);
+  openModal(`<h2>↩ Reluam ultima sesiune?</h2><p class="muted">Ai o lucrare nesalvata din ${when}${_last.name?(' · „'+_last.name+'"'):''}. Vrei sa continui de unde ai ramas?</p><div class="cbtns"><button class="btn act" id="rsYes">Da, continua</button><button class="btn" id="rsNo">Nu, incepe nou</button></div>`);
   $('rsYes').onclick=()=>{ closeModal(); openProject(_last); };
   $('rsNo').onclick=()=>{ closeModal(); localStorage.removeItem(AKEY); askSystem(); };
 } else askSystem();
 </script>
+<script src="../assets/no-diacritics.js"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
 <meta name="theme-color" content="#1D9E75">
 
-<!-- pdf-lib pentru generare + merge PDF în browser (100% client-side) -->
+<!-- pdf-lib pentru generare + merge PDF in browser (100% client-side) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
 <style>
@@ -133,8 +133,8 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 <div class="overlay" id="overlay">
   <div class="box">
     <div class="spinner"></div>
-    <div class="status" id="overlay_status">Se generează PDF-ul…</div>
-    <div class="detail" id="overlay_detail">Combin documentele în dosarul final</div>
+    <div class="status" id="overlay_status">Se genereaza PDF-ul…</div>
+    <div class="detail" id="overlay_detail">Combin documentele in dosarul final</div>
   </div>
 </div>
 
@@ -150,7 +150,7 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
   </div>
 
   <h1>Dosar utilizare pentru spor de putere</h1>
-  <p class="subtitle">Completează datele clientului, atașează ce e nevoie, generează PDF-ul complet cu opisul automat la început.</p>
+  <p class="subtitle">Completeaza datele clientului, ataseaza ce e nevoie, genereaza PDF-ul complet cu opisul automat la inceput.</p>
 
   <!-- Drafts -->
   <details class="drafts-panel" id="drafts_details">
@@ -165,17 +165,17 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 
   <!-- ── DATE GENERALE ─────────────────────────────────────────────────── -->
   <div class="section">
-    <div class="section-title"><span class="icon">📋</span> Date generale (apar în toate documentele standard)</div>
+    <div class="section-title"><span class="icon">📋</span> Date generale (apar in toate documentele standard)</div>
 
     <div class="ibox">
-      Completează aici o singură dată — documentele editabile generate (Adresa de înaintare, Memoriu, Tabel încăperi, Schema legare la pământ) folosesc automat aceste valori.
+      Completeaza aici o singura data — documentele editabile generate (Adresa de inaintare, Memoriu, Tabel incaperi, Schema legare la pamant) folosesc automat aceste valori.
     </div>
 
     <div class="fg fg2">
-      <div class="f"><label>Sucursala emitentă</label>
+      <div class="f"><label>Sucursala emitenta</label>
         <select id="branch">
-          <option value="electric">Profceiss Electric SRL (București)</option>
-          <option value="green">Profceiss Green Energy SRL (Câmpulung)</option>
+          <option value="electric">Profceiss Electric SRL (Bucuresti)</option>
+          <option value="green">Profceiss Green Energy SRL (Campulung)</option>
         </select>
       </div>
       <div class="f"><label>Data dosar</label><input type="date" id="data_dosar"></div>
@@ -183,7 +183,7 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
 
     <div class="group-label">BENEFICIAR</div>
     <div class="fg fg2">
-      <div class="f"><label>Nume și prenume</label><input type="text" id="ben_nume" placeholder="ex: Ionescu Popescu"></div>
+      <div class="f"><label>Nume si prenume</label><input type="text" id="ben_nume" placeholder="ex: Ionescu Popescu"></div>
       <div class="f"><label>CNP / CUI</label><input type="text" id="ben_cnp" placeholder="ex: 1234567890123"></div>
     </div>
     <div class="fg fg3">
@@ -191,37 +191,37 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
       <div class="f"><label>CI / BI Nr.</label><input type="text" id="ben_ci_nr" placeholder="ex: 123456"></div>
       <div class="f"><label>Telefon</label><input type="text" id="ben_tel" placeholder="ex: 0722 222 222"></div>
     </div>
-    <div class="f"><label>Email (opțional)</label><input type="email" id="ben_email"></div>
+    <div class="f"><label>Email (optional)</label><input type="email" id="ben_email"></div>
     <div class="f"><label>Adresa de domiciliu (din CI)</label>
       <input type="text" id="ben_adr_domiciliu" placeholder="asa cum apare in buletin">
-      <span class="hint">Adresa din CI a beneficiarului — folosită în antetul adresei de înaintare.</span>
+      <span class="hint">Adresa din CI a beneficiarului — folosita in antetul adresei de inaintare.</span>
     </div>
-    <div class="f"><label>Adresa instalație (loc de consum)</label>
+    <div class="f"><label>Adresa instalatie (loc de consum)</label>
       <input type="text" id="ben_adr" placeholder="adresa de consum">
-      <span class="hint">Adresa unde e instalația — poate diferi de domiciliu.</span>
+      <span class="hint">Adresa unde e instalatia — poate diferi de domiciliu.</span>
     </div>
 
-    <div class="group-label">DATE TEHNICE INSTALAȚIE</div>
+    <div class="group-label">DATE TEHNICE INSTALATIE</div>
     <div class="fg fg3">
       <div class="f"><label>POD (cod loc consum)</label><input type="text" id="pod" placeholder="ex: RO001E12345678"></div>
-      <div class="f"><label>NLC (opțional)</label><input type="text" id="nlc"></div>
-      <div class="f"><label>Tip instalație</label>
+      <div class="f"><label>NLC (optional)</label><input type="text" id="nlc"></div>
+      <div class="f"><label>Tip instalatie</label>
         <select id="tip_instalatie">
-          <option value="rezidential">Rezidențial</option>
+          <option value="rezidential">Rezidential</option>
           <option value="comercial">Comercial</option>
           <option value="industrial">Industrial</option>
         </select>
       </div>
     </div>
     <div class="fg fg3">
-      <div class="f"><label>Branșament</label>
+      <div class="f"><label>Bransament</label>
         <select id="bransament_tip">
           <option value="mono">Monofazat (230 V)</option>
           <option value="tri" selected>Trifazat (400 V)</option>
         </select>
       </div>
-      <div class="f"><label>Putere existentă (kW)</label><input type="number" id="putere_existenta" placeholder="ex: 8" step="0.1" min="0"></div>
-      <div class="f"><label>Putere solicitată (kW)</label><input type="number" id="putere_solicitata" placeholder="ex: 12" step="0.1" min="0"></div>
+      <div class="f"><label>Putere existenta (kW)</label><input type="number" id="putere_existenta" placeholder="ex: 8" step="0.1" min="0"></div>
+      <div class="f"><label>Putere solicitata (kW)</label><input type="number" id="putere_solicitata" placeholder="ex: 12" step="0.1" min="0"></div>
     </div>
 
     <div class="group-label">AVIZ TEHNIC DE RACORDARE (ATR)</div>
@@ -229,46 +229,46 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
       <div class="f"><label>Nr. ATR</label><input type="text" id="atr_nr" placeholder="ex: 12345678"></div>
       <div class="f"><label>Data ATR</label><input type="date" id="atr_data"></div>
     </div>
-    <div class="f"><label>Operator distribuție (OD) — denumire completă</label>
+    <div class="f"><label>Operator distributie (OD) — denumire completa</label>
       <input type="text" id="atr_od" placeholder="ex: RETELE ELECTRICE ROMANIA S.A." value="RETELE ELECTRICE ROMANIA S.A.">
     </div>
     <div class="fg fg2">
-      <div class="f"><label>Direcția / Departamentul OD</label>
-        <input type="text" id="od_directie" placeholder="ex: Direcția Racordări" value="Direcția Racordări">
+      <div class="f"><label>Directia / Departamentul OD</label>
+        <input type="text" id="od_directie" placeholder="ex: Directia Racordari" value="Directia Racordari">
       </div>
       <div class="f"><label>Adresa OD</label>
-        <input type="text" id="od_adresa" placeholder="ex: Bd. Mircea Voda nr. 30, Sector 3, București" value="Bd. Mircea Voda nr. 30, Sector 3, București">
+        <input type="text" id="od_adresa" placeholder="ex: Bd. Mircea Voda nr. 30, Sector 3, Bucuresti" value="Bd. Mircea Voda nr. 30, Sector 3, Bucuresti">
       </div>
     </div>
 
-    <div class="group-label">EXECUTANT (PERSOANĂ AUTORIZATĂ + FIRMĂ)</div>
+    <div class="group-label">EXECUTANT (PERSOANA AUTORIZATA + FIRMA)</div>
     <div class="fg fg2">
-      <div class="f"><label>Nume persoană autorizată</label><input type="text" id="exec_nume" placeholder="ex: Popescu Ion"></div>
-      <div class="f"><label>Legitimație ANRE persoană</label><input type="text" id="exec_anre" placeholder="ex: IIB nr. 12345/2024"></div>
+      <div class="f"><label>Nume persoana autorizata</label><input type="text" id="exec_nume" placeholder="ex: Popescu Ion"></div>
+      <div class="f"><label>Legitimatie ANRE persoana</label><input type="text" id="exec_anre" placeholder="ex: IIB nr. 12345/2024"></div>
     </div>
-    <div class="f"><label>Atestate ANRE firmă (lista cu virgulă)</label>
+    <div class="f"><label>Atestate ANRE firma (lista cu virgula)</label>
       <input type="text" id="firma_atestate" placeholder="ex: 12345, 12346, 12347 / DD-MM-AAAA">
     </div>
 
-    <div class="group-label">NUMERE DOCUMENTE (DIN BULETINELE PRAM ȘI DECLARAȚIA EXECUTANTULUI)</div>
+    <div class="group-label">NUMERE DOCUMENTE (DIN BULETINELE PRAM SI DECLARATIA EXECUTANTULUI)</div>
     <div class="ibox">
-      Aceste numere apar în Adresa de înaintare (la opisul documentelor) și în Memoriu. Sunt cele de pe documentele preîncărcate (buletin PRAM, declarație executant).
+      Aceste numere apar in Adresa de inaintare (la opisul documentelor) si in Memoriu. Sunt cele de pe documentele preincarcate (buletin PRAM, declaratie executant).
     </div>
     <div class="fg fg2">
-      <div class="f"><label>Buletin priză pământ — nr.</label><input type="text" id="pram_priza_nr" placeholder="ex: 100"></div>
-      <div class="f"><label>Buletin priză pământ — data</label><input type="date" id="pram_priza_data"></div>
+      <div class="f"><label>Buletin priza pamant — nr.</label><input type="text" id="pram_priza_nr" placeholder="ex: 100"></div>
+      <div class="f"><label>Buletin priza pamant — data</label><input type="date" id="pram_priza_data"></div>
     </div>
     <div class="fg fg2">
-      <div class="f"><label>Rezistență priză pământ MĂSURATĂ (Ω)</label><input type="text" id="pram_priza_masurata" placeholder="ex: 0,XX"></div>
-      <div class="f"><label>Rezistență priză pământ CALCULATĂ (Ω)</label><input type="text" id="pram_priza_calculata" placeholder="ex: 0,XX"></div>
+      <div class="f"><label>Rezistenta priza pamant MASURATA (Ω)</label><input type="text" id="pram_priza_masurata" placeholder="ex: 0,XX"></div>
+      <div class="f"><label>Rezistenta priza pamant CALCULATA (Ω)</label><input type="text" id="pram_priza_calculata" placeholder="ex: 0,XX"></div>
     </div>
     <div class="fg fg2">
-      <div class="f"><label>Buletin izolație — nr.</label><input type="text" id="pram_izolatie_nr" placeholder="ex: 101"></div>
-      <div class="f"><label>Buletin izolație — data</label><input type="date" id="pram_izolatie_data"></div>
+      <div class="f"><label>Buletin izolatie — nr.</label><input type="text" id="pram_izolatie_nr" placeholder="ex: 101"></div>
+      <div class="f"><label>Buletin izolatie — data</label><input type="date" id="pram_izolatie_data"></div>
     </div>
     <div class="fg fg2">
-      <div class="f"><label>Declarația executantului — nr.</label><input type="text" id="decl_exec_nr" placeholder="ex: 213"></div>
-      <div class="f"><label>Declarația executantului — data</label><input type="date" id="decl_exec_data"></div>
+      <div class="f"><label>Declaratia executantului — nr.</label><input type="text" id="decl_exec_nr" placeholder="ex: 213"></div>
+      <div class="f"><label>Declaratia executantului — data</label><input type="date" id="decl_exec_data"></div>
     </div>
   </div>
 
@@ -277,10 +277,10 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
     <div class="section-title"><span class="icon">📂</span> Opis documente</div>
 
     <div class="wbox">
-      <strong>Legendă:</strong>
-      <span class="type-badge editable">🟢 Editabil</span> = formular cu câmpuri, generat automat ·
-      <span class="type-badge permanent">🟣 Standard preîncărcat</span> = îl atașezi UNA singură dată, se reutilizează la fiecare client nou ·
-      <span class="type-badge browse">🟡 Browse</span> = atașezi de fiecare dată (per client) ·
+      <strong>Legenda:</strong>
+      <span class="type-badge editable">🟢 Editabil</span> = formular cu campuri, generat automat ·
+      <span class="type-badge permanent">🟣 Standard preincarcat</span> = il atasezi UNA singura data, se reutilizeaza la fiecare client nou ·
+      <span class="type-badge browse">🟡 Browse</span> = atasezi de fiecare data (per client) ·
       <span class="type-badge generated">🔵 Generat</span> = creat automat sau din alt tool
     </div>
 
@@ -293,94 +293,94 @@ h1{font-size:22px;font-weight:500;color:#1a1a1a;margin-bottom:4px;}
   </div>
 
   <div class="btn-row">
-    <button class="btn" type="button" onclick="saveCurrentDraft()">💾 Salvează dosar</button>
-    <button class="btn pri big" type="button" onclick="generateFullPDF()">📄 Generează dosar PDF complet</button>
+    <button class="btn" type="button" onclick="saveCurrentDraft()">💾 Salveaza dosar</button>
+    <button class="btn pri big" type="button" onclick="generateFullPDF()">📄 Genereaza dosar PDF complet</button>
   </div>
 
 </div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
-// DEFINIȚIA CELOR 13 DOCUMENTE — clasificate conform cerinței user-ului
+// DEFINITIA CELOR 13 DOCUMENTE — clasificate conform cerintei user-ului
 // ═══════════════════════════════════════════════════════════════════════════
 const DOCS_DEF = [
-  // 1 — EDITABIL (template fix după formatul aprobat — toate datele vin din formularul Date generale)
-  { id:'d1', type:'editable', title:'Adresa de înaintare',
+  // 1 — EDITABIL (template fix dupa formatul aprobat — toate datele vin din formularul Date generale)
+  { id:'d1', type:'editable', title:'Adresa de inaintare',
     fields:[],
     template:'adresa_inaintare',
-    desc:'Generată automat după formatul aprobat. Antet beneficiar + adresare către OD + opisul documentelor. Nu necesită câmpuri suplimentare aici — toate datele vin din „Date generale" de sus.' },
+    desc:'Generata automat dupa formatul aprobat. Antet beneficiar + adresare catre OD + opisul documentelor. Nu necesita campuri suplimentare aici — toate datele vin din „Date generale" de sus.' },
 
   // 2 — BROWSE per client (PDF de la OD)
   { id:'d2', type:'browse', title:'Avizul tehnic de racordare (ATR)',
     accept:'.pdf,.jpg,.jpeg,.png',
-    desc:'PDF-ul ATR primit de la operatorul de distribuție — diferit pentru fiecare client.' },
+    desc:'PDF-ul ATR primit de la operatorul de distributie — diferit pentru fiecare client.' },
 
-  // 3 — AUTO TEMPLATE (PDF static în templates/, se atașează automat la fiecare dosar)
-  { id:'d3', type:'auto_template', title:'Autorizație persoană executantă (ANRE)',
+  // 3 — AUTO TEMPLATE (PDF static in templates/, se ataseaza automat la fiecare dosar)
+  { id:'d3', type:'auto_template', title:'Autorizatie persoana executanta (ANRE)',
     templateUrl:'templates/autorizatie-persoana.pdf',
-    desc:'Atestatul ANRE al persoanei autorizate. Preîncărcat în repo — se atașează AUTOMAT la fiecare dosar generat.' },
+    desc:'Atestatul ANRE al persoanei autorizate. Preincarcat in repo — se ataseaza AUTOMAT la fiecare dosar generat.' },
 
-  // 4 — EDITABIL (Memoriu de prezentare — format I7-2011, secțiuni structurate)
+  // 4 — EDITABIL (Memoriu de prezentare — format I7-2011, sectiuni structurate)
   { id:'d4', type:'editable', title:'Memoriu de prezentare',
     fields:['mem_scop','mem_obiectiv','mem_racordare','mem_tgd_circuite','mem_concluzii'],
     template:'memoriu',
-    desc:'Memoriu structurat conform I7-2011 cu 8 secțiuni. Editezi doar părțile variabile (descriere obiectiv, lista circuite TGD); restul (date generale, protecții, încăperi, materiale, concluzii) se generează automat.' },
+    desc:'Memoriu structurat conform I7-2011 cu 8 sectiuni. Editezi doar partile variabile (descriere obiectiv, lista circuite TGD); restul (date generale, protectii, incaperi, materiale, concluzii) se genereaza automat.' },
 
-  // 5 — EDITABIL (Tabel încăperi — listă text linii)
-  { id:'d5', type:'editable', title:'Tabel cu clasificarea încăperilor',
+  // 5 — EDITABIL (Tabel incaperi — lista text linii)
+  { id:'d5', type:'editable', title:'Tabel cu clasificarea incaperilor',
     fields:['tabel_incaperi'],
     template:'tabel_incaperi',
-    desc:'Lista încăperilor — câte o linie pentru fiecare cu format: Denumire | Suprafață mp | Mediu | Umiditate | Clasificare BE | Observații' },
+    desc:'Lista incaperilor — cate o linie pentru fiecare cu format: Denumire | Suprafata mp | Mediu | Umiditate | Clasificare BE | Observatii' },
 
   // 6 — EDITABIL (Buletin verificare priza de pamant — template cu auto-completare)
-  { id:'d6', type:'editable', title:'Buletin verificare priză de pământ (PRAM)',
+  { id:'d6', type:'editable', title:'Buletin verificare priza de pamant (PRAM)',
     fields:['priza_obiectiv','priza_aparat'],
     template:'buletin_priza_pamant',
-    desc:'Buletin generat automat cu datele clientului. Nr/data buletinului, valoarea măsurată/calculată, aparatul de măsură — toate din formular.' },
+    desc:'Buletin generat automat cu datele clientului. Nr/data buletinului, valoarea masurata/calculata, aparatul de masura — toate din formular.' },
 
   // 7 — EDITABIL (Buletin verificare izolatie — template cu tabel circuite)
-  { id:'d7', type:'editable', title:'Buletin verificare rezistență izolație circuite (PRAM)',
+  { id:'d7', type:'editable', title:'Buletin verificare rezistenta izolatie circuite (PRAM)',
     fields:['izol_aparat','izol_circuite'],
     template:'buletin_izolatie',
     desc:'Buletin generat automat cu antet client + tabel circuite editabil. Conform Normativ I7-2011 si SR EN 61557.' },
 
-  // 8 — GENERAT (Claude generează schema standard cu datele clientului)
-  { id:'d8', type:'generated_internal', title:'Desen execuție instalație de protecție prin legare la priza de pământ',
-    desc:'Generat automat ca pagină A4 cu schema standard de legare la priza de pământ + datele acestui client (POD, adresă, executant).' },
+  // 8 — GENERAT (Claude genereaza schema standard cu datele clientului)
+  { id:'d8', type:'generated_internal', title:'Desen executie instalatie de protectie prin legare la priza de pamant',
+    desc:'Generat automat ca pagina A4 cu schema standard de legare la priza de pamant + datele acestui client (POD, adresa, executant).' },
 
   // 9 — BROWSE per client (releveu de la arhitect)
-  { id:'d9', type:'browse', title:'Desen releveu cu destinația spațiilor',
+  { id:'d9', type:'browse', title:'Desen releveu cu destinatia spatiilor',
     accept:'.pdf,.jpg,.jpeg,.png',
     desc:'Releveu arhitectural — diferit pentru fiecare client.' },
 
   // 10 — GENERAT din alt tool (schema monofilara — editor dedicat)
-  { id:'d10', type:'generated_external', title:'Schema monofilară a instalației de utilizare',
-    sourceUrl:'../schema-monofilara/', sourceLabel:'Deschide Editor Schema Monofilară',
+  { id:'d10', type:'generated_external', title:'Schema monofilara a instalatiei de utilizare',
+    sourceUrl:'../schema-monofilara/', sourceLabel:'Deschide Editor Schema Monofilara',
     accept:'.pdf,.svg,.png,.jpg,.jpeg',
-    desc:'Schema unifilară până la nivelul tablourilor principale. Generezi în editorul dedicat sau atașezi PDF/imagine existentă.' },
+    desc:'Schema unifilara pana la nivelul tablourilor principale. Generezi in editorul dedicat sau atasezi PDF/imagine existenta.' },
 
   // 11 — AUTO TEMPLATE
-  { id:'d11', type:'auto_template', title:'Declarația executantului',
+  { id:'d11', type:'auto_template', title:'Declaratia executantului',
     templateUrl:'templates/declaratie-executant.pdf',
-    desc:'Declarația standard a executantului. Preîncărcată în repo — se atașează AUTOMAT la fiecare dosar generat.' },
+    desc:'Declaratia standard a executantului. Preincarcata in repo — se ataseaza AUTOMAT la fiecare dosar generat.' },
 
   // 12 — AUTO TEMPLATE
-  { id:'d12', type:'auto_template', title:'Autorizație firmă (ANRE)',
+  { id:'d12', type:'auto_template', title:'Autorizatie firma (ANRE)',
     templateUrl:'templates/autorizatie-firma.pdf',
-    desc:'Atestatul ANRE al firmei (Profceiss Electric). Preîncărcat în repo — se atașează AUTOMAT la fiecare dosar.' },
+    desc:'Atestatul ANRE al firmei (Profceiss Electric). Preincarcat in repo — se ataseaza AUTOMAT la fiecare dosar.' },
 
   // 13 — BROWSE multiplu (fotografii per client)
-  { id:'d13', type:'browse_multi', title:'Fotografii (TGD, coloană alimentare, obiectiv, priză pământ, instrument măsură)',
+  { id:'d13', type:'browse_multi', title:'Fotografii (TGD, coloana alimentare, obiectiv, priza pamant, instrument masura)',
     accept:'.jpg,.jpeg,.png',
-    desc:'Fotografii noi pentru fiecare client. Atașezi cât vrei.' }
+    desc:'Fotografii noi pentru fiecare client. Atasezi cat vrei.' }
 ];
 
-// State curent (în memorie)
-// permanentFiles și clientFiles sunt separate ca să se vadă clar ce e reutilizabil vs per-client
+// State curent (in memorie)
+// permanentFiles si clientFiles sunt separate ca sa se vada clar ce e reutilizabil vs per-client
 const state = {
   draftId: null,
   draftTitle: null,
-  // Per-document: client = fișier pt clientul curent, fields = câmpuri text
+  // Per-document: client = fisier pt clientul curent, fields = campuri text
   client: {},   // { docId: { file: File|null, files: File[] } }
   fields: {}    // { docId: { fieldId: value } }
 };
@@ -389,7 +389,7 @@ DOCS_DEF.forEach(d => {
   state.fields[d.id] = {};
 });
 
-// IDs ale câmpurilor globale (pentru save/load)
+// IDs ale campurilor globale (pentru save/load)
 const GLOBAL_FIELDS = [
   'branch','data_dosar',
   'ben_nume','ben_cnp','ben_ci_seria','ben_ci_nr','ben_tel','ben_email','ben_adr_domiciliu','ben_adr',
@@ -402,9 +402,9 @@ const GLOBAL_FIELDS = [
 ];
 
 const COMPANIES = {
-  electric: { nume:'PROFCEISS ELECTRIC SRL', adresa:'Șos. Unirii nr. 13, Balotești, jud. Ilfov',
+  electric: { nume:'PROFCEISS ELECTRIC SRL', adresa:'Sos. Unirii nr. 13, Balotesti, jud. Ilfov',
               tel:'0747 755 489', email:'office@profceiss.ro' },
-  green:    { nume:'PROFCEISS GREEN ENERGY SRL', adresa:'Str. Negru Vodă nr. 115, Câmpulung, jud. Argeș',
+  green:    { nume:'PROFCEISS GREEN ENERGY SRL', adresa:'Str. Negru Voda nr. 115, Campulung, jud. Arges',
               tel:'0748 738 206', email:'tehnic@profceiss.ro' }
 };
 
@@ -412,7 +412,7 @@ function v(id){ return document.getElementById(id); }
 function fmtSize(b){ if(b<1024)return b+' B'; if(b<1048576)return(b/1024).toFixed(0)+' KB'; return(b/1048576).toFixed(1)+' MB'; }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PERMANENT FILES — stocate în IndexedDB (file blobs, pot fi mari)
+// PERMANENT FILES — stocate in IndexedDB (file blobs, pot fi mari)
 // ═══════════════════════════════════════════════════════════════════════════
 const DB_NAME = 'profceiss_spor_putere_db';
 const DB_STORE = 'permanent_files';
@@ -472,8 +472,8 @@ function renderDocs() {
   c.innerHTML = DOCS_DEF.map((d, idx) => {
     const num = idx + 1;
     let badgeClass = 'editable', badgeText = '🟢 Editabil';
-    if (d.type === 'permanent') { badgeClass = 'permanent'; badgeText = '🟣 Standard preîncărcat'; }
-    else if (d.type === 'auto_template') { badgeClass = 'permanent'; badgeText = '🟣 Auto-atașat din repo'; }
+    if (d.type === 'permanent') { badgeClass = 'permanent'; badgeText = '🟣 Standard preincarcat'; }
+    else if (d.type === 'auto_template') { badgeClass = 'permanent'; badgeText = '🟣 Auto-atasat din repo'; }
     else if (d.type === 'browse' || d.type === 'browse_multi') { badgeClass = 'browse'; badgeText = '🟡 Browse per client'; }
     else if (d.type === 'generated_internal' || d.type === 'generated_external') { badgeClass = 'generated'; badgeText = '🔵 Generat'; }
 
@@ -498,7 +498,7 @@ function renderDocs() {
         <div class="doc-head" onclick="toggleDoc('${d.id}')">
           <div class="doc-num">${num}</div>
           <div class="doc-title">${d.title}</div>
-          <div class="doc-status missing" id="status_${d.id}">Lipsește</div>
+          <div class="doc-status missing" id="status_${d.id}">Lipseste</div>
           <div class="doc-toggle"></div>
         </div>
         ${body}
@@ -517,7 +517,7 @@ function renderEditableFields(d) {
     'mem_tgd_circuite': 'Coloana principala: cablu trifazat 5x6 mmp CYY-F, de la BMPT/BMPM la tabloul general. Intrerupator automat general trifazat 40A-4P.\n\nCircuite TGD (denumire | siguranta | cablu | diferential):\nCL1 | Iluminat parter (L1) | C10-1P+N | 3x1,5 mmp CYY-F | 2A/30mA\nCL2 | Iluminat etaj (L2) | C10-1P+N | 3x1,5 mmp CYY-F | 2A/30mA\nP1  | Prize generale (L1) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP2  | Prize generale (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP3  | Masina de spalat (L3) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP4  | Masina gatit/hota (L1) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP5  | Centrala termica (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP6  | Boiler (L3) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP7  | Cuptor electric (L1) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP8  | Aer conditionat (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP9  | Pompa caldura (L3) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP10 | Aer conditionat (L1) | C20-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nP11 | Prize baie/AC (L2) | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA\nCS1 | Curenti slabi (date/TV) | C6-1P+N | 3x1,5 mmp CYY-F | -\nR1  | Rezerva | C16-2P+N | 3x2,5 mmp CYY-F | 2A/30mA',
     'mem_concluzii': 'Instalatia electrica interioara a fost executata cu respectarea prevederilor Normativului I7-2011, a normelor de protectia muncii si PSI in vigoare. Instalatia corespunde din punct de vedere tehnic si indeplineste conditiile pentru punerea sub tensiune.',
 
-    // ── Tabel încăperi ── (câte o linie: Denumire | Suprafata | Mediu | Umiditate | Clasificare | Observatii)
+    // ── Tabel incaperi ── (cate o linie: Denumire | Suprafata | Mediu | Umiditate | Clasificare | Observatii)
     'tabel_incaperi': 'Hol intrare | X,X mp | Normal | Normal | BE1a | -\nLiving | X,X mp | Normal | Normal | BE1a | -\nBucatarie | X,X mp | Normal | Normal | BE1a | -\nBaie | X,X mp | Umed | Umed | BE2 | Zona 2 baie\nDormitor 1 | X,X mp | Normal | Normal | BE1a | -\nDormitor 2 | X,X mp | Normal | Normal | BE1a | -\nBalcon | X,X mp | Normal | Normal | BE1a | Spatiu exterior acoperit',
 
     // ── Buletin priza pamant ──
@@ -547,38 +547,38 @@ function renderEditableFields(d) {
 
 function labelForField(f) {
   const m = {
-    'mem_scop':'2. Scopul lucrării',
+    'mem_scop':'2. Scopul lucrarii',
     'mem_obiectiv':'3. Descrierea obiectivului',
-    'mem_racordare':'4. Instalația de racordare',
-    'mem_tgd_circuite':'5. Instalația de utilizare — coloană + TGD + circuite',
+    'mem_racordare':'4. Instalatia de racordare',
+    'mem_tgd_circuite':'5. Instalatia de utilizare — coloana + TGD + circuite',
     'mem_concluzii':'8. Concluzii',
-    'tabel_incaperi':'Lista încăperilor (Denumire | Suprafață | Mediu | Umiditate | Clasificare BE | Observații)',
-    'priza_obiectiv':'Obiectivul verificării (ex: VERIFICARE PRIZA DE PAMANT-LOCUINTA)',
-    'priza_aparat':'Aparat de măsură folosit',
-    'izol_aparat':'Aparat de măsură folosit',
+    'tabel_incaperi':'Lista incaperilor (Denumire | Suprafata | Mediu | Umiditate | Clasificare BE | Observatii)',
+    'priza_obiectiv':'Obiectivul verificarii (ex: VERIFICARE PRIZA DE PAMANT-LOCUINTA)',
+    'priza_aparat':'Aparat de masura folosit',
+    'izol_aparat':'Aparat de masura folosit',
     'izol_circuite':'Tabelul circuitelor (Circuit | Destinatie | Tip cablu | Tensiune | Rezistenta | Min | Concluzie)'
   };
   return m[f] || f;
 }
 
 function labelHintForField(f) {
-  if (f === 'mem_tgd_circuite') return 'Format: Cod | Destinatie (faza) | Siguranta | Cablu | Diferential — câte o linie per circuit. Editează liber.';
-  if (f === 'tabel_incaperi') return 'Câte o linie per încăpere, cu „ | " ca separator. Coloanele: Denumire | Suprafata | Mediu | Umiditate | Clasificare BE | Observatii.';
-  if (f === 'izol_circuite') return 'Format: Cod | Destinatie | Cablu | Tensiune incercare | Rezistenta izolatie | Valoare minima | Concluzie — câte o linie per circuit.';
-  if (f === 'priza_obiectiv') return 'Tipul lucrării verificate (ex: VERIFICARE PRIZA DE PAMANT-LOCUINTA, sau INSTALATIE INDUSTRIALA, etc.).';
-  if (f === 'priza_aparat' || f === 'izol_aparat') return 'Nume aparat + SN + data metrologizării.';
-  return 'Editabil per dosar — apare în PDF-ul generat al acestui document.';
+  if (f === 'mem_tgd_circuite') return 'Format: Cod | Destinatie (faza) | Siguranta | Cablu | Diferential — cate o linie per circuit. Editeaza liber.';
+  if (f === 'tabel_incaperi') return 'Cate o linie per incapere, cu „ | " ca separator. Coloanele: Denumire | Suprafata | Mediu | Umiditate | Clasificare BE | Observatii.';
+  if (f === 'izol_circuite') return 'Format: Cod | Destinatie | Cablu | Tensiune incercare | Rezistenta izolatie | Valoare minima | Concluzie — cate o linie per circuit.';
+  if (f === 'priza_obiectiv') return 'Tipul lucrarii verificate (ex: VERIFICARE PRIZA DE PAMANT-LOCUINTA, sau INSTALATIE INDUSTRIALA, etc.).';
+  if (f === 'priza_aparat' || f === 'izol_aparat') return 'Nume aparat + SN + data metrologizarii.';
+  return 'Editabil per dosar — apare in PDF-ul generat al acestui document.';
 }
 
 function renderPermanentUpload(d) {
   return `
     <div class="permanent-status" id="perm_status_${d.id}">
-      <span class="empty">⚠ Niciun fișier preîncărcat</span>
-      <span><button class="btn small" type="button" onclick="document.getElementById('perm_file_${d.id}').click()">📁 Atașează template</button></span>
+      <span class="empty">⚠ Niciun fisier preincarcat</span>
+      <span><button class="btn small" type="button" onclick="document.getElementById('perm_file_${d.id}').click()">📁 Ataseaza template</button></span>
     </div>
     <input type="file" id="perm_file_${d.id}" accept="${d.accept}" style="display:none;" onchange="onPermanentUpload('${d.id}',this.files[0])">
     <div style="font-size:11px;color:#888;line-height:1.5;">
-      Fișierul rămâne salvat în browser (IndexedDB) și se reutilizează automat la fiecare dosar nou. Apăsă „Înlocuiește" dacă vrei să-l actualizezi.
+      Fisierul ramane salvat in browser (IndexedDB) si se reutilizeaza automat la fiecare dosar nou. Apasa „Inlocuieste" daca vrei sa-l actualizezi.
     </div>
   `;
 }
@@ -587,7 +587,7 @@ function renderBrowseSingle(d) {
   return `
     <div class="file-zone" id="zone_${d.id}" onclick="document.getElementById('cli_file_${d.id}').click()">
       <div style="font-size:24px;">📎</div>
-      <div class="file-zone-label">Click pentru a alege fișierul (${d.accept})</div>
+      <div class="file-zone-label">Click pentru a alege fisierul (${d.accept})</div>
       <input type="file" id="cli_file_${d.id}" accept="${d.accept}" onchange="onClientFile('${d.id}',this.files[0])">
       <div id="fileinfo_${d.id}"></div>
     </div>
@@ -598,7 +598,7 @@ function renderBrowseMulti(d) {
   return `
     <div class="file-zone" onclick="document.getElementById('cli_files_${d.id}').click()">
       <div style="font-size:24px;">📎</div>
-      <div class="file-zone-label">Click pentru a alege fișiere (poți alege mai multe deodată)</div>
+      <div class="file-zone-label">Click pentru a alege fisiere (poti alege mai multe deodata)</div>
       <input type="file" id="cli_files_${d.id}" accept="${d.accept}" multiple onchange="onClientFilesMulti('${d.id}',this.files)">
     </div>
     <div class="file-list" id="filelist_${d.id}"></div>
@@ -608,11 +608,11 @@ function renderBrowseMulti(d) {
 function renderAutoTemplate(d) {
   return `
     <div class="permanent-status" id="auto_status_${d.id}">
-      <span class="saved">✅ Auto-atașat din: <code>${d.templateUrl}</code></span>
+      <span class="saved">✅ Auto-atasat din: <code>${d.templateUrl}</code></span>
       <span style="font-size:11px;color:#888;">Verificare la generare PDF…</span>
     </div>
     <div style="font-size:11px;color:#888;line-height:1.5;">
-      Acest document este preîncărcat în repo (folderul <code>templates/</code>) și se atașează AUTOMAT la fiecare dosar generat — fără să mai trebuiască să atașezi nimic. Dacă vrei să-l înlocuiești, editezi/înlocuiești fișierul în repo și commit + push.
+      Acest document este preincarcat in repo (folderul <code>templates/</code>) si se ataseaza AUTOMAT la fiecare dosar generat — fara sa mai trebuiasca sa atasezi nimic. Daca vrei sa-l inlocuiesti, editezi/inlocuiesti fisierul in repo si commit + push.
     </div>
   `;
 }
@@ -620,7 +620,7 @@ function renderAutoTemplate(d) {
 function renderGeneratedInternal(d) {
   return `
     <div class="ibox" style="margin-bottom:0;">
-      ✓ Acest document e <strong>generat automat</strong> de aplicație folosind datele clientului din „Date generale". Nu trebuie să atașezi nimic — va apărea direct în PDF-ul final.
+      ✓ Acest document e <strong>generat automat</strong> de aplicatie folosind datele clientului din „Date generale". Nu trebuie sa atasezi nimic — va aparea direct in PDF-ul final.
     </div>
   `;
 }
@@ -628,18 +628,18 @@ function renderGeneratedInternal(d) {
 function renderGeneratedExternal(d) {
   return `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-      <!-- Opțiunea 1: deschide editor -->
+      <!-- Optiunea 1: deschide editor -->
       <div style="background:#fff;border:1.5px solid #185FA5;border-radius:10px;padding:14px;text-align:center;">
         <div style="font-size:24px;margin-bottom:8px;">🎨</div>
-        <div style="font-size:13px;font-weight:600;color:#185FA5;margin-bottom:4px;">Opțiunea 1: Desenează schema</div>
-        <div style="font-size:11px;color:#666;margin-bottom:10px;line-height:1.4;">Deschide editorul, completează, exportă PDF/PNG.</div>
+        <div style="font-size:13px;font-weight:600;color:#185FA5;margin-bottom:4px;">Optiunea 1: Deseneaza schema</div>
+        <div style="font-size:11px;color:#666;margin-bottom:10px;line-height:1.4;">Deschide editorul, completeaza, exporta PDF/PNG.</div>
         <a class="btn-link" href="${d.sourceUrl}" target="_blank" style="display:inline-block;background:#185FA5;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:500;">Deschide Editor ↗</a>
       </div>
-      <!-- Opțiunea 2: browse fișier -->
+      <!-- Optiunea 2: browse fisier -->
       <div style="background:#fff;border:1.5px solid #854F0B;border-radius:10px;padding:14px;text-align:center;">
         <div style="font-size:24px;margin-bottom:8px;">📎</div>
-        <div style="font-size:13px;font-weight:600;color:#854F0B;margin-bottom:4px;">Opțiunea 2: Atașează existentă</div>
-        <div style="font-size:11px;color:#666;margin-bottom:10px;line-height:1.4;">Dacă ai deja PDF / poza schemei pe calculator.</div>
+        <div style="font-size:13px;font-weight:600;color:#854F0B;margin-bottom:4px;">Optiunea 2: Ataseaza existenta</div>
+        <div style="font-size:11px;color:#666;margin-bottom:10px;line-height:1.4;">Daca ai deja PDF / poza schemei pe calculator.</div>
         <button class="btn" type="button" onclick="document.getElementById('cli_file_${d.id}').click()" style="background:#854F0B;color:#fff;border-color:#854F0B;padding:8px 16px;font-size:12px;">📁 Browse din calculator</button>
         <input type="file" id="cli_file_${d.id}" accept="${d.accept}" onchange="onClientFile('${d.id}',this.files[0])" style="display:none;">
       </div>
@@ -649,7 +649,7 @@ function renderGeneratedExternal(d) {
     </div>
     <div id="fileinfo_${d.id}_inline" style="font-size:12px;text-align:center;color:#0F6E56;margin-top:6px;"></div>
     <div style="font-size:11px;color:#888;line-height:1.5;margin-top:8px;text-align:center;">
-      Acceptat: PDF, SVG, PNG, JPG. Editorul de schema bloc permite export direct în PDF.
+      Acceptat: PDF, SVG, PNG, JPG. Editorul de schema bloc permite export direct in PDF.
     </div>
   `;
 }
@@ -664,7 +664,7 @@ async function onPermanentUpload(docId, file) {
     renderPermanentStatus(docId);
     updateStatus(docId); updateSummary();
   } catch (e) {
-    alert('Eroare la salvare în browser: ' + e.message);
+    alert('Eroare la salvare in browser: ' + e.message);
   }
 }
 
@@ -674,22 +674,22 @@ async function renderPermanentStatus(docId) {
   if (!el) return;
   if (stored) {
     el.innerHTML = `
-      <span class="saved">✅ Atașat: <strong>${stored.name}</strong> (${fmtSize(stored.size)})</span>
+      <span class="saved">✅ Atasat: <strong>${stored.name}</strong> (${fmtSize(stored.size)})</span>
       <span style="display:flex;gap:6px;">
-        <button class="btn small" type="button" onclick="document.getElementById('perm_file_${docId}').click()">🔄 Înlocuiește</button>
+        <button class="btn small" type="button" onclick="document.getElementById('perm_file_${docId}').click()">🔄 Inlocuieste</button>
         <button class="btn small" type="button" style="color:#A32D2D;" onclick="onPermanentDelete('${docId}')">🗑</button>
       </span>
     `;
   } else {
     el.innerHTML = `
-      <span class="empty">⚠ Niciun fișier preîncărcat</span>
-      <span><button class="btn small" type="button" onclick="document.getElementById('perm_file_${docId}').click()">📁 Atașează template</button></span>
+      <span class="empty">⚠ Niciun fisier preincarcat</span>
+      <span><button class="btn small" type="button" onclick="document.getElementById('perm_file_${docId}').click()">📁 Ataseaza template</button></span>
     `;
   }
 }
 
 async function onPermanentDelete(docId) {
-  if (!confirm('Ștergi fișierul preîncărcat? Va trebui să-l reatașezi data viitoare.')) return;
+  if (!confirm('Stergi fisierul preincarcat? Va trebui sa-l reatasezi data viitoare.')) return;
   await deletePermanentFile(docId);
   renderPermanentStatus(docId);
   updateStatus(docId); updateSummary();
@@ -703,11 +703,11 @@ function onClientFile(docId, file) {
   const info = v('fileinfo_' + docId);
   if (info) info.innerHTML = `
     <span class="filename">✅ ${file.name} (${fmtSize(file.size)})</span>
-    <button type="button" class="remove-btn" onclick="event.stopPropagation();removeClientFile('${docId}')">Elimină</button>
+    <button type="button" class="remove-btn" onclick="event.stopPropagation();removeClientFile('${docId}')">Elimina</button>
   `;
-  // Pentru d10 (schema bloc) — afișaj inline distinct
+  // Pentru d10 (schema bloc) — afisaj inline distinct
   const inlineInfo = v('fileinfo_' + docId + '_inline');
-  if (inlineInfo) inlineInfo.innerHTML = `✅ Atașat: <strong>${file.name}</strong> (${fmtSize(file.size)}) — <a href="#" onclick="removeClientFile('${docId}');return false;" style="color:#A32D2D;">elimină</a>`;
+  if (inlineInfo) inlineInfo.innerHTML = `✅ Atasat: <strong>${file.name}</strong> (${fmtSize(file.size)}) — <a href="#" onclick="removeClientFile('${docId}');return false;" style="color:#A32D2D;">elimina</a>`;
   updateStatus(docId); updateSummary();
 }
 
@@ -746,7 +746,7 @@ function renderClientMultiList(docId) {
     <div class="file-list-item">
       <span class="name">📄 ${f.name}</span>
       <span class="size">${fmtSize(f.size)}</span>
-      <button type="button" class="del" onclick="removeClientFileMulti('${docId}',${i})" title="Elimină">✕</button>
+      <button type="button" class="del" onclick="removeClientFileMulti('${docId}',${i})" title="Elimina">✕</button>
     </div>
   `).join('');
 }
@@ -758,7 +758,7 @@ function onFieldChange(docId, fieldId, value) {
 
 // ── Status ───────────────────────────────────────────────────────────────
 async function isDocReady(d) {
-  // Reguli per-document — fiecare are propria condiție de „gata"
+  // Reguli per-document — fiecare are propria conditie de „gata"
   if (d.type === 'editable') {
     // Adresa de inaintare (d1) — gata cand exista ben_nume + atr_nr
     if (d.id === 'd1') return v('ben_nume').value.trim() && v('atr_nr').value.trim();
@@ -784,7 +784,7 @@ async function updateStatus(docId) {
   const el = v('status_' + docId);
   if (!el) return;
   const ready = await isDocReady(d);
-  el.textContent = ready ? 'Gata' : 'Lipsește';
+  el.textContent = ready ? 'Gata' : 'Lipseste';
   el.className = 'doc-status ' + (ready ? 'ready' : 'missing');
 }
 
@@ -804,7 +804,7 @@ async function updateSummary() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DRAFTS — salvare/încărcare în localStorage (texte + structura, fără fișiere per client)
+// DRAFTS — salvare/incarcare in localStorage (texte + structura, fara fisiere per client)
 // ═══════════════════════════════════════════════════════════════════════════
 const DRAFTS_KEY = 'profceiss_spor_putere_drafts_v1';
 
@@ -815,7 +815,7 @@ function getDrafts() {
 
 function setDrafts(arr) {
   try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(arr)); }
-  catch(e){ alert('Eroare la salvare în browser: ' + e.message); }
+  catch(e){ alert('Eroare la salvare in browser: ' + e.message); }
 }
 
 function captureDraft() {
@@ -840,7 +840,7 @@ function generateDraftTitle(g) {
 
 function saveCurrentDraft() {
   if (!v('ben_nume').value.trim()) {
-    alert('Completează cel puțin numele beneficiarului ca să poți salva dosarul.');
+    alert('Completeaza cel putin numele beneficiarului ca sa poti salva dosarul.');
     return;
   }
   const draft = captureDraft();
@@ -852,11 +852,11 @@ function saveCurrentDraft() {
   state.draftId = draft.id;
   state.draftTitle = draft.title;
   renderDraftsList();
-  alert('✅ Dosar salvat în browser:\n\n' + draft.title);
+  alert('✅ Dosar salvat in browser:\n\n' + draft.title);
 }
 
 function newDraft() {
-  if (!confirm('Începi un dosar nou? Toate datele curente vor fi golite (fișierele atașate per client se pierd; fișierele standard preîncărcate rămân).')) return;
+  if (!confirm('Incepi un dosar nou? Toate datele curente vor fi golite (fisierele atasate per client se pierd; fisierele standard preincarcate raman).')) return;
   state.draftId = null;
   state.draftTitle = null;
   GLOBAL_FIELDS.forEach(id => { const el = v(id); if (el && id !== 'branch') el.value = ''; });
@@ -872,8 +872,8 @@ function newDraft() {
 function loadDraft(id) {
   const drafts = getDrafts();
   const d = drafts.find(x => x.id === id);
-  if (!d) { alert('Dosarul nu a fost găsit.'); return; }
-  if (!confirm(`Încarci dosarul „${d.title}"?\n\nFișierele atașate per client (ATR, releveu, foto) NU se salvează în draft — trebuie reatașate. Fișierele standard preîncărcate rămân.`)) return;
+  if (!d) { alert('Dosarul nu a fost gasit.'); return; }
+  if (!confirm(`Incarci dosarul „${d.title}"?\n\nFisierele atasate per client (ATR, releveu, foto) NU se salveaza in draft — trebuie reatasate. Fisierele standard preincarcate raman.`)) return;
   state.draftId = d.id;
   state.draftTitle = d.title;
   Object.keys(d.global || {}).forEach(k => { const el = v(k); if (el) el.value = d.global[k]; });
@@ -882,14 +882,14 @@ function loadDraft(id) {
   DOCS_DEF.forEach(doc => state.client[doc.id] = { file: null, files: [] });
   renderDocs();
   updateAllStatuses(); updateSummary();
-  alert('✅ Dosar reîncărcat.');
+  alert('✅ Dosar reincarcat.');
 }
 
 function deleteDraft(id) {
   const drafts = getDrafts();
   const d = drafts.find(x => x.id === id);
   if (!d) return;
-  if (!confirm('Ștergi „' + d.title + '"?')) return;
+  if (!confirm('Stergi „' + d.title + '"?')) return;
   setDrafts(drafts.filter(x => x.id !== id));
   if (state.draftId === id) { state.draftId = null; state.draftTitle = null; }
   renderDraftsList();
@@ -902,17 +902,17 @@ function renderDraftsList() {
   if (cnt) cnt.textContent = drafts.length ? '(' + drafts.length + ')' : '';
   if (!list) return;
   if (drafts.length === 0) {
-    list.innerHTML = '<div style="font-size:12px;color:#888;padding:12px;background:#fff;border:0.5px dashed #ccc;border-radius:8px;text-align:center;">Nu există dosare salvate. Completează datele și apasă <strong>„💾 Salvează dosar"</strong>.</div>';
+    list.innerHTML = '<div style="font-size:12px;color:#888;padding:12px;background:#fff;border:0.5px dashed #ccc;border-radius:8px;text-align:center;">Nu exista dosare salvate. Completeaza datele si apasa <strong>„💾 Salveaza dosar"</strong>.</div>';
     return;
   }
   list.innerHTML = drafts.map(d => `
     <div class="draft-item">
       <div class="info">
-        <div class="title">${(d.title||'(fără titlu)').replace(/</g,'&lt;')}</div>
+        <div class="title">${(d.title||'(fara titlu)').replace(/</g,'&lt;')}</div>
         <div class="date">📅 ${fmtDate(d.savedAt)}</div>
       </div>
       <div class="actions">
-        <button class="btn small pri" type="button" onclick="loadDraft('${d.id}')">↻ Încarcă</button>
+        <button class="btn small pri" type="button" onclick="loadDraft('${d.id}')">↻ Incarca</button>
         <button class="btn small" type="button" style="color:#A32D2D;border-color:#A32D2D;" onclick="deleteDraft('${d.id}')">🗑</button>
       </div>
     </div>
@@ -938,10 +938,10 @@ function hideOverlay() { v('overlay').classList.remove('show'); }
 function asciiSafe(s) {
   if (!s) return '';
   return String(s)
-    .replace(/[ăâ]/g,'a').replace(/[ĂÂ]/g,'A')
-    .replace(/[î]/g,'i').replace(/[Î]/g,'I')
-    .replace(/[șş]/g,'s').replace(/[ȘŞ]/g,'S')
-    .replace(/[țţ]/g,'t').replace(/[ȚŢ]/g,'T');
+    .replace(/[aa]/g,'a').replace(/[AA]/g,'A')
+    .replace(/[i]/g,'i').replace(/[I]/g,'I')
+    .replace(/[ss]/g,'s').replace(/[SS]/g,'S')
+    .replace(/[tt]/g,'t').replace(/[TT]/g,'T');
 }
 
 function drawWrapped(page, text, opts) {
@@ -966,10 +966,10 @@ function drawWrapped(page, text, opts) {
 
 async function generateFullPDF() {
   if (!v('ben_nume').value.trim()) {
-    alert('Completează cel puțin numele beneficiarului.');
+    alert('Completeaza cel putin numele beneficiarului.');
     return;
   }
-  showOverlay('Se inițializează PDF-ul…');
+  showOverlay('Se initializeaza PDF-ul…');
   try {
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -999,7 +999,7 @@ async function generateFullPDF() {
           const fileName = d.templateUrl.split('/').pop();
           await appendBlobFile(pdf, blob, fileName, d, i+1);
         } catch (err) {
-          console.warn('[auto_template] fetch eșuat pt ' + d.templateUrl + ':', err.message);
+          console.warn('[auto_template] fetch esuat pt ' + d.templateUrl + ':', err.message);
           await drawMissingDoc(pdf, font, fontBold, d, i+1);
         }
       } else if (d.type === 'browse' || d.type === 'generated_external') {
@@ -1024,7 +1024,7 @@ async function generateFullPDF() {
     setTimeout(() => URL.revokeObjectURL(url), 200);
 
     hideOverlay();
-    alert('✅ Dosar generat și descărcat.');
+    alert('✅ Dosar generat si descarcat.');
   } catch (e) {
     hideOverlay();
     console.error(e);
@@ -1089,7 +1089,7 @@ function kvaFromKw(kw) {
   return (n / 0.92).toFixed(3).replace('.', ',');
 }
 
-// Helper: început pagină cu footer doc + opțional număr pagină
+// Helper: inceput pagina cu footer doc + optional numar pagina
 function addPageWithFooter(pdf, num) {
   const page = pdf.addPage(PageSizes.A4);
   return page;
@@ -1099,7 +1099,7 @@ function drawFooter(page, font, num, totalDocs) {
   page.drawText(asciiSafe(`Document ${num}/${totalDocs}`), { x: width - 110, y: 25, size: 8, font, color: rgb(0.5,0.5,0.5) });
 }
 
-// Router principal — apelează generatorul potrivit per template
+// Router principal — apeleaza generatorul potrivit per template
 async function drawEditableDoc(pdf, font, fontBold, d, num) {
   if (d.template === 'adresa_inaintare')       return drawAdresaInaintare(pdf, font, fontBold, d, num);
   if (d.template === 'memoriu')                return drawMemoriu(pdf, font, fontBold, d, num);
@@ -1109,7 +1109,7 @@ async function drawEditableDoc(pdf, font, fontBold, d, num) {
   return drawGenericEditableDoc(pdf, font, fontBold, d, num);
 }
 
-// ── 1. ADRESA DE ÎNAINTARE — format exact aprobat ─────────────────────────
+// ── 1. ADRESA DE INAINTARE — format exact aprobat ─────────────────────────
 async function drawAdresaInaintare(pdf, font, fontBold, d, num) {
   const page = addPageWithFooter(pdf, num);
   const { width, height } = page.getSize();
@@ -1117,7 +1117,7 @@ async function drawAdresaInaintare(pdf, font, fontBold, d, num) {
   let y = height - m;
   const maxW = width - 2*m;
 
-  // Antet beneficiar (stânga sus)
+  // Antet beneficiar (stanga sus)
   const benLines = [
     (v('ben_nume').value || '').toUpperCase(),
     `CNP: ${v('ben_cnp').value || '-'}`,
@@ -1131,7 +1131,7 @@ async function drawAdresaInaintare(pdf, font, fontBold, d, num) {
   });
   y -= 14;
 
-  // Adresare către OD
+  // Adresare catre OD
   page.drawText('Catre,', { x: m, y, size: 10, font }); y -= 14;
   page.drawText(asciiSafe(v('atr_od').value || '-'), { x: m, y, size: 10, font: fontBold }); y -= 14;
   if (v('od_directie').value) { page.drawText(asciiSafe(v('od_directie').value), { x: m, y, size: 10, font }); y -= 14; }
@@ -1160,7 +1160,7 @@ async function drawAdresaInaintare(pdf, font, fontBold, d, num) {
 
   const opisLines = buildOpisLines();
   opisLines.forEach(l => {
-    if (y < 130) return; // protecție simplă pagină
+    if (y < 130) return; // protectie simpla pagina
     page.drawText(asciiSafe(l), { x: m + 6, y, size: 9.5, font }); y -= 13;
   });
   y -= 10;
@@ -1169,7 +1169,7 @@ async function drawAdresaInaintare(pdf, font, fontBold, d, num) {
   y = drawWrapped(page, paraFinal, { x: m, y, maxWidth: maxW, font, fontSize: 10, lineHeight: 13, color: rgb(0,0,0) });
   y -= 20;
 
-  // Semnături jos (data + semnătura + nume)
+  // Semnaturi jos (data + semnatura + nume)
   if (y < 110) y = 110;
   page.drawText(`Data: ${fmtRomDate(v('data_dosar').value)}`, { x: m, y, size: 10, font }); y -= 14;
   page.drawText('Semnatura: _____________________________', { x: m, y, size: 10, font }); y -= 18;
@@ -1178,7 +1178,7 @@ async function drawAdresaInaintare(pdf, font, fontBold, d, num) {
   drawFooter(page, font, num, DOCS_DEF.length);
 }
 
-// Construiește lista numerotată pentru opisul din corpul Adresei de înaintare
+// Construieste lista numerotata pentru opisul din corpul Adresei de inaintare
 function buildOpisLines() {
   return DOCS_DEF.map((d, i) => {
     const n = i + 1;
@@ -1191,13 +1191,13 @@ function buildOpisLines() {
       const comp = COMPANIES[v('branch').value].nume;
       extra = ` - ${comp}, atestate ANRE ${v('firma_atestate').value || '-'}`;
     }
-    // Pentru documentul curent (1) marcăm „prezentul document"
+    // Pentru documentul curent (1) marcam „prezentul document"
     if (d.id === 'd1') extra = ' (prezentul document)';
     return `${n}. ${d.title}${extra}`;
   });
 }
 
-// ── 4. MEMORIU DE PREZENTARE — format I7-2011, 8 secțiuni ────────────────
+// ── 4. MEMORIU DE PREZENTARE — format I7-2011, 8 sectiuni ────────────────
 async function drawMemoriu(pdf, font, fontBold, d, num) {
   let page = addPageWithFooter(pdf, num);
   const { width, height } = page.getSize();
@@ -1212,7 +1212,7 @@ async function drawMemoriu(pdf, font, fontBold, d, num) {
 
   const company = COMPANIES[v('branch').value];
 
-  // Helper pentru a verifica pagina și a face break dacă e nevoie
+  // Helper pentru a verifica pagina si a face break daca e nevoie
   const ensureSpace = (need) => {
     if (y < 80 + need) {
       drawFooter(page, font, num, DOCS_DEF.length);
@@ -1253,7 +1253,7 @@ async function drawMemoriu(pdf, font, fontBold, d, num) {
   kv('Data executiei:', fmtRomDate(v('data_dosar').value));
   y -= 6;
 
-  // 2. SCOPUL LUCRARII (editabil cu substituții)
+  // 2. SCOPUL LUCRARII (editabil cu substitutii)
   section('2', 'Scopul lucrarii');
   const mScop = (state.fields.d4?.mem_scop || '')
     .replace(/\[PUTERE_EXISTENTA\]/g, v('putere_existenta').value || '-')
@@ -1265,7 +1265,7 @@ async function drawMemoriu(pdf, font, fontBold, d, num) {
 
   // 3. DESCRIEREA OBIECTIVULUI (editabil liber)
   section('3', 'Descrierea obiectivului');
-  para(state.fields.d4?.mem_obiectiv || 'Obiectivul este [...descriere editabilă în formular...].');
+  para(state.fields.d4?.mem_obiectiv || 'Obiectivul este [...descriere editabila in formular...].');
 
   // 4. INSTALATIA DE RACORDARE
   section('4', 'Instalatia de racordare');
@@ -1275,7 +1275,7 @@ async function drawMemoriu(pdf, font, fontBold, d, num) {
   section('5', 'Instalatia de utilizare');
   para('5.1. Coloana principala si tabloul electric general (TGD):', { bold: true });
   const mTGD = state.fields.d4?.mem_tgd_circuite || '';
-  // Format text — păstrăm liniile așa cum le-a editat user-ul
+  // Format text — pastram liniile asa cum le-a editat user-ul
   mTGD.split('\n').forEach(line => {
     ensureSpace(14);
     page.drawText(asciiSafe(line), { x: m, y, size: 9, font }); y -= 12;
@@ -1302,7 +1302,7 @@ async function drawMemoriu(pdf, font, fontBold, d, num) {
   section('8', 'Concluzii');
   para(state.fields.d4?.mem_concluzii || 'Instalatia electrica interioara a fost executata cu respectarea prevederilor Normativului I7-2011, a normelor de protectia muncii si PSI in vigoare. Instalatia corespunde din punct de vedere tehnic si indeplineste conditiile pentru punerea sub tensiune.');
 
-  // Semnături
+  // Semnaturi
   ensureSpace(80);
   y -= 14;
   page.drawText('Intocmit,', { x: m, y, size: 10, font: fontBold }); y -= 13;
@@ -1559,7 +1559,7 @@ async function drawBuletinIzolatie(pdf, font, fontBold, d, num) {
   drawFooter(page, font, num, DOCS_DEF.length);
 }
 
-// ── 5. TABEL CU CLASIFICAREA ÎNCĂPERILOR — tabel formatat ─────────────────
+// ── 5. TABEL CU CLASIFICAREA INCAPERILOR — tabel formatat ─────────────────
 async function drawTabelIncaperi(pdf, font, fontBold, d, num) {
   let page = addPageWithFooter(pdf, num);
   const { width, height } = page.getSize();
@@ -1585,7 +1585,7 @@ async function drawTabelIncaperi(pdf, font, fontBold, d, num) {
     { label: 'Clasificare',  w: 65 },
     { label: 'Observatii',   w: 125 }
   ];
-  // Total: 30+130+55+55+55+65+125 = 515 (encaps în width-2*m = 515 OK pentru A4)
+  // Total: 30+130+55+55+55+65+125 = 515 (encaps in width-2*m = 515 OK pentru A4)
   const drawTableRow = (cells, opts) => {
     const isHeader = !!opts?.header;
     let cx = m;
@@ -1634,7 +1634,7 @@ async function drawTabelIncaperi(pdf, font, fontBold, d, num) {
   legend.forEach(l => { page.drawText(asciiSafe(l), { x: m, y, size: 9, font }); y -= 12; });
   y -= 18;
 
-  // Semnătură
+  // Semnatura
   if (y < 60) y = 60;
   page.drawText(`Data: ${fmtRomDate(v('data_dosar').value)}`, { x: m, y, size: 9, font });
   page.drawText(asciiSafe(`Intocmit de: ${v('exec_nume').value || '__________________________'}`), { x: m + 120, y, size: 9, font });
@@ -1678,7 +1678,7 @@ async function drawGenericEditableDoc(pdf, font, fontBold, d, num) {
 }
 
 async function drawGeneratedInternalDoc(pdf, font, fontBold, d, num) {
-  // Pagina cu schema standard de legare la priza de pământ (text + diagramă simplă SVG-stil)
+  // Pagina cu schema standard de legare la priza de pamant (text + diagrama simpla SVG-stil)
   const page = pdf.addPage(PageSizes.A4);
   const { width, height } = page.getSize();
   const m = 50;
@@ -1697,8 +1697,8 @@ async function drawGeneratedInternalDoc(pdf, font, fontBold, d, num) {
   page.drawText(asciiSafe(`Adresa: ${v('ben_adr').value || '-'}`), { x: m, y, size: 10, font }); y -= 18;
   page.drawLine({ start:{x:m,y}, end:{x:width-m,y}, color: rgb(0.8,0.8,0.8), thickness: 0.5 }); y -= 20;
 
-  // Diagrama schematică (drawing direct cu primitive pdf-lib)
-  // Layout: TGD (sus), conductor PE, bara de echipotențializare, electrod de pământ
+  // Diagrama schematica (drawing direct cu primitive pdf-lib)
+  // Layout: TGD (sus), conductor PE, bara de echipotentializare, electrod de pamant
   const cx = width / 2;
   let dy = y;
 
@@ -1708,23 +1708,23 @@ async function drawGeneratedInternalDoc(pdf, font, fontBold, d, num) {
   page.drawText('Bara PE/PEN', { x: cx - 30, y: dy - 45, size: 9, font });
   dy -= 70;
 
-  // PE conductor (galben-verde - reprezentat ca linie continuă)
+  // PE conductor (galben-verde - reprezentat ca linie continua)
   page.drawLine({ start: {x: cx, y: dy}, end: {x: cx, y: dy - 60}, color: rgb(0,0.5,0), thickness: 2 });
   page.drawText('Conductor PE', { x: cx + 10, y: dy - 25, size: 9, font, color: rgb(0,0.5,0) });
   page.drawText('Cu 16 mm²', { x: cx + 10, y: dy - 38, size: 8, font, color: rgb(0,0.5,0) });
   dy -= 70;
 
-  // Bara de echipotențializare
+  // Bara de echipotentializare
   page.drawRectangle({ x: cx - 100, y: dy - 30, width: 200, height: 30, borderColor: rgb(0,0,0), borderWidth: 1.5, color: rgb(1,1,0.9) });
   page.drawText('BARA DE ECHIPOTENTIALIZARE PRINCIPALA (BEP)', { x: cx - 94, y: dy - 18, size: 9, font: fontBold });
   dy -= 50;
 
-  // Conductor către priză
+  // Conductor catre priza
   page.drawLine({ start: {x: cx, y: dy}, end: {x: cx, y: dy - 50}, color: rgb(0,0.5,0), thickness: 2 });
   page.drawText('Cu 25 mm²', { x: cx + 10, y: dy - 28, size: 8, font, color: rgb(0,0.5,0) });
   dy -= 60;
 
-  // Electrod / priza de pământ — simbol triunghi
+  // Electrod / priza de pamant — simbol triunghi
   const triBase = cx;
   const triY = dy;
   page.drawLine({ start: {x: triBase - 40, y: triY}, end: {x: triBase + 40, y: triY}, color: rgb(0,0,0), thickness: 1.5 });
@@ -1831,6 +1831,7 @@ window.PROFCEISS_PROJECT={app:'spor-de-putere',label:'Dosar',
   }
 };
 </script>
+<script src="../assets/no-diacritics.js"></script>
 <script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>

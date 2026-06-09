@@ -1,14 +1,14 @@
 /* ============================================================
    PROFCEISS · Sistem comun de salvare proiecte
-   - Salvează cu nume, "Proiectele mele", autosalvare + restaurare
-   - Backup / import în fișier (.pce.json)
+   - Salveaza cu nume, "Proiectele mele", autosalvare + restaurare
+   - Backup / import in fisier (.pce.json)
    - Snapshot generic al formularului (input/select/textarea/checkbox/radio)
-   - Hook opțional pentru stare JS specifică:
+   - Hook optional pentru stare JS specifica:
        window.PROFCEISS_PROJECT = {
-         app: 'nume-unic',            // opțional (altfel se ia din folder)
-         label: 'Oferta',             // opțional, cum numim "proiectul"
-         getState(){ return {...}; }, // stare suplimentară (array-uri etc.)
-         setState(s){ ... }           // restaurează + re-randează
+         app: 'nume-unic',            // optional (altfel se ia din folder)
+         label: 'Oferta',             // optional, cum numim "proiectul"
+         getState(){ return {...}; }, // stare suplimentara (array-uri etc.)
+         setState(s){ ... }           // restaureaza + re-randeaza
        };
    Inclus cu: <script src="../assets/profceiss-projects.js" defer></script>
    ============================================================ */
@@ -21,16 +21,16 @@
              (location.pathname.replace(/\/(index\.html)?$/,'').split('/').filter(Boolean).pop() || 'app');
   APP = String(APP).toLowerCase();
   var LABEL = (HOOK && HOOK.label) || 'Proiect';
-  // plural corect în română: Ofertă→Oferte, Schemă→Scheme, Buletin→Buletine, Dosar→Dosare, Proiect→Proiecte
-  var PLURAL = (HOOK && HOOK.plural) || (/ă$/.test(LABEL) ? LABEL.replace(/ă$/,'e') : LABEL + 'e');
+  // plural corect in romana: Oferta→Oferte, Schema→Scheme, Buletin→Buletine, Dosar→Dosare, Proiect→Proiecte
+  var PLURAL = (HOOK && HOOK.plural) || (/a$/.test(LABEL) ? LABEL.replace(/a$/,'e') : LABEL + 'e');
   var ARTPL  = PLURAL + 'le'; // articulat: Oferte→Ofertele, Proiecte→Proiectele
-  var PKEY = 'pce_proj_' + APP;     // dicționar proiecte salvate
+  var PKEY = 'pce_proj_' + APP;     // dictionar proiecte salvate
   var AKEY = 'pce_auto_' + APP;     // autosalvare ultima sesiune
   var NKEY = 'pce_name_' + APP;     // numele curent
 
   /* ---------- helpers stocare ---------- */
   function loadStore(){ try{ return JSON.parse(localStorage.getItem(PKEY) || '{}'); }catch(e){ return {}; } }
-  function saveStore(s){ try{ localStorage.setItem(PKEY, JSON.stringify(s)); return true; }catch(e){ alert('Nu pot salva (memoria browserului e plină).'); return false; } }
+  function saveStore(s){ try{ localStorage.setItem(PKEY, JSON.stringify(s)); return true; }catch(e){ alert('Nu pot salva (memoria browserului e plina).'); return false; } }
   function curName(){ try{ return localStorage.getItem(NKEY) || ''; }catch(e){ return ''; } }
   function setName(n){ try{ localStorage.setItem(NKEY, n||''); }catch(e){} }
 
@@ -67,7 +67,7 @@
   }
 
   /* ---------- serializare proiect ---------- */
-  var FULL = !!(HOOK && HOOK.full); // hook gestionează singur tot (sărim snapshot-ul generic)
+  var FULL = !!(HOOK && HOOK.full); // hook gestioneaza singur tot (sarim snapshot-ul generic)
   function serialize(){
     var s = { v:1, app:APP, savedAt:Date.now(), name:curName(), form: FULL ? null : snapshotForm() };
     try{ if (HOOK && typeof HOOK.getState==='function') s.app_state = HOOK.getState(); }catch(e){ console.warn('getState', e); }
@@ -85,8 +85,8 @@
     return false;
   }
 
-  /* ---------- autosalvare (cu linie de bază: salvăm doar dacă s-a schimbat ceva) ---------- */
-  var BASELINE = null;  // semnătura stării inițiale (default/încărcat din hash)
+  /* ---------- autosalvare (cu linie de baza: salvam doar daca s-a schimbat ceva) ---------- */
+  var BASELINE = null;  // semnatura starii initiale (default/incarcat din hash)
   function signature(s){ try{ return JSON.stringify({form:s.form, app_state:s.app_state}); }catch(e){ return ''; } }
   function autosave(){
     try{
@@ -174,33 +174,33 @@
         var d=store[n].savedAt? new Date(store[n].savedAt):null; var when=d? d.toLocaleString('ro-RO'):'';
         return '<div class="it"><span class="nm">📁 '+esc(n)+'<small>'+when+'</small></span>'+
                '<button class="b" data-load="'+encodeURIComponent(n)+'">Deschide</button>'+
-               '<button class="b warn" data-del="'+encodeURIComponent(n)+'" title="Șterge">🗑</button></div>';
-      }).join('') : '<div class="empty">Nimic salvat încă.</div>';
+               '<button class="b warn" data-del="'+encodeURIComponent(n)+'" title="Sterge">🗑</button></div>';
+      }).join('') : '<div class="empty">Nimic salvat inca.</div>';
 
       modal.innerHTML =
         '<button class="b x" id="pcek-close">✕</button>'+
         '<h2>📂 '+esc(ARTPL)+' mele</h2>'+
-        '<p class="sub">Salvează tot ce ai completat și reia oricând. Lucrarea se salvează și automat.</p>'+
-        '<div class="rowi"><input type="text" id="pcek-name" placeholder="Nume '+esc(LABEL.toLowerCase())+'…" value="'+esc(curName())+'"><button class="b primary" id="pcek-save">💾 Salvează</button></div>'+
+        '<p class="sub">Salveaza tot ce ai completat si reia oricand. Lucrarea se salveaza si automat.</p>'+
+        '<div class="rowi"><input type="text" id="pcek-name" placeholder="Nume '+esc(LABEL.toLowerCase())+'…" value="'+esc(curName())+'"><button class="b primary" id="pcek-save">💾 Salveaza</button></div>'+
         '<div id="pcek-list">'+items+'</div>'+
-        '<div class="foot"><button class="b" id="pcek-exp">⬇ Backup în fișier</button><button class="b" id="pcek-imp">⬆ Încarcă din fișier</button></div>'+
+        '<div class="foot"><button class="b" id="pcek-exp">⬇ Backup in fisier</button><button class="b" id="pcek-imp">⬆ Incarca din fisier</button></div>'+
         '<input type="file" id="pcek-file" accept="application/json,.json" style="display:none">';
 
       modal.querySelector('#pcek-close').onclick=close;
       modal.querySelector('#pcek-save').onclick=function(){ var n=modal.querySelector('#pcek-name').value.trim(); if(!n){ alert('Scrie un nume.'); return; } if(saveProject(n)){ render(); flash('✅ Salvat: '+n); } };
-      modal.querySelectorAll('[data-load]').forEach(function(b){ b.onclick=function(){ var n=decodeURIComponent(b.getAttribute('data-load')); var st=loadStore(); if(st[n]){ apply(st[n]); setName(n); close(); flash('Încărcat: '+n); } }; });
-      modal.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){ var n=decodeURIComponent(b.getAttribute('data-del')); if(confirm('Ștergi „'+n+'"?')){ deleteProject(n); render(); } }; });
+      modal.querySelectorAll('[data-load]').forEach(function(b){ b.onclick=function(){ var n=decodeURIComponent(b.getAttribute('data-load')); var st=loadStore(); if(st[n]){ apply(st[n]); setName(n); close(); flash('Incarcat: '+n); } }; });
+      modal.querySelectorAll('[data-del]').forEach(function(b){ b.onclick=function(){ var n=decodeURIComponent(b.getAttribute('data-del')); if(confirm('Stergi „'+n+'"?')){ deleteProject(n); render(); } }; });
       modal.querySelector('#pcek-exp').onclick=fileExport;
       modal.querySelector('#pcek-imp').onclick=function(){ modal.querySelector('#pcek-file').click(); };
-      modal.querySelector('#pcek-file').onchange=function(e){ var f=e.target.files[0]; if(!f) return; fileImport(f, function(ok,nm){ if(ok){ render(); modal.querySelector('#pcek-name').value=nm||''; flash('Import reușit'); } else alert('Fișier invalid.'); }); };
+      modal.querySelector('#pcek-file').onchange=function(e){ var f=e.target.files[0]; if(!f) return; fileImport(f, function(ok,nm){ if(ok){ render(); modal.querySelector('#pcek-name').value=nm||''; flash('Import reusit'); } else alert('Fisier invalid.'); }); };
     }
 
     fab.onclick=function(){ render(); ov.classList.add('on'); };
 
     function flash(msg){ toast.innerHTML='<span>'+esc(msg)+'</span>'; toast.classList.add('on'); setTimeout(function(){ toast.classList.remove('on'); }, 2200); }
 
-    /* după ce aplicația s-a inițializat complet: fixăm linia de bază,
-       pornim autosalvarea și oferim restaurarea doar dacă starea salvată diferă de baseline */
+    /* dupa ce aplicatia s-a initializat complet: fixam linia de baza,
+       pornim autosalvarea si oferim restaurarea doar daca starea salvata difera de baseline */
     function startEngine(){
       try{ BASELINE = signature(serialize()); }catch(e){ BASELINE=''; }
       setInterval(autosave, 4000);
@@ -208,15 +208,15 @@
       var last=null; try{ last=JSON.parse(localStorage.getItem(AKEY)||'null'); }catch(e){}
       if (last && hasContent(last) && signature(last)!==BASELINE){
         var when=last.savedAt? new Date(last.savedAt).toLocaleString('ro-RO'):'';
-        toast.innerHTML='<span>↩ Ai o lucrare nesalvată'+(last.name?(' („'+esc(last.name)+'")'):'')+' din '+when+'.</span>'+
-                        '<button class="b yes" id="pcek-rsy">Reia</button><button class="b no" id="pcek-rsn">Ignoră</button>';
+        toast.innerHTML='<span>↩ Ai o lucrare nesalvata'+(last.name?(' („'+esc(last.name)+'")'):'')+' din '+when+'.</span>'+
+                        '<button class="b yes" id="pcek-rsy">Reia</button><button class="b no" id="pcek-rsn">Ignora</button>';
         toast.classList.add('on');
-        toast.querySelector('#pcek-rsy').onclick=function(){ apply(last); if(last.name) setName(last.name); toast.classList.remove('on'); flash('Sesiune reluată'); };
+        toast.querySelector('#pcek-rsy').onclick=function(){ apply(last); if(last.name) setName(last.name); toast.classList.remove('on'); flash('Sesiune reluata'); };
         toast.querySelector('#pcek-rsn').onclick=function(){ toast.classList.remove('on'); };
         setTimeout(function(){ toast.classList.remove('on'); }, 14000);
       }
     }
-    // lăsăm timp pentru init-urile din window.load / importFromHash
+    // lasam timp pentru init-urile din window.load / importFromHash
     if (document.readyState==='complete') setTimeout(startEngine, 600);
     else window.addEventListener('load', function(){ setTimeout(startEngine, 600); });
   }
@@ -224,6 +224,6 @@
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', build);
   else build();
 
-  /* API public, pentru integrări avansate */
+  /* API public, pentru integrari avansate */
   window.PCEProjects = { save:saveProject, serialize:serialize, apply:apply, export:fileExport };
 })();
