@@ -25,6 +25,10 @@ header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-
 #view canvas{display:block;width:100%;height:100%}
 #mode{position:absolute;top:10px;left:10px;background:rgba(7,11,18,.8);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12.5px;color:var(--muted);backdrop-filter:blur(6px);max-width:75%}
 #mode b{color:var(--solar)}
+#legend{position:absolute;bottom:10px;left:10px;background:rgba(7,11,18,.8);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:11.5px;color:var(--muted);backdrop-filter:blur(6px);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#legend b{color:var(--ink)}
+#legend span{display:flex;align-items:center;gap:5px}
+#legend i{width:14px;height:4px;border-radius:2px;display:inline-block}
 aside{width:288px;flex:none;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;overflow-y:auto}
 .sec{padding:12px 13px;border-bottom:1px solid var(--line)}
 .sec h3{margin:0 0 9px;font-family:"Chakra Petch";font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -72,6 +76,13 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
 <div class="main">
   <div id="view">
     <div id="mode">Sistem: <b id="sysLabel">—</b>. Alege un element din dreapta, apoi <b>click pe un perete</b> sau pe tavan.</div>
+    <div id="legend">
+      <b>Conductori:</b>
+      <span><i style="background:#c2772e"></i>fază</span>
+      <span><i style="background:#2f6fd0"></i>nul</span>
+      <span><i style="background:#cdbb00"></i>împământare</span>
+      <span><i style="background:#aab4c2"></i>fază comutată</span>
+    </div>
   </div>
   <aside id="panel">
     <button id="drawer">≡ PANOU</button>
@@ -244,14 +255,43 @@ function closeModal(){ $('modal').classList.remove('on'); $('modal').onclick=nul
 /* ===== cablare (vizual) ===== */
 function panelDev(){ return devices.find(d=>d.type==='tablou'); }
 function routeLen(a,b){ const top=ROOM.H-0.05; return Math.abs(top-a.y)+Math.hypot(b.x-a.x,b.z-a.z)+Math.abs(top-b.y); }
-function drawRoute(a,b,color){ const top=ROOM.H-0.05; const pts=[a.clone(),new THREE.Vector3(a.x,top,a.z),new THREE.Vector3(b.x,top,b.z),b.clone()]; wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color}))); }
+function drawConductor(a,b,colorHex,idx){
+  const top=ROOM.H-0.06 - idx*0.012;
+  const dx=b.x-a.x, dz=b.z-a.z; const len=Math.hypot(dx,dz)||1; const ox=-dz/len*(idx*0.02), oz=dx/len*(idx*0.02);
+  const pts=[a.clone(), new THREE.Vector3(a.x+ox,top,a.z+oz), new THREE.Vector3(b.x+ox,top,b.z+oz), b.clone()];
+  wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:new THREE.Color(colorHex)})));
+}
+function addDoza(pos){
+  const g=new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.03,20), new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.1,roughness:.6})));
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.008,8,24), new THREE.MeshStandardMaterial({color:0x6b4a10})); ring.rotation.x=Math.PI/2; g.add(ring);
+  const lab=makeLabel('doză','#f2c14e'); g.add(lab); lab.position.set(0,0.13,0);
+  g.position.copy(pos); g.position.y=ROOM.H-0.03; g.position.x+=0.14;
+  wireGroup.add(g);
+}
 function renderWires(){
   while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]);
   const panel=panelDev(); if(!panel) return;
-  circuits.forEach(c=>{ const col=new THREE.Color(c.color); const devs=devices.filter(d=>d.circuit===c.id);
-    if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec');
-      sws.forEach(sw=>drawRoute(panel.pos,sw.pos,col)); lights.forEach(l=>{ const sw=nearest(l,sws)||panel; drawRoute(sw.pos,l.pos,col); drawRoute(panel.pos,l.pos,col.clone().multiplyScalar(0.6)); }); }
-    else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{ drawRoute(prev.pos,o.pos,col); prev=o; }); }
+  circuits.forEach(c=>{
+    const devs=devices.filter(d=>d.circuit===c.id);
+    if(c.kind==='lumina'){
+      const sws=devs.filter(d=>d.type==='intrerupator'); const lights=devs.filter(d=>d.type==='bec');
+      if(lights.length){
+        const supply=nearest({pos:panel.pos},lights)||lights[0];
+        // tablou -> doză (la bec): fază + nul + împământare
+        drawConductor(panel.pos,supply.pos,COND.L,0); drawConductor(panel.pos,supply.pos,COND.N,1); drawConductor(panel.pos,supply.pos,COND.PE,2);
+        addDoza(supply.pos);
+        // doză -> întrerupător: fază (coboară) + fază comutată (urcă)
+        sws.forEach(sw=>{ drawConductor(supply.pos,sw.pos,COND.L,0); drawConductor(supply.pos,sw.pos,COND.SW,1); });
+        // distribuie faza comutată + nul + împământare la celelalte becuri
+        let prev=supply;
+        chainOrder(supply, lights.filter(l=>l!==supply)).forEach(l=>{ drawConductor(prev.pos,l.pos,COND.SW,0); drawConductor(prev.pos,l.pos,COND.N,1); drawConductor(prev.pos,l.pos,COND.PE,2); addDoza(l.pos); prev=l; });
+      } else {
+        sws.forEach(sw=> drawConductor(panel.pos,sw.pos,COND.L,0));
+      }
+    } else {
+      let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{ drawConductor(prev.pos,o.pos,COND.L,0); drawConductor(prev.pos,o.pos,COND.N,1); drawConductor(prev.pos,o.pos,COND.PE,2); prev=o; });
+    }
   });
 }
 function nearest(d,arr){ let best=null,bd=1e9; arr.forEach(a=>{const x=a.pos.distanceTo(d.pos); if(x<bd){bd=x;best=a;}}); return best; }
@@ -261,7 +301,9 @@ function chainOrder(start,arr){ const rem=[...arr],out=[]; let cur=start; while(
 function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>s+(d.power||0),0); }
 function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='lumina'?10:16; const need=Math.max(min,I); const breaker=STD.find(s=>s>=need)||40; return {P,I,breaker,section:SECT[breaker]}; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0; const devs=devices.filter(d=>d.circuit===c.id);
-  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec'); sws.forEach(s=>L+=routeLen(panel.pos,s.pos)); lights.forEach(l=>{const s=nearest(l,sws)||panel; L+=routeLen(s.pos,l.pos)+routeLen(panel.pos,l.pos);}); }
+  if(c.kind==='lumina'){ const sws=devs.filter(d=>d.type==='intrerupator'), lights=devs.filter(d=>d.type==='bec');
+    if(lights.length){ const supply=nearest({pos:panel.pos},lights)||lights[0]; L+=routeLen(panel.pos,supply.pos); sws.forEach(s=>L+=routeLen(supply.pos,s.pos)); let prev=supply; chainOrder(supply,lights.filter(l=>l!==supply)).forEach(l=>{L+=routeLen(prev.pos,l.pos);prev=l;}); }
+    else sws.forEach(s=>L+=routeLen(panel.pos,s.pos)); }
   else { let prev=panel; chainOrder(panel,devs.filter(d=>d.type==='priza')).forEach(o=>{L+=routeLen(prev.pos,o.pos);prev=o;}); }
   return L*1.15; }
 function assignPhases(){ const ph=['L1','L2','L3']; circuits.forEach((c,i)=>{ c.phase = state.system==='tri'? ph[i%3] : 'L1'; }); }
@@ -343,7 +385,7 @@ function genTut(){
     h+=`<h4>Circuit ${c.n} — ${c.kind==='lumina'?'iluminat':'prize'} · siguranță ${sz.breaker}A · cablu 3×${sz.section}mm²${state.system==='tri'?' · fază '+c.phase:''}</h4>`;
     h+=`<p class="muted">Consum total pe circuit: ${Math.round(sz.P)}W (${sz.I.toFixed(1)}A). Siguranța și secțiunea au fost alese automat din puterile introduse.</p>`;
     if(c.kind==='lumina'){ const nsw=dev.filter(d=>d.type==='intrerupator').length, nb=dev.filter(d=>d.type==='bec').length;
-      h+=`<p>${nsw} întrerupător(e), ${nb} bec(uri). • Faza → borna comună a întrerupătorului. • Ieșirea întrerupătorului (faza comutată) → borna centrală a duliei. • Nulul merge direct la dulie (filet), nu prin întrerupător. • Întrerupătorul taie doar faza.</p>`; }
+      h+=`<p>${nsw} întrerupător(e), ${nb} bec(uri). Cablul de la tablou (fază + nul + împământare) ajunge într-o <b>doză</b> lângă bec. Din doză: • <b>nulul</b> și <b>împământarea</b> merg direct la bec; • <b>faza</b> coboară la întrerupător; • <b>faza comutată</b> urcă înapoi din întrerupător la bec. Întrerupătorul taie <b>doar faza</b> — nulul nu se întrerupe niciodată.</p>`; }
     else { const np=dev.filter(d=>d.type==='priza').length; h+=`<p>${np} priză(e). • Toate 3 firele la fiecare priză (fază, nul, împământare). • Prizele se leagă în paralel (din doză în doză). • Împământarea e obligatorie.</p>`; }
   });
   if(!circuits.length) h+=`<p>Adaugă circuite și elemente cu puteri ca să generez pașii și dimensionarea.</p>`;
