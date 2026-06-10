@@ -111,5 +111,27 @@ const QUESTIONS=[
     explain:'Bateria se dimensioneaza in kWh (energie stocata).' },
   { q:'Pe partea de curent continuu (DC) a stringurilor se monteaza pentru protectie:', tag:'Fotovoltaice',
     opts:['Sectionare/sigurante DC si descarcatoare (SPD)','Doar un intrerupator de lumina','Nimic, nu e nevoie','Un contor de apa'], correct:0,
-    explain:'Partea DC are nevoie de sectionare, sigurante DC si protectie la supratensiune (SPD).' }
+    explain:'Partea DC are nevoie de sectionare, sigurante DC si protectie la supratensiune (SPD).' },
+
+  // ---- DRAG & DROP ----
+  { type:'drag', tag:'Electrica', q:'Trage fiecare culoare pe conductorul corect:',
+    tokens:[{id:'rosu',label:'Rosu'},{id:'albastru',label:'Albastru'},{id:'gv',label:'Galben-verde'}],
+    slots:[{id:'faza',label:'Faza (L)',accept:'rosu'},{id:'nul',label:'Nul (N)',accept:'albastru'},{id:'pe',label:'Impamantare (PE)',accept:'gv'}],
+    explain:'Faza = rosu, nul = albastru, PE = galben-verde.' },
+  { type:'drag', tag:'Electrica', q:'Potriveste siguranta corecta pentru fiecare circuit:',
+    tokens:[{id:'a10',label:'10 A'},{id:'a16',label:'16 A'},{id:'a25',label:'25 A'}],
+    slots:[{id:'ilum',label:'Iluminat (1,5 mmp)',accept:'a10'},{id:'prize',label:'Prize (2,5 mmp)',accept:'a16'},{id:'cuptor',label:'Cuptor (4 mmp)',accept:'a25'}],
+    explain:'1,5 mmp -> 10 A, 2,5 mmp -> 16 A, 4 mmp -> 25 A.' },
+  { type:'drag', tag:'Electrica', img:SVG_MOTOR, q:'Leaga fazele la motor ca sa se invarta spre DREAPTA (U=L1, V=L2, W=L3):',
+    tokens:[{id:'l1',label:'L1'},{id:'l2',label:'L2'},{id:'l3',label:'L3'}],
+    slots:[{id:'U',label:'Borna U',accept:'l1'},{id:'V',label:'Borna V',accept:'l2'},{id:'W',label:'Borna W',accept:'l3'}],
+    explain:'Ordinea L1-L2-L3 pe U-V-W da rotatie spre dreapta. Inversezi doua faze pentru sensul invers.' },
+  { type:'drag', tag:'Fotovoltaice', q:'Trage fiecare componenta la rolul ei in sistemul fotovoltaic:',
+    tokens:[{id:'panou',label:'Panou PV'},{id:'invertor',label:'Invertor'},{id:'baterie',label:'Baterie'}],
+    slots:[{id:'dc',label:'Produce curent continuu (DC)',accept:'panou'},{id:'conv',label:'Transforma DC in AC',accept:'invertor'},{id:'stoc',label:'Stocheaza energie (kWh)',accept:'baterie'}],
+    explain:'Panoul produce DC, invertorul il transforma in AC, bateria stocheaza energia.' },
+  { type:'drag', tag:'Electrica', q:'Aseaza aparatele in ordinea corecta in tablou, de la retea spre circuite:',
+    tokens:[{id:'gen',label:'Siguranta generala'},{id:'rcd',label:'Diferential (RCD)'},{id:'circ',label:'Siguranta de circuit'}],
+    slots:[{id:'s1',label:'1. Primul de la retea',accept:'gen'},{id:'s2',label:'2. Al doilea',accept:'rcd'},{id:'s3',label:'3. Spre consumator',accept:'circ'}],
+    explain:'Ordinea corecta: general -> diferential -> sigurante pe circuite.' }
 ];

@@ -53,6 +53,18 @@
   .rev .ic{flex:none;font-weight:800}
   .rev .ic.ok{color:var(--good)}.rev .ic.no{color:var(--bad)}
   .hidden{display:none!important}
+  /* drag & drop */
+  .dragwrap{margin:6px 0}
+  .tray{display:flex;flex-wrap:wrap;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:10px;background:#f7fafe;min-height:48px;margin-bottom:12px}
+  .tray .hintd{color:#9aa7bb;font-size:12px;align-self:center}
+  .chip{padding:10px 14px;border-radius:9px;background:#fff;border:1px solid var(--pv);color:var(--pv);font-weight:700;font-size:14px;cursor:grab;touch-action:none;user-select:none;white-space:nowrap}
+  .chip.ghost{position:fixed;z-index:9999;pointer-events:none;box-shadow:0 8px 20px rgba(0,0,0,.22);opacity:.96;cursor:grabbing}
+  .slots{display:flex;flex-direction:column;gap:9px}
+  .slot{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}
+  .slot .lbl{flex:1;font-weight:600;font-size:14px}
+  .slot .drop{min-width:130px;min-height:42px;border:1px dashed #b7c4d6;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#f7fafe;padding:4px}
+  .slot.over .drop{border-color:var(--pv);background:#eaf3fd}
+  .slot .drop .ph{color:#9aa7bb;font-size:12px}
   @media(max-width:640px){ .wrap{padding:16px 12px 50px} .card{padding:16px} h1{font-size:20px} }
 </style>
 </head>
@@ -124,12 +136,16 @@ let bank=[], cur=0, answers=[], cand={}, tLeft=MINUTES*60, tInt=null, startedAt=
 
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function pickBank(){
-  // ia 26 intrebari (toate daca sunt exact 26), amesteca intrebarile si optiunile
+  // ia 26 intrebari, amesteca intrebarile si optiunile/jetoanele
   let qs=shuffle(QUESTIONS).slice(0,TOTAL);
-  return qs.map(q=>{ const idx=q.opts.map((_,i)=>i); const order=shuffle(idx);
-    return { q:q.q, tag:q.tag, img:q.img||null, explain:q.explain||'',
+  return qs.map(q=>{
+    if(q.type==='drag'){ return { type:'drag', q:q.q, tag:q.tag, img:q.img||null, explain:q.explain||'',
+      tokens:shuffle(q.tokens), slots:q.slots.map(s=>({...s})) }; }
+    const idx=q.opts.map((_,i)=>i); const order=shuffle(idx);
+    return { type:'single', q:q.q, tag:q.tag, img:q.img||null, explain:q.explain||'',
       opts:order.map(i=>q.opts[i]), correct:order.indexOf(q.correct) }; });
 }
+function isCorrect(q,ans){ if(q.type==='drag'){ if(!ans) return false; return q.slots.every(s=>ans[s.id]===s.accept); } return ans===q.correct; }
 
 $('btnStart').onclick=()=>{
   const nume=$('fNume').value.trim(), pren=$('fPrenume').value.trim(), tel=$('fTel').value.trim();
@@ -147,19 +163,48 @@ function renderQ(){
   let h='<span class="qtag'+(q.tag==='Fotovoltaice'?' pv':'')+'">'+q.tag+'</span>';
   h+='<div class="qtxt">'+q.q+'</div>';
   if(q.img) h+='<div class="qimg">'+q.img+'</div>';
-  h+='<div class="opts">'+q.opts.map((o,i)=>'<div class="opt'+(answers[cur]===i?' sel':'')+'" data-i="'+i+'"><span class="mk">'+(answers[cur]===i?'✓':String.fromCharCode(65+i))+'</span><span>'+o+'</span></div>').join('')+'</div>';
-  $('qbody').innerHTML=h;
-  $('qbody').querySelectorAll('.opt').forEach(el=> el.onclick=()=>{ answers[cur]=+el.dataset.i; renderQ(); });
+  if(q.type==='drag'){ renderDrag(q,h); }
+  else {
+    h+='<div class="opts">'+q.opts.map((o,i)=>'<div class="opt'+(answers[cur]===i?' sel':'')+'" data-i="'+i+'"><span class="mk">'+(answers[cur]===i?'✓':String.fromCharCode(65+i))+'</span><span>'+o+'</span></div>').join('')+'</div>';
+    $('qbody').innerHTML=h;
+    $('qbody').querySelectorAll('.opt').forEach(el=> el.onclick=()=>{ answers[cur]=+el.dataset.i; renderQ(); });
+  }
   $('btnPrev').style.visibility=cur===0?'hidden':'visible';
   const last=cur===bank.length-1;
   $('btnNext').classList.toggle('hidden',last);
   $('btnFinish').classList.toggle('hidden',!last);
 }
+function chipHTML(t){ return '<span class="chip" data-token="'+t.id+'">'+t.label+'</span>'; }
+function renderDrag(q,h){
+  const ans=answers[cur]||{}; const placed=new Set(Object.values(ans));
+  h+='<div class="dragwrap"><div class="tray" id="tray">';
+  const free=q.tokens.filter(t=>!placed.has(t.id));
+  h+= free.length? free.map(chipHTML).join('') : '<span class="hintd">Toate jetoanele sunt asezate</span>';
+  h+='</div><div class="slots">'+ q.slots.map(s=>{ const tk=q.tokens.find(t=>t.id===ans[s.id]);
+    return '<div class="slot" data-slot="'+s.id+'"><span class="lbl">'+s.label+'</span><div class="drop" data-drop="'+s.id+'">'+(tk?chipHTML(tk):'<span class="ph">trage aici</span>')+'</div></div>'; }).join('') +'</div></div>';
+  $('qbody').innerHTML=h;
+  $('qbody').querySelectorAll('.chip').forEach(chip=> chip.addEventListener('pointerdown', e=>startDrag(e,chip)) );
+}
+function startDrag(e,chip){
+  e.preventDefault(); const tokenId=chip.dataset.token;
+  const ghost=chip.cloneNode(true); ghost.classList.add('ghost'); document.body.appendChild(ghost);
+  const place=ev=>{ ghost.style.left=(ev.clientX-24)+'px'; ghost.style.top=(ev.clientY-18)+'px';
+    document.querySelectorAll('.slot').forEach(s=>s.classList.remove('over'));
+    const t=document.elementFromPoint(ev.clientX,ev.clientY); const sl=t&&t.closest&&t.closest('.slot'); if(sl) sl.classList.add('over'); };
+  place(e);
+  const up=ev=>{ document.removeEventListener('pointermove',place); document.removeEventListener('pointerup',up); ghost.remove();
+    const t=document.elementFromPoint(ev.clientX,ev.clientY); const ans=answers[cur]||(answers[cur]={});
+    for(const k in ans){ if(ans[k]===tokenId) delete ans[k]; }           // scoate jetonul din slotul vechi
+    const drop=t&&t.closest&&t.closest('[data-drop]');
+    if(drop){ ans[drop.dataset.drop]=tokenId; }                          // pus in slot nou (suprascrie)
+    renderQ(); };
+  document.addEventListener('pointermove',place); document.addEventListener('pointerup',up);
+}
 $('btnNext').onclick=()=>{ if(cur<bank.length-1){ cur++; renderQ(); } };
 $('btnPrev').onclick=()=>{ if(cur>0){ cur--; renderQ(); } };
 $('btnFinish').onclick=()=>{ const un=answers.filter(a=>a===null).length; if(un>0 && !confirm('Mai ai '+un+' intrebari fara raspuns. Finalizezi oricum?')) return; finish(false); };
 
-function score(){ let c=0; bank.forEach((q,i)=>{ if(answers[i]===q.correct) c++; }); return c; }
+function score(){ let c=0; bank.forEach((q,i)=>{ if(isCorrect(q,answers[i])) c++; }); return c; }
 function finish(timeUp){
   clearInterval(tInt); $('timer').classList.add('hidden');
   const s=score(), passed=s>=PASS;
@@ -168,8 +213,11 @@ function finish(timeUp){
   $('scoreFill').style.width=Math.round(s/bank.length*100)+'%'; $('scoreFill').style.background=passed?'var(--good)':'var(--bad)';
   $('resLine').innerHTML=(timeUp?'<b>Timp expirat.</b> ':'')+'Scor: <b>'+s+' / '+bank.length+'</b> &middot; prag promovare: '+PASS+' &middot; '+cand.nume+' '+cand.pren;
   let r='';
-  bank.forEach((q,i)=>{ const ok=answers[i]===q.correct; const given=answers[i]==null?'(fara raspuns)':q.opts[answers[i]];
-    r+='<div class="rev"><span class="ic '+(ok?'ok':'no')+'">'+(ok?'✓':'✗')+'</span><div><b>'+(i+1)+'.</b> '+q.q+'<br><span style="color:var(--muted)">Raspunsul tau: '+given+(ok?'':' &middot; Corect: '+q.opts[q.correct])+'</span>'+(q.explain&&!ok?'<br><span style="color:#5d6b82;font-size:12px">'+q.explain+'</span>':'')+'</div></div>'; });
+  bank.forEach((q,i)=>{ const ok=isCorrect(q,answers[i]); let given, correctTxt='';
+    if(q.type==='drag'){ const a=answers[i]||{}; given=q.slots.map(s=>{ const tk=q.tokens.find(t=>t.id===a[s.id]); return s.label+': '+(tk?tk.label:'—'); }).join(' &middot; ');
+      if(!ok) correctTxt=q.slots.map(s=>{ const tk=q.tokens.find(t=>t.id===s.accept); return s.label+': '+(tk?tk.label:''); }).join(' &middot; '); }
+    else { given=answers[i]==null?'(fara raspuns)':q.opts[answers[i]]; if(!ok) correctTxt=q.opts[q.correct]; }
+    r+='<div class="rev"><span class="ic '+(ok?'ok':'no')+'">'+(ok?'✓':'✗')+'</span><div><b>'+(i+1)+'.</b> '+q.q+'<br><span style="color:var(--muted)">Raspunsul tau: '+given+(ok?'':' &middot; Corect: '+correctTxt)+'</span>'+(q.explain&&!ok?'<br><span style="color:#5d6b82;font-size:12px">'+q.explain+'</span>':'')+'</div></div>'; });
   $('review').innerHTML=r;
   window.scrollTo(0,0);
   lastResult={s,passed,timeUp};
@@ -201,7 +249,7 @@ $('btnPdf').onclick=()=>{
   doc.text('Rezultat: '+(lastResult.passed?'ADMIS':'RESPINS'),14,y); y+=10;
   doc.setTextColor(30,43,68); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('Recapitulare:',14,y); y+=6;
   doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  bank.forEach((q,i)=>{ const ok=answers[i]===q.correct; if(y>278){ doc.addPage(); y=20; }
+  bank.forEach((q,i)=>{ const ok=isCorrect(q,answers[i]); if(y>278){ doc.addPage(); y=20; }
     const line=(i+1)+'. '+(ok?'[CORECT]':'[GRESIT]')+' '+q.q; const wrapped=doc.splitTextToSize(line,182);
     doc.setTextColor(...(ok?[26,138,79]:[192,57,43])); doc.text(wrapped,14,y); y+=wrapped.length*4.4+1; });
   const fn='Test_'+(cand.nume+'_'+cand.pren).replace(/[^\w]+/g,'_')+'.pdf';
