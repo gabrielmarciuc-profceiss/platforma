@@ -367,7 +367,8 @@ function applySketch(r, widthCm, reg, lensCm){ const {edges}=pixDirs(r.pts, reg)
   const xs=r.pts.map(p=>p.x); const bboxW=(Math.max(...xs)-Math.min(...xs))||1; const mpp=(widthCm/100)/bboxW;
   const lenM=edges.map((e,i)=> (lensCm&&lensCm[i])? lensCm[i]/100 : e.plen*mpp );
   let pts=[{x:0,z:0}]; let x=0,z=0;
-  for(let i=0;i<n-1;i++){ x+=edges[i].dx*lenM[i]; z+=edges[i].dy*lenM[i]; pts.push({x:+x.toFixed(2),z:+z.toFixed(2)}); }
+  // y din imagine creste in jos, dar planul are z in sus -> inversam z ca sa nu iasa oglindit
+  for(let i=0;i<n-1;i++){ x+=edges[i].dx*lenM[i]; z-=edges[i].dy*lenM[i]; pts.push({x:+x.toFixed(2),z:+z.toFixed(2)}); }
   pts=pts.filter((p,i)=>{ const q=pts[(i+1)%pts.length]; return !(Math.abs(p.x-q.x)<0.03 && Math.abs(p.z-q.z)<0.03); });
   if(pts.length<3){ alert('Prea putine colturi valide dupa reconstructie. Verifica cotele si reincearca.'); return; }
   plan.points=pts; plan.closed=true; plan.openings=[]; planMode='edit'; setPlanModeUI(); renderWallRows(); refreshPlan();
