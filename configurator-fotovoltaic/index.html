@@ -252,7 +252,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   <!-- ── OFERTE SALVATE (localStorage) ───────────────────────────────────
        Lista persista in browserul curent. Pentru backup/portabilitate foloseste
        butoanele Import/Export JSON. -->
-  <details id="saved_offers_details" style="margin-bottom:1.25rem;background:#f0efe8;border-radius:10px;padding:10px 14px;">
+  <details id="saved_offers_details" open style="margin-bottom:1.25rem;background:#f0efe8;border-radius:10px;padding:10px 14px;">
     <summary style="font-size:13px;font-weight:500;color:#1a1a1a;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
       <span>📂 Oferte salvate <span id="saved_offers_count" style="font-weight:normal;color:#888;font-size:11px;"></span></span>
       <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" onclick="event.stopPropagation();">
@@ -807,8 +807,8 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   </div>
   <div class="btn-row">
     <button class="btn" onclick="goStep(4)">← Inapoi</button>
-    <button class="btn" type="button" onclick="saveCurrentOffer()" style="background:#185FA5;color:#fff;border-color:#185FA5;" title="Salveaza oferta in browser (localStorage). O regasesti pe pasul 1.">💾 Salveaza oferta</button>
-    <button class="btn" type="button" onclick="exportOfferAsJson(saveCurrentOffer(true))" style="background:#fff;color:#185FA5;border-color:#185FA5;" title="Salveaza in browser SI descarca fisier JSON portabil.">⬇ Salveaza + JSON</button>
+    <button class="btn" type="button" onclick="saveCurrentOffer()" style="display:none;background:#185FA5;color:#fff;border-color:#185FA5;" title="Salveaza oferta in browser (localStorage). O regasesti pe pasul 1.">💾 Salveaza oferta</button>
+    <button class="btn" type="button" onclick="exportOfferAsJson(saveCurrentOffer(true))" style="display:none;background:#fff;color:#185FA5;border-color:#185FA5;" title="Salveaza in browser SI descarca fisier JSON portabil.">⬇ Salveaza + JSON</button>
     <button class="btn pri" onclick="goStep(6)">Continua →</button>
   </div>
 </div>
@@ -850,7 +850,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
 
   <!-- Campuri comerciale — intotdeauna vizibile -->
   <div class="fg fg2">
-    <div class="f"><label>Numar oferta</label><input type="text" id="oferta_nr" value="OF-2026-001" placeholder="ex: OF-2026-001"><span class="hint">Apare in antetul ofertei</span></div>
+    <div class="f"><label>Numar oferta</label><input type="text" id="oferta_nr" value="" placeholder="automat: PF + data ora minut secunda"><span class="hint">Se completeaza automat la „Genereaza oferta" (ex: PF20260610143207). Apare in antetul ofertei.</span></div>
     <div class="f"><label>Valabilitate oferta (zile)</label><input type="number" id="oferta_valabil" value="14" min="1" max="180" step="1"><span class="hint">Data limita se calculeaza automat</span></div>
   </div>
   <div class="fg fg2">
@@ -866,7 +866,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   </div>
   <div class="btn-row">
     <button class="btn" onclick="goStep(5)">← Inapoi</button>
-    <button class="btn pri" onclick="calcAll()">Genereaza oferta →</button>
+    <button class="btn pri" onclick="genOferta()">Genereaza oferta →</button>
   </div>
 </div>
 
@@ -3883,7 +3883,7 @@ function generateOfferTitle(state){
 // Cu silent=true, nu afiseaza alert (folosit de "Salveaza + JSON") si returneaza id-ul ofertei.
 function saveCurrentOffer(silent){
   const state = captureOfferState();
-  const title = generateOfferTitle(state);
+  const title = (typeof buildOfferName==='function') ? buildOfferName() : generateOfferTitle(state);
   const id = 'of_' + Date.now() + '_' + Math.floor(Math.random()*10000);
   const offer = {
     id,
@@ -3900,6 +3900,36 @@ function saveCurrentOffer(silent){
   }
   return id;
 }
+
+// Numar oferta unic din data+ora (an-luna-zi-ora-minut-secunda)
+function makeOfferNumber(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return 'PF'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds()); }
+// Sablon titlu: Oferta (data ora) (putere kWp) (invertor) [cu stocare (baterie)]
+function buildOfferName(){
+  const d=new Date(); const p=n=>String(n).padStart(2,'0');
+  const dt=p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  let totalWp=0; const ns=v('nr_str'); const nrStr=ns?parseInt(ns.value)||1:1;
+  for(let i=1;i<=nrStr;i++){ const a=v('s'+i+'_nr'), b=v('s'+i+'_wp'); totalWp+=(a?parseInt(a.value)||0:0)*(b?parseInt(b.value)||0:0); }
+  const kwp = totalWp>0 ? (totalWp/1000).toFixed(2).replace('.',',')+' kWp' : 'panouri';
+  let inv='invertor'; try{ if(typeof selectedInv!=='undefined' && selectedInv) inv=selectedInv.model||(((selectedInv.brand||'')+' '+(selectedInv.kw?selectedInv.kw+'kW':'')).trim())||'invertor'; }catch(_){ }
+  if(inv==='invertor'){ const im=v('inv_model'); if(im&&im.value.trim()) inv=im.value.trim(); }
+  let on=false; try{ on=(typeof hasBat!=='undefined') && !!hasBat; }catch(_){ } const bm=v('bat_model'); const batName=(bm&&bm.value.trim())||'';
+  let name='Oferta ('+dt+') ('+kwp+') ('+inv+')';
+  if(on && batName) name+=' cu stocare ('+batName+')';
+  return name;
+}
+// Genereaza oferta + salvare AUTOMATA (fara intrebare), cu numar unic + titlu sablon
+function genOferta(){
+  const f=document.getElementById('oferta_nr'); if(f) f.value=makeOfferNumber();
+  calcAll();
+  try{ saveCurrentOffer(true); }catch(e){ console.warn('autosave oferta', e); }
+}
+// Vizualizare = reincarca oferta + genereaza si deschide PDF-ul (print)
+function viewOffer(id){ const offers=getSavedOffers(); const o=offers.find(x=>x.id===id); if(!o){ alert('Oferta nu a fost gasita.'); return; }
+  restoreOfferState(o.state); try{ calcAll(); }catch(e){ console.warn(e); }
+  setTimeout(()=>{ try{ window.print(); }catch(e){} }, 500); }
+// Editare = reincarca oferta in formular (precompletat), de la pasul 1
+function editOffer(id){ const offers=getSavedOffers(); const o=offers.find(x=>x.id===id); if(!o){ alert('Oferta nu a fost gasita.'); return; }
+  restoreOfferState(o.state); try{ if(typeof goStep==='function') goStep(1); }catch(e){} }
 
 // Incarca o oferta salvata — pune toate valorile inapoi in formular.
 function loadSavedOffer(id){
@@ -4057,7 +4087,7 @@ function renderSavedOffersList(){
   const offers = getSavedOffers();
   if (cnt) cnt.textContent = offers.length ? '(' + offers.length + ')' : '';
   if (offers.length === 0){
-    w.innerHTML = '<div style="font-size:12px;color:#888;padding:12px;background:#fff;border:0.5px dashed #ccc;border-radius:8px;text-align:center;">Nu exista oferte salvate.<br>Apasa <strong>„💾 Salveaza oferta"</strong> pe pasul 5 ca sa salvezi prima oferta.</div>';
+    w.innerHTML = '<div style="font-size:12px;color:#888;padding:12px;background:#fff;border:0.5px dashed #ccc;border-radius:8px;text-align:center;">Nu exista oferte salvate.<br>Apasa <strong>„Genereaza oferta"</strong> (pasul 5) si oferta se salveaza automat aici.</div>';
     return;
   }
   w.innerHTML = offers.map(o => `
@@ -4067,7 +4097,8 @@ function renderSavedOffersList(){
         <div style="font-size:11px;color:#888;margin-top:3px;">📅 ${fmtOfferDate(o.createdAt)}</div>
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;">
-        <button class="btn" type="button" onclick="loadSavedOffer('${o.id}')" style="padding:5px 10px;font-size:11px;background:#1D9E75;color:#fff;border-color:#1D9E75;" title="Reincarca oferta in formular">↻ Incarca</button>
+        <button class="btn" type="button" onclick="viewOffer('${o.id}')" style="padding:5px 10px;font-size:11px;background:#185FA5;color:#fff;border-color:#185FA5;" title="Deschide PDF-ul ofertei">👁 Vizualizare</button>
+        <button class="btn" type="button" onclick="editOffer('${o.id}')" style="padding:5px 10px;font-size:11px;background:#1D9E75;color:#fff;border-color:#1D9E75;" title="Editeaza oferta (precompleteaza tot sistemul)">✏️ Editare</button>
         <button class="btn" type="button" onclick="exportOfferAsJson('${o.id}')" style="padding:5px 10px;font-size:11px;" title="Descarca aceasta oferta ca fisier JSON">⬇ JSON</button>
         <button class="btn" type="button" onclick="deleteSavedOffer('${o.id}')" style="padding:5px 10px;font-size:11px;color:#A32D2D;border-color:#A32D2D;" title="Sterge oferta">🗑</button>
       </div>
@@ -4099,6 +4130,5 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
 };
 </script>
 <script src="../assets/no-diacritics.js"></script>
-<script src="../assets/profceiss-projects.js" defer></script>
 </body>
 </html>
