@@ -120,6 +120,11 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
       <button class="btn" id="clearShape">🗑 Goleste</button>
     </div><p class="muted" id="planTool" style="margin-top:7px">Muta: trage colturile. „Deseneaza": click adauga colturi.</p></div>
     <div class="sec">
+      <button class="btn full" id="loadSketch">🖼️ Incarca schita (foto)</button>
+      <input type="file" id="sketchFile" accept="image/*" style="display:none">
+      <p class="muted" style="margin-top:7px">Incarci o poza cu planul/desenul. Detectez automat conturul peretilor (merge mai bine pe planse clare, cu linii drepte). Apoi dai latimea reala in cm si il aplic pe plan.</p>
+    </div>
+    <div class="sec">
       <h3>Pereti (segmente)</h3>
       <div id="wallRows"></div>
       <button class="btn full" id="addWall">＋ Adauga perete</button>
