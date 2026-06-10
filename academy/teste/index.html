@@ -29,6 +29,9 @@
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:8px}
   .meta b{color:var(--ink)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .seg button{flex:1;min-width:92px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .seg button.on{background:#eaf3fd;border-color:var(--pv);color:var(--pv);box-shadow:inset 0 0 0 1px var(--pv)}
   .progress{height:7px;background:#e3ebf4;border-radius:5px;overflow:hidden;margin:4px 0 16px}
   .progress > i{display:block;height:100%;background:linear-gradient(90deg,#38a0ee,var(--pv));transition:width .25s}
   .qnum{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
@@ -81,7 +84,20 @@
   <div id="screenStart">
     <div class="card">
       <h1>Examen <b>Profceiss</b></h1>
-      <p class="lead">Test de electrica si fotovoltaice. <b>26 de intrebari</b>, timp <b>30 de minute</b>. Pragul de promovare este <b>22 din 26</b> raspunsuri corecte (ca la permis). La final poti exporta rezultatul in PDF.</p>
+      <p class="lead">Alege nivelul si categoria, completeaza datele si incepe. Intrebarile se amesteca aleatoriu si nu se repeta de la o incercare la alta. La final exporti rezultatul in PDF.</p>
+      <label class="fld">Nivel</label>
+      <div class="seg" id="segLevel">
+        <button data-level="beginner" class="on">Incepator</button>
+        <button data-level="pro">Pro</button>
+        <button data-level="expert">Expert</button>
+      </div>
+      <label class="fld">Categorie</label>
+      <div class="seg" id="segCat">
+        <button data-cat="Toate" class="on">Toate</button>
+        <button data-cat="Electrica">Electrica</button>
+        <button data-cat="Fotovoltaice">Fotovoltaice</button>
+      </div>
+      <p class="lead" id="poolInfo" style="margin:8px 0 2px;font-size:13px"></p>
       <label class="fld">Nume</label>
       <input type="text" id="fNume" placeholder="ex: Popescu" autocomplete="off">
       <label class="fld">Prenume</label>
@@ -89,7 +105,6 @@
       <label class="fld">Numar de telefon</label>
       <input type="text" id="fTel" placeholder="ex: 0722 000 000" autocomplete="off">
       <div class="nav"><button class="btn go" id="btnStart">Incepe testul &rarr;</button></div>
-      <div class="meta"><span>Intrebari: <b>26</b></span><span>Timp: <b>30 min</b></span><span>Promovare: <b>22/26</b></span></div>
     </div>
   </div>
 
@@ -131,18 +146,39 @@
 <script src="questions.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-const PASS=22, TOTAL=26, MINUTES=30, ADMIN_EMAIL='tehnic@profceiss.ro';
+const MAXLEN=26, MINUTES=30, ADMIN_EMAIL='tehnic@profceiss.ro';
+let PASS=22, TESTLEN=26;
 let bank=[], cur=0, answers=[], cand={}, tLeft=MINUTES*60, tInt=null, startedAt=null;
+let selLevel='beginner', selCat='Toate';
+QUESTIONS.forEach((q,i)=>{ q._id=i; });   // id stabil pentru ne-repetare
 
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-function pickBank(){
-  // ia 26 intrebari, amesteca intrebarile si optiunile/jetoanele
-  let qs=shuffle(QUESTIONS).slice(0,TOTAL);
-  return qs.map(q=>{
-    if(q.type==='drag'){ return { type:'drag', q:q.q, tag:q.tag, img:q.img||null, explain:q.explain||'',
+const LVLNAME={beginner:'Incepator',pro:'Pro',expert:'Expert'};
+
+function poolFor(level,cat){ return QUESTIONS.filter(q=>q.level===level && (cat==='Toate'||q.cat===cat)); }
+function updatePoolInfo(){ const pool=poolFor(selLevel,selCat); const N=Math.min(MAXLEN,pool.length); const pass=Math.max(1,Math.round(N*22/26));
+  $('poolInfo').innerHTML = pool.length? ('Nivel <b>'+LVLNAME[selLevel]+'</b> &middot; '+selCat+': <b>'+pool.length+'</b> intrebari in baza. Testul are <b>'+N+'</b> intrebari, timp <b>'+MINUTES+' min</b>, prag <b>'+pass+'/'+N+'</b>.')
+    : '<span style="color:var(--bad)">Nu exista inca intrebari pentru aceasta combinatie. Alege alta categorie.</span>'; }
+
+document.querySelectorAll('#segLevel button').forEach(b=> b.onclick=()=>{ selLevel=b.dataset.level; document.querySelectorAll('#segLevel button').forEach(x=>x.classList.toggle('on',x===b)); updatePoolInfo(); });
+document.querySelectorAll('#segCat button').forEach(b=> b.onclick=()=>{ selCat=b.dataset.cat; document.querySelectorAll('#segCat button').forEach(x=>x.classList.toggle('on',x===b)); updatePoolInfo(); });
+
+function pickBank(level,cat){
+  let pool=poolFor(level,cat);
+  const N=Math.min(MAXLEN,pool.length);
+  const key='pce_seen_'+level+'_'+cat;
+  let seen=[]; try{ seen=JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){}
+  let unseen=pool.filter(q=>!seen.includes(q._id));
+  if(unseen.length < N){ seen=[]; unseen=pool.slice(); }      // s-au epuizat -> reluam tot setul
+  const chosen=shuffle(unseen).slice(0,N);
+  seen=seen.concat(chosen.map(q=>q._id));
+  try{ localStorage.setItem(key, JSON.stringify(seen)); }catch(e){}
+  TESTLEN=N; PASS=Math.max(1,Math.round(N*22/26));
+  return chosen.map(q=>{
+    if(q.type==='drag'){ return { type:'drag', q:q.q, tag:q.cat, img:q.img||null, explain:q.explain||'',
       tokens:shuffle(q.tokens), slots:q.slots.map(s=>({...s})) }; }
     const idx=q.opts.map((_,i)=>i); const order=shuffle(idx);
-    return { type:'single', q:q.q, tag:q.tag, img:q.img||null, explain:q.explain||'',
+    return { type:'single', q:q.q, tag:q.cat, img:q.img||null, explain:q.explain||'',
       opts:order.map(i=>q.opts[i]), correct:order.indexOf(q.correct) }; });
 }
 function isCorrect(q,ans){ if(q.type==='drag'){ if(!ans) return false; return q.slots.every(s=>ans[s.id]===s.accept); } return ans===q.correct; }
@@ -150,7 +186,8 @@ function isCorrect(q,ans){ if(q.type==='drag'){ if(!ans) return false; return q.
 $('btnStart').onclick=()=>{
   const nume=$('fNume').value.trim(), pren=$('fPrenume').value.trim(), tel=$('fTel').value.trim();
   if(!nume||!pren||!tel){ alert('Completeaza nume, prenume si telefon ca sa incepi.'); return; }
-  cand={nume,pren,tel}; bank=pickBank(); answers=new Array(bank.length).fill(null); cur=0; startedAt=new Date();
+  if(!poolFor(selLevel,selCat).length){ alert('Nu exista intrebari pentru aceasta combinatie. Alege alta categorie.'); return; }
+  cand={nume,pren,tel,level:LVLNAME[selLevel],cat:selCat}; bank=pickBank(selLevel,selCat); answers=new Array(bank.length).fill(null); cur=0; startedAt=new Date();
   $('screenStart').classList.add('hidden'); $('screenExam').classList.remove('hidden'); $('timer').classList.remove('hidden');
   tLeft=MINUTES*60; tick(); tInt=setInterval(tick,1000); renderQ();
 };
@@ -211,7 +248,7 @@ function finish(timeUp){
   $('screenExam').classList.add('hidden'); $('screenResult').classList.remove('hidden');
   const v=$('resVerdict'); v.textContent=passed?'ADMIS':'RESPINS'; v.className='res-big '+(passed?'ok':'no');
   $('scoreFill').style.width=Math.round(s/bank.length*100)+'%'; $('scoreFill').style.background=passed?'var(--good)':'var(--bad)';
-  $('resLine').innerHTML=(timeUp?'<b>Timp expirat.</b> ':'')+'Scor: <b>'+s+' / '+bank.length+'</b> &middot; prag promovare: '+PASS+' &middot; '+cand.nume+' '+cand.pren;
+  $('resLine').innerHTML=(timeUp?'<b>Timp expirat.</b> ':'')+'Scor: <b>'+s+' / '+bank.length+'</b> &middot; prag '+PASS+' &middot; '+cand.nume+' '+cand.pren+' &middot; nivel '+cand.level+' / '+cand.cat;
   let r='';
   bank.forEach((q,i)=>{ const ok=isCorrect(q,answers[i]); let given, correctTxt='';
     if(q.type==='drag'){ const a=answers[i]||{}; given=q.slots.map(s=>{ const tk=q.tokens.find(t=>t.id===a[s.id]); return s.label+': '+(tk?tk.label:'—'); }).join(' &middot; ');
@@ -229,6 +266,7 @@ $('btnRetry').onclick=()=>{ if(confirm('Reiei testul de la inceput?')) location.
 function resultLines(){ const s=lastResult.s, p=lastResult.passed; const dt=new Date();
   return ['PROFCEISS ACADEMY - REZULTAT TEST',
     'Nume: '+cand.nume+' '+cand.pren, 'Telefon: '+cand.tel,
+    'Nivel: '+cand.level+' / '+cand.cat,
     'Data: '+dt.toLocaleString('ro-RO'),
     'Scor: '+s+' / '+bank.length+'  (prag '+PASS+')',
     'Rezultat: '+(p?'ADMIS':'RESPINS')]; }
@@ -242,7 +280,7 @@ $('btnPdf').onclick=()=>{
   doc.setFontSize(15); doc.text('Rezultat examen electrica / fotovoltaice',14,y); y+=10;
   doc.setFont('helvetica','normal'); doc.setFontSize(11);
   const dt=new Date();
-  [['Nume si prenume', cand.nume+' '+cand.pren],['Telefon',cand.tel],['Data',dt.toLocaleString('ro-RO')],
+  [['Nume si prenume', cand.nume+' '+cand.pren],['Telefon',cand.tel],['Nivel / categorie',cand.level+' / '+cand.cat],['Data',dt.toLocaleString('ro-RO')],
    ['Scor', lastResult.s+' / '+bank.length+'  (prag de promovare: '+PASS+')']].forEach(r=>{ doc.setFont('helvetica','bold'); doc.text(r[0]+':',14,y); doc.setFont('helvetica','normal'); doc.text(String(r[1]),70,y); y+=8; });
   y+=2; doc.setFontSize(16); doc.setFont('helvetica','bold');
   doc.setTextColor(...(lastResult.passed?[26,138,79]:[192,57,43]));
@@ -261,6 +299,7 @@ $('btnMail').onclick=()=>{
   const subj=encodeURIComponent('Rezultat test Academy - '+cand.nume+' '+cand.pren+(lastResult.passed?' [ADMIS]':' [RESPINS]'));
   window.location.href='mailto:'+ADMIN_EMAIL+'?subject='+subj+'&body='+body;
 };
+updatePoolInfo();
 </script>
 <script src="../../assets/profceiss-projects.js" defer></script>
 </body>
