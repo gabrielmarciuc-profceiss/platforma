@@ -105,6 +105,7 @@
       <button class="tool on" id="tSelect">🖐 Muta</button>
       <button class="tool" id="tWire">➰ Fir</button>
       <button class="tool" id="tBend">〰 Curbura</button>
+      <span class="tool" style="display:flex;gap:7px;align-items:center;cursor:default">Radius <input id="wireR" type="range" min="0" max="40" value="14" style="width:84px;vertical-align:middle"></span>
       <button class="tool go" id="tSim">▶ Simuleaza</button>
       <button class="tool" id="tStop">■ Stop</button>
       <button class="tool" id="tUndo">↶ Undo</button>
@@ -135,6 +136,7 @@ let addType=null;             // tip piesa de adaugat
 let activeCond='L';
 let sel=null;                 // {kind:'comp'|'wire', id}
 let view={x:40,y:30,s:1};     // pan/zoom
+let GLOBAL_R=14;              // radius colt fire (0=patrat, mare=rotunjit)
 let wireStart=null;           // {comp,term}
 let sim={running:false,angle:0,dir:0,timer:null};
 const history=[];
@@ -185,7 +187,8 @@ const DEFS={
   socket:{ w:48,h:44, load:'socket',
     terms:[{name:'L',lx:12,ly:44},{name:'N',lx:24,ly:44},{name:'PE',lx:36,ly:44}] },
   socket3:{ w:60,h:46, load:'socket',
-    terms:[{name:'L1',lx:10,ly:46},{name:'L2',lx:22,ly:46},{name:'L3',lx:34,ly:46},{name:'N',lx:46,ly:46},{name:'PE',lx:54,ly:46}] }
+    terms:[{name:'L1',lx:10,ly:46},{name:'L2',lx:22,ly:46},{name:'L3',lx:34,ly:46},{name:'N',lx:46,ly:46},{name:'PE',lx:54,ly:46}] },
+  node:{ w:10,h:10, node:true, terms:[{name:'p',lx:5,ly:5}] }
 };
 
 function addComp(type,x,y){ const d=DEFS[type]; const c={id:uid++,type,x:Math.round(x),y:Math.round(y),on:false}; if(d.breaker) c.on=false; comps.push(c); pushHist(); render(); return c; }
@@ -201,19 +204,30 @@ function toWorld(ev){ const r=cv.getBoundingClientRect(); const px=(ev.clientX-r
 
 /* ===== render ===== */
 function el(tag,attrs){ const e=document.createElementNS(SVGNS,tag); if(attrs) for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
+function orthoPath(a,b,r,vf){
+  const dx=b.x-a.x, dy=b.y-a.y;
+  if(Math.abs(dx)<2||Math.abs(dy)<2) return `M ${a.x} ${a.y} L ${b.x} ${b.y}`;   // aliniate -> drept
+  r=Math.max(0, Math.min(r, Math.abs(dx)-1, Math.abs(dy)-1));
+  const sx=Math.sign(dx), sy=Math.sign(dy);
+  if(vf){ const cx=a.x, cy=b.y;   // vertical intai
+    return `M ${a.x} ${a.y} L ${cx} ${cy-sy*r} Q ${cx} ${cy} ${cx+sx*r} ${cy} L ${b.x} ${b.y}`; }
+  const cx=b.x, cy=a.y;           // orizontal intai
+  return `M ${a.x} ${a.y} L ${cx-sx*r} ${cy} Q ${cx} ${cy} ${cx} ${cy+sy*r} L ${b.x} ${b.y}`;
+}
 function render(){
   cv.innerHTML='';
   const root=el('g',{transform:`translate(${view.x},${view.y}) scale(${view.s})`}); cv.appendChild(root);
   const gW=el('g'), gC=el('g'); root.appendChild(gW); root.appendChild(gC);
-  // fire
+  // fire (traseu ortogonal cu colturi rotunjite)
   wires.forEach(w=>{ const a=termWorld(compById(w.a.comp),w.a.term), b=termWorld(compById(w.b.comp),w.b.term);
-    const cx=w.cx!=null?w.cx:(a.x+b.x)/2, cy=w.cy!=null?w.cy:(a.y+b.y)/2;
-    const p=el('path',{d:`M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`,fill:'none',stroke:w.color,'stroke-width':3.2,'stroke-linecap':'round'});
+    const r=(w.r!=null?w.r:GLOBAL_R); const vf=(w.vf!==false);
+    const p=el('path',{d:orthoPath(a,b,r,vf),fill:'none',stroke:w.color,'stroke-width':3.4,'stroke-linecap':'round','stroke-linejoin':'round'});
     p.dataset.wire=w.id; if(w.live) p.setAttribute('class','livewire');
-    if(sel&&sel.kind==='wire'&&sel.id===w.id){ p.setAttribute('stroke-width',4.2); }
+    if(sel&&sel.kind==='wire'&&sel.id===w.id){ p.setAttribute('stroke-width',4.4); }
     gW.appendChild(p);
-    if(w.fault){ const f=el('circle',{cx:cx,cy:cy,r:7,fill:'#ffcf33',stroke:'#c0392b','stroke-width':2}); gW.appendChild(f); }
-    if(mode==='bend'||(sel&&sel.kind==='wire'&&sel.id===w.id)){ const h=el('rect',{x:cx-5,y:cy-5,width:10,height:10,rx:2,fill:'#fff',stroke:'#1c7bd6','stroke-width':2,transform:`rotate(45 ${cx} ${cy})`}); h.dataset.bend=w.id; h.style.cursor='move'; gW.appendChild(h); }
+    const corner = vf? {x:a.x,y:b.y} : {x:b.x,y:a.y};
+    if(w.fault){ gW.appendChild(el('circle',{cx:corner.x,cy:corner.y,r:7,fill:'#ffcf33',stroke:'#c0392b','stroke-width':2})); }
+    if(mode==='bend'||(sel&&sel.kind==='wire'&&sel.id===w.id)){ const h=el('rect',{x:corner.x-5,y:corner.y-5,width:10,height:10,rx:2,fill:'#fff',stroke:'#1c7bd6','stroke-width':2,transform:`rotate(45 ${corner.x} ${corner.y})`}); h.dataset.flip=w.id; h.style.cursor='pointer'; gW.appendChild(h); }
   });
   // piese
   comps.forEach(c=>{ const g=el('g',{transform:`translate(${c.x},${c.y})`}); g.dataset.comp=c.id; gC.appendChild(g);
@@ -354,7 +368,8 @@ const DRAW={
     g.appendChild(el('circle',{cx:cx,cy:17,r:12,fill:'#fff',stroke:'#9aa7bb'}));
     g.appendChild(el('circle',{cx:cx,cy:11,r:1.8,fill:'#e23b3b'})); g.appendChild(el('circle',{cx:cx-6,cy:20,r:1.8,fill:'#8a5a2b'})); g.appendChild(el('circle',{cx:cx+6,cy:20,r:1.8,fill:'#7d8794'}));
     ['L1','L2','L3','N','PE'].forEach((n,i)=>{ const lx=[10,22,34,46,54][i]; g.appendChild(el('line',{x1:lx,y1:32,x2:lx,y2:46,stroke:'#9aa7bb','stroke-width':2})); txt(g,lx,42,n,'#5d6b82',5.5,'700'); });
-  }
+  },
+  node(g,c){ g.appendChild(el('circle',{cx:5,cy:5,r:5,fill:'#34507a',stroke:'#fff','stroke-width':1.6})); }
 };
 function txt(g,x,y,s,fill,size,weight){ const t=el('text',{x:x,y:y,'text-anchor':'middle','font-size':size||8,fill:fill||'#1d2b44'}); if(weight)t.setAttribute('font-weight',weight); t.style.pointerEvents='none'; t.textContent=s; g.appendChild(t); return t; }
 function lever(g,c,W,topY){ const lw=Math.min(30,W-8), lx=(W-lw)/2, ly=c.on?topY:topY+14;
@@ -401,14 +416,16 @@ function onDown(ev){
   if(press){ const c=compById(+press.dataset.press); c.pressed=!c.pressed; pushHist(); if(sim.running) evaluate(); else render(); return; }
   const trip=ev.target.closest('[data-trip]');
   if(trip){ const c=compById(+trip.dataset.trip); c.tripped=!c.tripped; pushHist(); if(sim.running) evaluate(); else render(); return; }
+  const flip=ev.target.closest('[data-flip]');
+  if(flip){ const w=wires.find(x=>x.id===+flip.dataset.flip); if(w){ w.vf=(w.vf===false); pushHist(); sel={kind:'wire',id:w.id}; syncRadius(); render(); } return; }
   const term=ev.target.closest('.term');
   if(mode==='wire' && term){ handleWireClick(+term.dataset.comp, term.dataset.term); return; }
-  const bend=ev.target.closest('[data-bend]');
-  if((mode==='bend'||mode==='select') && bend){ const w=wires.find(x=>x.id===+bend.dataset.bend); drag={kind:'bend',w}; sel={kind:'wire',id:w.id}; render(); return; }
   const compEl=ev.target.closest('[data-comp]');
+  // mod Fir: click pe un fir existent -> creeaza un nod (legi firele intre ele)
+  if(mode==='wire' && !term){ const we=ev.target.closest('[data-wire]'); if(we){ const w=wires.find(x=>x.id===+we.dataset.wire); const pt=toWorld(ev); const n=addNode(pt.x,pt.y,{comp:w.a.comp,term:w.a.term}); wireStart={comp:n.id,term:'p'}; pushHist(); render(); setMsg('Nod creat pe fir. Click pe alta borna ca sa continui legatura.'); return; } }
   if(mode==='delete'){ if(compEl){ delComp(+compEl.dataset.comp); } else { const we=ev.target.closest('[data-wire]'); if(we) delWire(+we.dataset.wire); } return; }
   const we=ev.target.closest('[data-wire]');
-  if(mode==='select' && we && !compEl){ sel={kind:'wire',id:+we.dataset.wire}; render(); return; }
+  if(mode==='select' && we && !compEl){ sel={kind:'wire',id:+we.dataset.wire}; syncRadius(); render(); return; }
   if(mode==='select' && compEl){ const c=compById(+compEl.dataset.comp); const w0=toWorld(ev); drag={kind:'comp',c,ox:w0.x-c.x,oy:w0.y-c.y,moved:false}; sel={kind:'comp',id:c.id}; render(); return; }
   // pan
   drag={kind:'pan',sx:ev.clientX,sy:ev.clientY,vx:view.x,vy:view.y}; sel=null; render();
@@ -416,9 +433,20 @@ function onDown(ev){
 function onMove(ev){ if(!drag) return;
   if(drag.kind==='pan'){ view.x=drag.vx+(ev.clientX-drag.sx); view.y=drag.vy+(ev.clientY-drag.sy); render(); }
   else if(drag.kind==='comp'){ const w=toWorld(ev); drag.c.x=Math.round(w.x-drag.ox); drag.c.y=Math.round(w.y-drag.oy); drag.moved=true; render(); }
-  else if(drag.kind==='bend'){ const w=toWorld(ev); drag.w.cx=Math.round(w.x); drag.w.cy=Math.round(w.y); render(); }
 }
-function onUp(){ if(drag&&(drag.kind==='comp'||drag.kind==='bend')&&drag.moved!==false) pushHist(); drag=null; }
+function onUp(){ if(drag&&drag.kind==='comp'){ const snapped=snapToBar(drag.c); if(drag.moved!==false||snapped) pushHist(); if(snapped) setMsg('Siguranta asezata pe bara si conectata automat.'); render(); } drag=null; }
+function addNode(x,y,tap){ const c={id:uid++,type:'node',x:Math.round(x-5),y:Math.round(y-5),tap}; comps.push(c); return c; }
+function snapToBar(c){ const d=defOf(c); if(!(d.breaker||d.fuse)) return false;
+  const ins=d.terms.filter(t=>t.ly===0); if(!ins.length) return false;
+  let bus=null,best=1e9; comps.forEach(o=>{ if(!defOf(o).busbar) return; const barY=o.y+9; const dist=Math.abs(c.y-barY); if(dist<best){ best=dist; bus=o; } });
+  if(!bus || best>26) return false;
+  c.y=Math.round(bus.y+9);   // bornele de sus stau pe bara
+  let added=false;
+  ins.forEach(t=>{ const has=wires.some(w=>(w.a.comp===c.id&&w.a.term===t.name)||(w.b.comp===c.id&&w.b.term===t.name)); if(has) return;
+    const tx=c.x+t.lx; let bt=null,bd=1e9; defOf(bus).terms.forEach(o=>{ const ox=bus.x+o.lx; const dd=Math.abs(ox-tx); if(dd<bd){bd=dd;bt=o;} });
+    if(bt){ wires.push({id:wuid++,a:{comp:bus.id,term:bt.name},b:{comp:c.id,term:t.name},color:bus.color||COND.N}); added=true; } });
+  return added; }
+function syncRadius(){ const w=(sel&&sel.kind==='wire')?wires.find(x=>x.id===sel.id):null; const el=$('wireR'); if(el) el.value=(w&&w.r!=null)?w.r:GLOBAL_R; }
 
 function handleWireClick(comp,term){
   if(!wireStart){ wireStart={comp,term}; render(); return; }
