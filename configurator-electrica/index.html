@@ -261,7 +261,9 @@ function drawPlan(){
   px.strokeStyle='#1c7bd6'; px.lineWidth=4; px.lineJoin='round';
   out.forEach(e=>{ px.beginPath(); px.moveTo(X(e.p1.x),Y(e.p1.z)); px.lineTo(X(e.p2.x),Y(e.p2.z)); px.stroke(); });
   px.fillStyle='#1b2a44'; px.font='700 12px "IBM Plex Sans"'; px.textAlign='center';
-  out.forEach(e=>{ const mx=(e.p1.x+e.p2.x)/2, mz=(e.p1.z+e.p2.z)/2; const len=Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100); px.fillText(`${len} cm`, X(mx), Y(mz)-6); });
+  out.forEach(e=>{ const mx=(e.p1.x+e.p2.x)/2, mz=(e.p1.z+e.p2.z)/2; const len=Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100);
+    px.fillStyle='#1c7bd6'; px.fillText(`P${e.i+1}`, X(mx), Y(mz)-20);
+    px.fillStyle='#1b2a44'; px.fillText(`${len} cm`, X(mx), Y(mz)-6); });
   pts.forEach((p,i)=>{ px.fillStyle=(i===0&&planMode==='draw')?'#34d399':'#ffb020'; px.beginPath(); px.arc(X(p.x),Y(p.z),6,0,7); px.fill(); });
   plan.openings.forEach(o=>{ const e=out[o.wall]; if(!e) return; const dirx=(e.p2.x-e.p1.x), dirz=(e.p2.z-e.p1.z); const L=Math.hypot(dirx,dirz)||1; const ux=dirx/L, uz=dirz/L;
     const a={x:e.p1.x+ux*o.pos, z:e.p1.z+uz*o.pos}, b={x:e.p1.x+ux*(o.pos+o.w), z:e.p1.z+uz*(o.pos+o.w)};
@@ -433,6 +435,7 @@ function buildRoom3D(){
     if(cur<L) solids.push([cur,L,0,H]);
     solids.forEach(([u0,u1,v0,v1])=> addPanel(p1,dir,nrm,u0,u1,v0,v1,e.i));
     ops.forEach(o=>{ if(o.type==='usa') addFill(p1,dir,nrm,o,0x6b4a2f,1); else if(o.type==='fereastra') addFill(p1,dir,nrm,o,0x9fd2ff,0.45); });
+    const lab=makeLabel('P'+(e.i+1),'#1c7bd6'); lab.position.set(mid.x+nrm.x*0.06, H*0.55, mid.z+nrm.z*0.06); lab.scale.multiplyScalar(2.4); roomGroup.add(lab);
   });
   // structura groasa: stalpi in colturi + grinzi sus/jos
   const frameMat=new THREE.MeshStandardMaterial({color:0x8593ad,roughness:.8});
