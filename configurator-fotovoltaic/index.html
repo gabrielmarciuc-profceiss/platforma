@@ -678,6 +678,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
     <input type="number" id="eur_rate" value="5.00" step="0.0001" min="4" max="7" readonly onchange="onEurEdit()">
     <span>RON / EUR</span>
     <button class="btn" type="button" id="eur_edit_btn" onclick="toggleEurEdit()" style="padding:4px 10px;font-size:11px;">✏️ Editez</button>
+    <button class="btn" type="button" onclick="fetchEurRate()" style="padding:4px 10px;font-size:11px;" title="Reia cursul oficial BNR si adauga 2%">🔄 Curs BNR +2%</button>
     <span style="font-size:11px;color:#aaa;" id="eur_rate_status">se incarca cursul BNR…</span>
   </div>
   <div class="price-section">
@@ -2937,27 +2938,37 @@ function onEurEdit(){
   let st=v('eur_rate_status'); if(st) st.textContent='valoare manuala';
   updTotal();
 }
+// Curs BNR oficial + 2%. bnr.ro nu permite citire directa din browser (CORS),
+// asa ca trecem prin proxy-uri publice gratuite, cu fallback la manual.
 function fetchEurRate(){
-  let st=v('eur_rate_status');
-  fetch('https://www.bnr.ro/nbrfxrates.xml')
-    .then(r=>r.text())
-    .then(txt=>{
-      let doc=new DOMParser().parseFromString(txt,'text/xml');
-      let cube=doc.getElementsByTagName('Cube')[0];
-      let dateAttr=cube?(cube.getAttribute('date')||''):'';
-      let rates=doc.getElementsByTagName('Rate'), eur=null;
-      for(let i=0;i<rates.length;i++){
-        if(rates[i].getAttribute('currency')==='EUR'){ eur=parseFloat(rates[i].textContent); break; }
-      }
-      if(eur && eur>3 && eur<8){
-        let el=v('eur_rate'); if(el) el.value=eur.toFixed(4);
-        if(st) st.textContent='curs BNR'+(dateAttr?' din '+dateAttr:'');
-        updTotal();
-      } else {
-        if(st) st.textContent='valoare implicita (curs BNR indisponibil)';
-      }
-    })
-    .catch(()=>{ if(st) st.textContent='valoare implicita — actualizati manual cu „Editez"'; });
+  const st=v('eur_rate_status');
+  const setS=(t,c)=>{ if(st){ st.textContent=t; st.style.color=c||'#aaa'; } };
+  setS('se incarca cursul BNR...','#888');
+  const xml='https://www.bnr.ro/nbrfxrates.xml';
+  const urls=[
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(xml),
+    'https://corsproxy.io/?url='+encodeURIComponent(xml),
+    xml
+  ];
+  (async()=>{
+    for(const u of urls){
+      try{
+        const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw 0;
+        const txt=await r.text();
+        const doc=new DOMParser().parseFromString(txt,'text/xml');
+        const cube=doc.getElementsByTagName('Cube')[0]; const dateAttr=cube?(cube.getAttribute('date')||''):'';
+        const rates=doc.getElementsByTagName('Rate'); let eur=null;
+        for(let i=0;i<rates.length;i++){ if(rates[i].getAttribute('currency')==='EUR'){ eur=parseFloat(rates[i].textContent); break; } }
+        if(!(eur&&eur>3&&eur<8)) throw 0;
+        const withMargin=Math.round(eur*1.02*10000)/10000;
+        const el=v('eur_rate'); if(el) el.value=withMargin.toFixed(4);
+        setS('Curs BNR'+(dateAttr?' '+dateAttr:'')+': '+eur.toFixed(4)+' + 2% = '+withMargin.toFixed(4),'#0F6E56');
+        if(typeof updTotal==='function') updTotal();
+        return;
+      }catch(e){ /* incearca urmatorul proxy */ }
+    }
+    setS('Curs BNR indisponibil automat — pune-l manual cu „Editez".','#A32D2D');
+  })();
 }
 
 function updPanTotal(i){
