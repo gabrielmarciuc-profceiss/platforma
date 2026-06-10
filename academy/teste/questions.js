@@ -1,0 +1,115 @@
+/* Banca de intrebari - Profceiss Academy
+   Format: { q, tag:'Electrica'|'Fotovoltaice', opts:[...], correct:index, explain, img? }
+   correct = indexul raspunsului corect in lista opts (inainte de amestecare). */
+const SVG_MOTOR='<svg viewBox="0 0 240 140" width="240" height="140" xmlns="http://www.w3.org/2000/svg">'+
+  '<rect x="10" y="20" width="60" height="40" rx="4" fill="#dfe5ee" stroke="#5d6b82"/><text x="40" y="16" font-size="9" text-anchor="middle" fill="#34507a">ALIMENTARE</text>'+
+  '<text x="22" y="74" font-size="9" fill="#e23b3b">L1</text><text x="40" y="74" font-size="9" fill="#8a5a2b">L2</text><text x="58" y="74" font-size="9" fill="#7d8794">L3</text>'+
+  '<line x1="24" y1="60" x2="150" y2="60" stroke="#e23b3b" stroke-width="3"/><line x1="42" y1="60" x2="42" y2="95" stroke="#8a5a2b" stroke-width="3"/><line x1="60" y1="60" x2="60" y2="95" stroke="#7d8794" stroke-width="3"/>'+
+  '<line x1="150" y1="60" x2="150" y2="95" stroke="#e23b3b" stroke-width="3"/>'+
+  '<circle cx="120" cy="100" r="26" fill="#d3dbe6" stroke="#5d6b82" stroke-width="2"/><text x="120" y="104" font-size="14" text-anchor="middle" font-weight="700" fill="#34507a">M</text><text x="120" y="118" font-size="8" text-anchor="middle" fill="#5d6b82">3~</text>'+
+  '<text x="92" y="96" font-size="9">U</text><text x="118" y="134" font-size="9">V</text><text x="146" y="96" font-size="9">W</text></svg>';
+const SVG_BREAKER='<svg viewBox="0 0 200 140" width="200" height="140" xmlns="http://www.w3.org/2000/svg">'+
+  '<rect x="70" y="20" width="40" height="80" rx="4" fill="#f4f6f8" stroke="#9aa7bb" stroke-width="1.6"/>'+
+  '<rect x="78" y="34" width="24" height="14" rx="2.5" fill="#1f9d57"/><text x="90" y="45" font-size="9" text-anchor="middle" fill="#fff" font-weight="700">I</text>'+
+  '<text x="90" y="92" font-size="9" text-anchor="middle" fill="#34507a" font-weight="700">C16</text>'+
+  '<line x1="90" y1="20" x2="90" y2="6" stroke="#e23b3b" stroke-width="3"/><text x="96" y="14" font-size="9" fill="#e23b3b">L</text>'+
+  '<line x1="90" y1="100" x2="90" y2="120" stroke="#e23b3b" stroke-width="3"/><line x1="40" y1="120" x2="160" y2="120" stroke="#2f6fd0" stroke-width="3"/><text x="150" y="116" font-size="9" fill="#2f6fd0">N</text>'+
+  '<line x1="90" y1="120" x2="90" y2="120" stroke="#2f6fd0"/><path d="M120 100 l-6 12 l5 0 l-4 10 l11 -14 l-5 0 l4 -8 z" fill="#ffd23d" stroke="#c0392b" stroke-width="1"/></svg>';
+
+const QUESTIONS=[
+  // ---- ELECTRICA ----
+  { q:'Ce culoare are conductorul de protectie (impamantare, PE)?', tag:'Electrica',
+    opts:['Galben-verde','Albastru','Rosu','Negru'], correct:0,
+    explain:'PE este intotdeauna galben-verde.' },
+  { q:'Ce culoare are conductorul de nul (neutru, N)?', tag:'Electrica',
+    opts:['Albastru','Galben-verde','Rosu','Maro'], correct:0,
+    explain:'Nulul de lucru este albastru.' },
+  { q:'Care este tensiunea intre faza si nul intr-o locuinta din Romania?', tag:'Electrica',
+    opts:['230 V','400 V','24 V','110 V'], correct:0,
+    explain:'Monofazat: 230 V intre faza si nul.' },
+  { q:'Care este tensiunea intre doua faze intr-un sistem trifazat?', tag:'Electrica',
+    opts:['400 V','230 V','690 V','120 V'], correct:0,
+    explain:'Intre doua faze sunt aproximativ 400 V.' },
+  { q:'Ce sectiune de cablu se foloseste uzual pentru un circuit de prize?', tag:'Electrica',
+    opts:['2,5 mmp','1,5 mmp','0,75 mmp','10 mmp'], correct:0,
+    explain:'Prizele se executa uzual cu 2,5 mmp, protejate la 16 A.' },
+  { q:'Ce sectiune de cablu se foloseste uzual pentru un circuit de iluminat?', tag:'Electrica',
+    opts:['1,5 mmp','2,5 mmp','4 mmp','6 mmp'], correct:0,
+    explain:'Iluminatul se executa uzual cu 1,5 mmp, protejat la 10 A.' },
+  { q:'Ce siguranta automata se potriveste cu un cablu de 2,5 mmp pentru prize?', tag:'Electrica',
+    opts:['16 A','40 A','63 A','6 A'], correct:0,
+    explain:'2,5 mmp suporta uzual maxim 16-20 A; tipic se pune 16 A.' },
+  { q:'Care este rolul principal al diferentialului (RCD de 30 mA)?', tag:'Electrica',
+    opts:['Protejeaza persoanele la electrocutare','Mareste tensiunea','Reduce consumul','Stocheaza energie'], correct:0,
+    explain:'RCD-ul de 30 mA detecteaza curentul de fuga si protejeaza omul.' },
+  { q:'Daca legi faza direct la nul, fara niciun consumator, ce se intampla?', tag:'Electrica', img:SVG_BREAKER,
+    opts:['Scurtcircuit: curent foarte mare, siguranta declanseaza','Nu se intampla nimic','Becul se aprinde slab','Creste tensiunea'], correct:0,
+    explain:'Faza legata direct la nul = scurtcircuit; siguranta sare ca sa protejeze.' },
+  { q:'Ce se intampla daca inversezi doua faze la un motor trifazat?', tag:'Electrica', img:SVG_MOTOR,
+    opts:['Motorul se invarte in sens invers','Motorul se arde','Motorul merge mai repede','Nu porneste deloc'], correct:0,
+    explain:'Inversarea a doua faze schimba sensul de rotatie.' },
+  { q:'De cate faze are nevoie un motor trifazat ca sa porneasca normal?', tag:'Electrica',
+    opts:['3 faze diferite (L1, L2, L3)','O singura faza','Doua faze','Doar nul si PE'], correct:0,
+    explain:'Motorul trifazat are nevoie de cele 3 faze pe bornele U, V, W.' },
+  { q:'Intr-un circuit de iluminat cu intrerupator, ce conductor se intrerupe?', tag:'Electrica',
+    opts:['Faza (prin intrerupator)','Nulul','Impamantarea','Toate trei'], correct:0,
+    explain:'Intrerupatorul taie faza; nulul si PE merg direct la corpul de iluminat.' },
+  { q:'Ce protejeaza o siguranta automata (MCB)?', tag:'Electrica',
+    opts:['Circuitul la suprasarcina si scurtcircuit','Doar la fulgere','Persoanele la electrocutare','Bateria'], correct:0,
+    explain:'MCB-ul protejeaza cablul/circuitul; persoanele le protejeaza RCD-ul.' },
+  { q:'O priza cu impamantare (tip schuko) are in plus fata de una simpla:', tag:'Electrica',
+    opts:['Contact de protectie (PE)','Un al treilea pol de faza','Un fuzibil','Un contor'], correct:0,
+    explain:'Priza schuko are contactul de impamantare pentru siguranta.' },
+  { q:'In tablou, unde se leaga nulul de lucru al circuitelor?', tag:'Electrica',
+    opts:['La bara de nul (N)','La bara de PE','La faza','La carcasa'], correct:0,
+    explain:'Nulurile circuitelor se aduna pe bara de nul.' },
+  { q:'Ce valoare uzuala se cere pentru rezistenta prizei de pamant la o locuinta?', tag:'Electrica',
+    opts:['Sub 4 ohmi','Peste 100 ohmi','Exact 230 ohmi','Nu conteaza'], correct:0,
+    explain:'Tipic se urmareste sub 4 ohmi (cu diferential se admit valori mai mari).' },
+  { q:'Ridici siguranta principala si ea sare imediat la loc (declanseaza). Ce inseamna?', tag:'Electrica', img:SVG_BREAKER,
+    opts:['Exista un scurtcircuit pe instalatie','Totul e in regula','Lipseste nulul','Tensiunea e prea mica'], correct:0,
+    explain:'Declansarea imediata indica un scurtcircuit sau o suprasarcina mare.' },
+  { q:'Cablul CYY-F 3x2,5 contine:', tag:'Electrica',
+    opts:['3 conductoare de 2,5 mmp (faza, nul, PE)','2 conductoare','Un singur conductor','5 conductoare'], correct:0,
+    explain:'3x2,5 = trei conductoare de 2,5 mmp.' },
+  { q:'Cum se calculeaza puterea electrica intr-un circuit simplu?', tag:'Electrica',
+    opts:['P = U x I (tensiune x curent)','P = U / I','P = I / U','P = U + I'], correct:0,
+    explain:'Puterea = tensiune inmultita cu curent.' },
+  { q:'Ca sa poti pune o siguranta mai mare de 16 A, trebuie sa:', tag:'Electrica',
+    opts:['Maresti sectiunea cablului','Micsorezi cablul','Scoti nulul','Pui doua faze'], correct:0,
+    explain:'Siguranta nu poate depasi capacitatea cablului; intai maresti sectiunea.' },
+  { q:'Daca un circuit de 16 A trage 20 A timp indelungat, siguranta automata:', tag:'Electrica',
+    opts:['Declanseaza (protejeaza cablul de supraincalzire)','Lasa sa treaca','Creste tensiunea','Se transforma in RCD'], correct:0,
+    explain:'La suprasarcina, MCB-ul declanseaza ca sa nu se incalzeasca cablul.' },
+  // ---- FOTOVOLTAICE ----
+  { q:'Un panou fotovoltaic produce curent:', tag:'Fotovoltaice',
+    opts:['Continuu (DC)','Alternativ (AC)','Trifazat direct','De inalta frecventa'], correct:0,
+    explain:'Panourile produc curent continuu (DC).' },
+  { q:'Ce face invertorul intr-un sistem fotovoltaic?', tag:'Fotovoltaice',
+    opts:['Transforma curentul continuu (DC) in alternativ (AC)','Transforma AC in DC','Stocheaza energie','Mareste tensiunea retelei'], correct:0,
+    explain:'Invertorul converteste DC de la panouri in AC pentru casa/retea.' },
+  { q:'Conectarea panourilor in SERIE (string) creste:', tag:'Fotovoltaice',
+    opts:['Tensiunea (V)','Curentul (A)','Numarul de invertoare','Greutatea pe acoperis'], correct:0,
+    explain:'In serie se aduna tensiunile; curentul ramane acelasi.' },
+  { q:'Conectarea panourilor in PARALEL creste:', tag:'Fotovoltaice',
+    opts:['Curentul (A)','Tensiunea (V)','Frecventa','Rezistenta'], correct:0,
+    explain:'In paralel se aduna curentii; tensiunea ramane aceeasi.' },
+  { q:'Ce permite un sistem fotovoltaic HIBRID fata de unul on-grid simplu?', tag:'Fotovoltaice',
+    opts:['Stocarea energiei in baterie','Sa produca mai multa tensiune','Sa nu mai aiba nevoie de invertor','Sa functioneze fara panouri'], correct:0,
+    explain:'Sistemul hibrid poate incarca o baterie pentru consum ulterior.' },
+  { q:'Cine este un prosumator?', tag:'Fotovoltaice',
+    opts:['Cel care produce si consuma energie, injectand surplusul in retea','Doar cel care consuma','Furnizorul de energie','Operatorul de distributie'], correct:0,
+    explain:'Prosumatorul produce energie (PV) si o consuma, livrand surplusul in retea.' },
+  { q:'Care este orientarea optima a panourilor in Romania (emisfera nordica)?', tag:'Fotovoltaice',
+    opts:['Spre sud','Spre nord','Spre vest obligatoriu','Spre pamant'], correct:0,
+    explain:'In emisfera nordica, orientarea spre sud da productia maxima.' },
+  { q:'Un "string" fotovoltaic inseamna:', tag:'Fotovoltaice',
+    opts:['Un grup de panouri legate in serie','Un singur panou','Bateria sistemului','Cablul de retea'], correct:0,
+    explain:'String = sir de panouri conectate in serie.' },
+  { q:'Capacitatea unei baterii de stocare se masoara in:', tag:'Fotovoltaice',
+    opts:['kWh (kilowati-ora)','Litri','Amperi pe metru','Ohmi'], correct:0,
+    explain:'Bateria se dimensioneaza in kWh (energie stocata).' },
+  { q:'Pe partea de curent continuu (DC) a stringurilor se monteaza pentru protectie:', tag:'Fotovoltaice',
+    opts:['Sectionare/sigurante DC si descarcatoare (SPD)','Doar un intrerupator de lumina','Nimic, nu e nevoie','Un contor de apa'], correct:0,
+    explain:'Partea DC are nevoie de sectionare, sigurante DC si protectie la supratensiune (SPD).' }
+];

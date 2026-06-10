@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Pro Editor · Profceiss Academy</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{--bg:#eef3f9;--panel:#ffffff;--panel2:#f1f6fc;--line:#d2dce8;--ink:#1d2b44;--muted:#5d6b82;--solar:#d98200;--pv:#1c7bd6;--good:#1a8a4f;--bad:#c0392b}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header img{height:26px}
+  header .ttl{font-weight:700;font-size:14px}
+  header .ttl b{color:var(--pv)}
+  .back{margin-left:auto;font-size:12px;color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 12px;font-weight:600}
+  .main{flex:1;display:flex;min-height:0}
+  .palette{width:166px;flex:none;background:#fff;border-right:1px solid var(--line);overflow-y:auto;padding:10px}
+  .palette h4{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 2px 6px}
+  .pbtn{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:8px;margin-bottom:6px;cursor:pointer;font-size:12.5px;color:var(--ink);font-family:inherit;text-align:left}
+  .pbtn:hover{border-color:var(--pv)}
+  .pbtn.on{border-color:var(--solar);box-shadow:inset 0 0 0 1px rgba(217,130,0,.4)}
+  .pbtn svg{flex:none}
+  .cond{display:flex;gap:5px;margin-bottom:6px}
+  .cond button{flex:1;border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 4px;font-size:11px;cursor:pointer;font-weight:600;font-family:inherit}
+  .cond button.on{color:#fff}
+  .cwrap{flex:1;position:relative;min-width:0;background:
+    radial-gradient(1100px 700px at 70% -10%, rgba(63,169,255,.08), transparent 60%),
+    linear-gradient(160deg,#e7eef6,#f2f6fb)}
+  #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .grid-bg{position:absolute;inset:0;background-image:linear-gradient(#d7e0ec 1px,transparent 1px),linear-gradient(90deg,#d7e0ec 1px,transparent 1px);background-size:26px 26px;opacity:.5;pointer-events:none}
+  .topbar{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap;z-index:3}
+  .tool{border:1px solid var(--line);background:rgba(255,255,255,.95);border-radius:9px;padding:8px 11px;font-size:12.5px;cursor:pointer;font-weight:600;font-family:inherit;color:var(--ink);box-shadow:0 1px 5px rgba(40,60,90,.08)}
+  .tool.on{border-color:var(--solar);background:#fff4e0}
+  .tool.act{background:linear-gradient(180deg,#ffc24d,var(--solar));color:#241600;border:0}
+  .tool.go{background:linear-gradient(180deg,#46c178,var(--good));color:#04240f;border:0}
+  .hud{position:absolute;bottom:10px;left:10px;right:10px;display:flex;gap:8px;align-items:flex-start;z-index:3;pointer-events:none}
+  .msg{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12.5px;max-width:560px;box-shadow:0 2px 8px rgba(40,60,90,.1);line-height:1.45}
+  .msg b{color:var(--ink)}
+  .msg.ok{border-color:#bfe3cc;background:#eefaf1}
+  .msg.bad{border-color:#e6b8b8;background:#fdecec}
+  .zoom{margin-left:auto;display:flex;gap:5px;pointer-events:auto}
+  .zoom button{width:34px;height:34px;border:1px solid var(--line);background:rgba(255,255,255,.95);border-radius:8px;font-size:16px;cursor:pointer;font-weight:700}
+  .livewire{stroke-dasharray:7 5;animation:flow .55s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-12}}
+  .term{cursor:crosshair}
+  .term:hover circle{stroke:#d98200;stroke-width:2.5}
+  .selbox{fill:none;stroke:var(--pv);stroke-width:1.5;stroke-dasharray:5 4}
+  .hint{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:11.5px;color:var(--muted);max-width:230px;z-index:3;line-height:1.4}
+  @media (max-width:820px){
+    .palette{width:128px;padding:7px}
+    .pbtn{font-size:11px;padding:6px}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <img src="../../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
+  <span class="ttl">Design <b>Pro</b> Editor</span>
+  <a class="back" href="../">&larr; Academy</a>
+</header>
+
+<div class="main">
+  <div class="palette">
+    <h4>Conductor activ</h4>
+    <div class="cond" id="cond">
+      <button data-cond="L" class="on" style="--c:#e23b3b">Faza</button>
+      <button data-cond="N" style="--c:#2f6fd0">Nul</button>
+      <button data-cond="PE" style="--c:#caa011">PE</button>
+    </div>
+    <h4>Alimentare</h4>
+    <button class="pbtn" data-add="supply"><svg width="26" height="26" viewBox="0 0 26 26"><rect x="3" y="6" width="20" height="14" rx="2" fill="#c9d3e2" stroke="#5d6b82"/><text x="13" y="16" font-size="7" text-anchor="middle" fill="#1d2b44" font-weight="700">400V</text></svg> Alimentare 3F+N</button>
+    <h4>Aparataj</h4>
+    <button class="pbtn" data-add="mcb1"><svg width="22" height="26" viewBox="0 0 22 26"><rect x="6" y="2" width="10" height="22" rx="1.5" fill="#f4f6f8" stroke="#5d6b82"/><rect x="9" y="7" width="4" height="6" rx="1" fill="#e2842b"/></svg> Siguranta 1P</button>
+    <button class="pbtn" data-add="mcb3"><svg width="30" height="26" viewBox="0 0 30 26"><rect x="3" y="2" width="24" height="22" rx="1.5" fill="#f4f6f8" stroke="#5d6b82"/><rect x="10" y="7" width="10" height="6" rx="1" fill="#e2842b"/></svg> Siguranta 3P</button>
+    <button class="pbtn" data-add="bus"><svg width="30" height="26" viewBox="0 0 30 26"><rect x="3" y="11" width="24" height="6" rx="2" fill="#2f6fd0"/><circle cx="8" cy="14" r="1.6" fill="#fff"/><circle cx="15" cy="14" r="1.6" fill="#fff"/><circle cx="22" cy="14" r="1.6" fill="#fff"/></svg> Bara (nul/faza)</button>
+    <h4>Consumatori</h4>
+    <button class="pbtn" data-add="motor"><svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="11" r="9" fill="#cfd8e6" stroke="#5d6b82"/><text x="13" y="14" font-size="9" text-anchor="middle" font-weight="700" fill="#1d2b44">M</text></svg> Motor 3~</button>
+    <button class="pbtn" data-add="bec"><svg width="22" height="26" viewBox="0 0 22 26"><circle cx="11" cy="11" r="8" fill="#fff2b0" stroke="#caa011"/><line x1="11" y1="19" x2="11" y2="23" stroke="#5d6b82"/></svg> Bec</button>
+    <h4>Stergere</h4>
+    <button class="pbtn" id="delMode"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 6h10l-1 11H6z" fill="#f3d2d2" stroke="#c0392b"/><path d="M8 3h4v2H8z" fill="#c0392b"/></svg> Sterge element</button>
+  </div>
+
+  <div class="cwrap">
+    <div class="grid-bg"></div>
+    <svg id="cv" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="topbar">
+      <button class="tool on" id="tSelect">🖐 Muta</button>
+      <button class="tool" id="tWire">➰ Fir</button>
+      <button class="tool" id="tBend">〰 Curbura</button>
+      <button class="tool go" id="tSim">▶ Simuleaza</button>
+      <button class="tool" id="tStop">■ Stop</button>
+      <button class="tool" id="tUndo">↶ Undo</button>
+      <button class="tool" id="tClear">🗑 Goleste</button>
+    </div>
+    <div class="hint" id="hint">Adauga piese din stanga. Mod <b>Fir</b>: click pe o borna, apoi pe alta. Click pe maneta sigurantei o ridica/coboara. <b>Simuleaza</b> verifica circuitul.</div>
+    <div class="hud">
+      <div class="msg" id="msg">Construieste un tablou: pune <b>Alimentare</b>, <b>sigurante</b>, leaga firele la un <b>motor</b>, apoi apasa <b>Simuleaza</b>.</div>
+      <div class="zoom">
+        <button id="zOut">−</button><button id="zFit">⊡</button><button id="zIn">+</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../../assets/no-diacritics.js"></script>
+<script>
+const SVGNS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const cv=$('cv');
+const COND={L:'#e23b3b',N:'#2f6fd0',PE:'#caa011'};
+const PHCOL={L1:'#e23b3b',L2:'#8a5a2b',L3:'#7d8794'};
+
+/* ===== model ===== */
+let comps=[], wires=[], uid=1, wuid=1;
+let mode='select';            // select | wire | bend | delete
+let addType=null;             // tip piesa de adaugat
+let activeCond='L';
+let sel=null;                 // {kind:'comp'|'wire', id}
+let view={x:40,y:30,s:1};     // pan/zoom
+let wireStart=null;           // {comp,term}
+let sim={running:false,angle:0,dir:0,timer:null};
+const history=[];
+
+/* ===== definitii piese ===== terminale: {name,lx,ly,pot?} ===== */
+const DEFS={
+  supply:{ w:150,h:62, label:'ALIMENTARE 400V',
+    terms:[{name:'L1',lx:22,ly:62,pot:'L1'},{name:'L2',lx:46,ly:62,pot:'L2'},{name:'L3',lx:70,ly:62,pot:'L3'},{name:'N',lx:100,ly:62,pot:'N'},{name:'PE',lx:128,ly:62,pot:'PE'}] },
+  mcb1:{ w:26,h:66, breaker:1,
+    terms:[{name:'in',lx:13,ly:0},{name:'out',lx:13,ly:66}] },
+  mcb3:{ w:64,h:66, breaker:3,
+    terms:[{name:'in1',lx:13,ly:0},{name:'in2',lx:32,ly:0},{name:'in3',lx:51,ly:0},{name:'out1',lx:13,ly:66},{name:'out2',lx:32,ly:66},{name:'out3',lx:51,ly:66}] },
+  bus:{ w:210,h:18, busbar:true,
+    terms:[{name:'t0',lx:18,ly:9},{name:'t1',lx:44,ly:9},{name:'t2',lx:70,ly:9},{name:'t3',lx:96,ly:9},{name:'t4',lx:122,ly:9},{name:'t5',lx:148,ly:9},{name:'t6',lx:174,ly:9},{name:'t7',lx:196,ly:9}] },
+  motor:{ w:64,h:90, load:'motor',
+    terms:[{name:'U',lx:14,ly:90},{name:'V',lx:32,ly:90},{name:'W',lx:50,ly:90}] },
+  bec:{ w:40,h:62, load:'bec',
+    terms:[{name:'a',lx:9,ly:62},{name:'b',lx:31,ly:62}] }
+};
+
+function addComp(type,x,y){ const d=DEFS[type]; const c={id:uid++,type,x:Math.round(x),y:Math.round(y),on:false}; if(d.breaker) c.on=false; comps.push(c); pushHist(); render(); return c; }
+function compById(id){ return comps.find(c=>c.id===id); }
+function defOf(c){ return DEFS[c.type]; }
+function termLocal(c,name){ return defOf(c).terms.find(t=>t.name===name); }
+function termWorld(c,name){ const t=termLocal(c,name); return {x:c.x+t.lx, y:c.y+t.ly}; }
+function pushHist(){ history.push(JSON.stringify({comps,wires,uid,wuid})); if(history.length>40) history.shift(); }
+function undo(){ if(history.length<2){ return; } history.pop(); const s=JSON.parse(history[history.length-1]); comps=s.comps;wires=s.wires;uid=s.uid;wuid=s.wuid; render(); }
+
+/* ===== coordonate ecran<->lume ===== */
+function toWorld(ev){ const r=cv.getBoundingClientRect(); const px=(ev.clientX-r.left), py=(ev.clientY-r.top); return {x:(px-view.x)/view.s, y:(py-view.y)/view.s}; }
+
+/* ===== render ===== */
+function el(tag,attrs){ const e=document.createElementNS(SVGNS,tag); if(attrs) for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
+function render(){
+  cv.innerHTML='';
+  const root=el('g',{transform:`translate(${view.x},${view.y}) scale(${view.s})`}); cv.appendChild(root);
+  const gW=el('g'), gC=el('g'); root.appendChild(gW); root.appendChild(gC);
+  // fire
+  wires.forEach(w=>{ const a=termWorld(compById(w.a.comp),w.a.term), b=termWorld(compById(w.b.comp),w.b.term);
+    const cx=w.cx!=null?w.cx:(a.x+b.x)/2, cy=w.cy!=null?w.cy:(a.y+b.y)/2;
+    const p=el('path',{d:`M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`,fill:'none',stroke:w.color,'stroke-width':3.2,'stroke-linecap':'round'});
+    p.dataset.wire=w.id; if(w.live) p.setAttribute('class','livewire');
+    if(sel&&sel.kind==='wire'&&sel.id===w.id){ p.setAttribute('stroke-width',4.2); }
+    gW.appendChild(p);
+    if(w.fault){ const f=el('circle',{cx:cx,cy:cy,r:7,fill:'#ffcf33',stroke:'#c0392b','stroke-width':2}); gW.appendChild(f); }
+    if(mode==='bend'||(sel&&sel.kind==='wire'&&sel.id===w.id)){ const h=el('rect',{x:cx-5,y:cy-5,width:10,height:10,rx:2,fill:'#fff',stroke:'#1c7bd6','stroke-width':2,transform:`rotate(45 ${cx} ${cy})`}); h.dataset.bend=w.id; h.style.cursor='move'; gW.appendChild(h); }
+  });
+  // piese
+  comps.forEach(c=>{ const g=el('g',{transform:`translate(${c.x},${c.y})`}); g.dataset.comp=c.id; gC.appendChild(g);
+    DRAW[c.type](g,c);
+    if(sel&&sel.kind==='comp'&&sel.id===c.id){ const d=defOf(c); g.appendChild(el('rect',{x:-6,y:-6,width:d.w+12,height:d.h+12,rx:6,class:'selbox'})); }
+    // terminale
+    const d=defOf(c); d.terms.forEach(t=>{ const tg=el('g',{class:'term'}); tg.dataset.comp=c.id; tg.dataset.term=t.name;
+      tg.appendChild(el('circle',{cx:t.lx,cy:t.ly,r:4.5,fill:'#eef3f9',stroke:'#5d6b82','stroke-width':1.6}));
+      if(wireStart&&wireStart.comp===c.id&&wireStart.term===t.name) tg.querySelector('circle').setAttribute('fill','#ffd23d');
+      g.appendChild(tg); });
+  });
+}
+
+/* ===== desen piese ===== */
+const DRAW={
+  supply(g,c){ const d=DEFS.supply;
+    g.appendChild(el('rect',{x:0,y:0,width:d.w,height:d.h,rx:5,fill:'#dfe5ee',stroke:'#5d6b82','stroke-width':1.6}));
+    g.appendChild(el('rect',{x:0,y:0,width:d.w,height:16,rx:5,fill:'#34507a'}));
+    const t=el('text',{x:d.w/2,y:11,'text-anchor':'middle','font-size':9,fill:'#fff','font-weight':'700'}); t.textContent='ALIMENTARE 400V'; g.appendChild(t);
+    d.terms.forEach(tm=>{ const lab=el('text',{x:tm.lx,y:d.h-7,'text-anchor':'middle','font-size':8,'font-weight':'700',fill:tm.pot[0]==='L'?'#b33':(tm.pot==='N'?'#2f6fd0':'#a98a00')}); lab.textContent=tm.pot; g.appendChild(lab); });
+  },
+  mcb1(g,c){ drawMCB(g,c,1); },
+  mcb3(g,c){ drawMCB(g,c,3); },
+  bus(g,c){ const d=DEFS.bus;
+    g.appendChild(el('rect',{x:0,y:3,width:d.w,height:12,rx:4,fill: c.color||'#2f6fd0'}));
+    g.appendChild(el('rect',{x:0,y:3,width:d.w,height:4,rx:2,fill:'rgba(255,255,255,.35)'}));
+    const lab=el('text',{x:4,y:-3,'font-size':8,fill:'#5d6b82'}); lab.textContent='BARA'; g.appendChild(lab);
+  },
+  motor(g,c){ const d=DEFS.motor; const cx=d.w/2, cy=30, r=26;
+    g.appendChild(el('circle',{cx:cx,cy:cy,r:r,fill:'#d3dbe6',stroke:'#5d6b82','stroke-width':2}));
+    g.appendChild(el('circle',{cx:cx,cy:cy,r:r-5,fill:'#eaf0f7',stroke:'#9aa7bb','stroke-width':1}));
+    // rotor (se roteste la simulare)
+    const rot=el('g',{id:'rotor'+c.id});
+    rot.appendChild(el('line',{x1:cx,y1:cy,x2:cx,y2:cy-15,stroke:'#34507a','stroke-width':3,'stroke-linecap':'round'}));
+    rot.appendChild(el('circle',{cx:cx,cy:cy,r:4,fill:'#34507a'}));
+    if(c.run){ rot.setAttribute('transform',`rotate(${sim.angle} ${cx} ${cy})`); }
+    g.appendChild(rot);
+    const m=el('text',{x:cx,y:cy+5,'text-anchor':'middle','font-size':9,'font-weight':'700',fill:'#34507a'}); m.textContent= c.run? (c.dir>0?'▶':'◀') :'M'; g.appendChild(m);
+    const tt=el('text',{x:cx,y:cy+r+2,'text-anchor':'middle','font-size':7,fill:'#5d6b82'}); tt.textContent='3~'; g.appendChild(tt);
+    // leduri terminale
+    ['U','V','W'].forEach((n,i)=>{ const lx=[14,32,50][i]; g.appendChild(el('line',{x1:lx,y1:60,x2:lx,y2:90,stroke:'#9aa7bb','stroke-width':2}));
+      const lab=el('text',{x:lx,y:74,'text-anchor':'middle','font-size':8,'font-weight':'700',fill:'#34507a'}); lab.textContent=n; g.appendChild(lab); });
+    if(c.burn){ burnMark(g,cx,cy); }
+  },
+  bec(g,c){ const d=DEFS.bec; const cx=d.w/2;
+    g.appendChild(el('circle',{cx:cx,cy:22,r:16,fill: c.lit?'#fff3a8':'#eef1ee',stroke:'#caa011','stroke-width':2}));
+    if(c.lit){ for(let i=0;i<8;i++){ const a=i*Math.PI/4; g.appendChild(el('line',{x1:cx+Math.cos(a)*19,y1:22+Math.sin(a)*19,x2:cx+Math.cos(a)*24,y2:22+Math.sin(a)*24,stroke:'#ffce3a','stroke-width':2,'stroke-linecap':'round'})); } }
+    g.appendChild(el('path',{d:`M${cx-6} 32 a6 5 0 0 0 12 0`,fill:'none',stroke:'#caa011','stroke-width':1.5}));
+    g.appendChild(el('line',{x1:9,y1:38,x2:9,y2:62,stroke:'#9aa7bb','stroke-width':2}));
+    g.appendChild(el('line',{x1:31,y1:38,x2:31,y2:62,stroke:'#9aa7bb','stroke-width':2}));
+    if(c.burn){ burnMark(g,cx,22); }
+  }
+};
+function burnMark(g,cx,cy){ g.appendChild(el('circle',{cx:cx,cy:cy,r:10,fill:'rgba(0,0,0,.35)'})); const s=el('text',{x:cx,y:cy+5,'text-anchor':'middle','font-size':13}); s.textContent='💥'; g.appendChild(s); }
+
+function drawMCB(g,c,poles){ const d=defOf(c); const W=d.w;
+  g.appendChild(el('rect',{x:0,y:0,width:W,height:d.h,rx:3,fill:'#f4f6f8',stroke:'#9aa7bb','stroke-width':1.6}));
+  // module separatoare
+  for(let i=1;i<poles;i++){ g.appendChild(el('line',{x1:i*19,y1:2,x2:i*19,y2:d.h-2,stroke:'#dbe2ea'})); }
+  // ferestre borne sus/jos
+  g.appendChild(el('rect',{x:3,y:2,width:W-6,height:9,rx:2,fill:'#d9e0e8'}));
+  g.appendChild(el('rect',{x:3,y:d.h-11,width:W-6,height:9,rx:2,fill:'#d9e0e8'}));
+  // maneta (ON sus / OFF jos)
+  const lw=Math.min(28,W-8), lx=(W-lw)/2;
+  const ly=c.on?20:34;
+  const lev=el('rect',{x:lx,y:ly,width:lw,height:13,rx:2.5,fill:c.on?'#1f9d57':'#e2842b',stroke:'#0006','stroke-width':.5});
+  lev.dataset.lever=c.id; lev.style.cursor='pointer'; g.appendChild(lev);
+  const io=el('text',{x:W/2,y:ly+9.5,'text-anchor':'middle','font-size':8,fill:'#fff','font-weight':'700'}); io.textContent=c.on?'I':'O'; io.style.pointerEvents='none'; g.appendChild(io);
+  // eticheta amperaj
+  const r=el('text',{x:W/2,y:d.h-13,'text-anchor':'middle','font-size':8,'font-weight':'700',fill:'#34507a'}); r.textContent=c.rating||(poles===3?'C16/3':'C16'); g.appendChild(r);
+  const br=el('text',{x:W/2,y:14,'text-anchor':'middle','font-size':6.5,fill:'#8696b0'}); br.textContent='PROFCEISS'; g.appendChild(br);
+  if(c.tripped){ g.appendChild(el('rect',{x:0,y:0,width:W,height:d.h,rx:3,fill:'rgba(192,57,43,.12)',stroke:'#c0392b','stroke-width':2})); }
+}
+
+/* ===== interactiune ===== */
+let drag=null; // {kind:'comp'|'bend'|'pan', ...}
+cv.addEventListener('pointerdown',onDown);
+cv.addEventListener('pointermove',onMove);
+window.addEventListener('pointerup',onUp);
+
+function onDown(ev){
+  const lever=ev.target.closest('[data-lever]');
+  if(lever){ const c=compById(+lever.dataset.lever); c.on=!c.on; c.tripped=false; pushHist(); if(sim.running) evaluate(); else render(); return; }
+  const term=ev.target.closest('.term');
+  if(mode==='wire' && term){ handleWireClick(+term.dataset.comp, term.dataset.term); return; }
+  const bend=ev.target.closest('[data-bend]');
+  if((mode==='bend'||mode==='select') && bend){ const w=wires.find(x=>x.id===+bend.dataset.bend); drag={kind:'bend',w}; sel={kind:'wire',id:w.id}; render(); return; }
+  const compEl=ev.target.closest('[data-comp]');
+  if(mode==='delete'){ if(compEl){ delComp(+compEl.dataset.comp); } else { const we=ev.target.closest('[data-wire]'); if(we) delWire(+we.dataset.wire); } return; }
+  const we=ev.target.closest('[data-wire]');
+  if(mode==='select' && we && !compEl){ sel={kind:'wire',id:+we.dataset.wire}; render(); return; }
+  if(mode==='select' && compEl){ const c=compById(+compEl.dataset.comp); const w0=toWorld(ev); drag={kind:'comp',c,ox:w0.x-c.x,oy:w0.y-c.y,moved:false}; sel={kind:'comp',id:c.id}; render(); return; }
+  // pan
+  drag={kind:'pan',sx:ev.clientX,sy:ev.clientY,vx:view.x,vy:view.y}; sel=null; render();
+}
+function onMove(ev){ if(!drag) return;
+  if(drag.kind==='pan'){ view.x=drag.vx+(ev.clientX-drag.sx); view.y=drag.vy+(ev.clientY-drag.sy); render(); }
+  else if(drag.kind==='comp'){ const w=toWorld(ev); drag.c.x=Math.round(w.x-drag.ox); drag.c.y=Math.round(w.y-drag.oy); drag.moved=true; render(); }
+  else if(drag.kind==='bend'){ const w=toWorld(ev); drag.w.cx=Math.round(w.x); drag.w.cy=Math.round(w.y); render(); }
+}
+function onUp(){ if(drag&&(drag.kind==='comp'||drag.kind==='bend')&&drag.moved!==false) pushHist(); drag=null; }
+
+function handleWireClick(comp,term){
+  if(!wireStart){ wireStart={comp,term}; render(); return; }
+  if(wireStart.comp===comp && wireStart.term===term){ wireStart=null; render(); return; }
+  wires.push({id:wuid++,a:{...wireStart},b:{comp,term},color:COND[activeCond]});
+  wireStart=null; pushHist(); render();
+  setMsg('Fir adaugat. Continua sau treci pe <b>Muta</b>/<b>Curbura</b>.');
+}
+function delComp(id){ comps=comps.filter(c=>c.id!==id); wires=wires.filter(w=>w.a.comp!==id&&w.b.comp!==id); sel=null; pushHist(); render(); }
+function delWire(id){ wires=wires.filter(w=>w.id!==id); sel=null; pushHist(); render(); }
+
+/* ===== unelte ===== */
+function setMode(m){ mode=m; wireStart=null; addType=null;
+  [['tSelect','select'],['tWire','wire'],['tBend','bend']].forEach(([id,mm])=>$(id).classList.toggle('on',m===mm));
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));
+  $('delMode').classList.toggle('on',m==='delete');
+  cv.style.cursor = m==='wire'?'crosshair':(m==='delete'?'not-allowed':'default');
+  render();
+}
+$('tSelect').onclick=()=>setMode('select');
+$('tWire').onclick=()=>setMode('wire');
+$('tBend').onclick=()=>setMode('bend');
+$('delMode').onclick=()=>setMode('delete');
+$('tUndo').onclick=undo;
+$('tClear').onclick=()=>{ if(confirm('Golesti schema?')){ comps=[];wires=[];sel=null;stopSim(); pushHist(); render(); } };
+
+document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.dataset.add; mode='select';
+  document.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  // plaseaza in centrul vizibil
+  const r=cv.getBoundingClientRect(); const wx=(r.width/2-view.x)/view.s, wy=(r.height/2-view.y)/view.s;
+  const c=addComp(addType, wx-40, wy-30); if(addType==='bus') c.color=activeCond==='N'?'#2f6fd0':(activeCond==='L'?'#c0392b':'#caa011');
+  sel={kind:'comp',id:c.id}; addType=null; b.classList.remove('on'); render();
+  setMsg('Piesa adaugata. Trage-o cu mouse-ul; treci pe <b>Fir</b> ca sa legi bornele.');
+});
+document.querySelectorAll('#cond button').forEach(b=> b.onclick=()=>{ activeCond=b.dataset.cond; document.querySelectorAll('#cond button').forEach(x=>{x.classList.remove('on');x.style.background='#fff';x.style.color='var(--ink)';}); b.classList.add('on'); b.style.background=COND[activeCond]; b.style.color='#fff'; });
+// init cond color
+(()=>{ const b=document.querySelector('#cond button.on'); b.style.background=COND.L; b.style.color='#fff'; })();
+
+/* zoom */
+function setZoom(ns,cx,cy){ const r=cv.getBoundingClientRect(); cx=cx??r.width/2; cy=cy??r.height/2; const wx=(cx-view.x)/view.s, wy=(cy-view.y)/view.s; view.s=Math.max(.4,Math.min(2.4,ns)); view.x=cx-wx*view.s; view.y=cy-wy*view.s; render(); }
+$('zIn').onclick=()=>setZoom(view.s*1.2);
+$('zOut').onclick=()=>setZoom(view.s/1.2);
+$('zFit').onclick=()=>{ view={x:40,y:30,s:1}; render(); };
+cv.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=cv.getBoundingClientRect(); setZoom(view.s*(ev.deltaY<0?1.1:0.9), ev.clientX-r.left, ev.clientY-r.top); },{passive:false});
+
+function setMsg(html,cls){ const m=$('msg'); m.innerHTML=html; m.className='msg'+(cls?(' '+cls):''); }
+
+/* ===== SIMULARE ===== */
+function uf_make(){ const p={}; return {
+  find(x){ if(p[x]===undefined) p[x]=x; while(p[x]!==x){ p[x]=p[p[x]]; x=p[x]; } return x; },
+  union(a,b){ p[this.find(a)]=this.find(b); }
+}; }
+function tid(comp,term){ return comp+':'+term; }
+
+function evaluate(){
+  // reset stari vizuale
+  comps.forEach(c=>{ c.run=false; c.dir=0; c.lit=false; c.burn=false; });
+  wires.forEach(w=>{ w.fault=false; w.live=false; });
+
+  const uf=uf_make();
+  wires.forEach(w=> uf.union(tid(w.a.comp,w.a.term), tid(w.b.comp,w.b.term)) );
+  comps.forEach(c=>{ const d=defOf(c);
+    if(d.busbar){ const f=tid(c.id,d.terms[0].name); d.terms.forEach(t=>uf.union(f,tid(c.id,t.name))); }
+    else if(d.breaker && c.on){ for(let k=1;k<=d.breaker;k++){ const a=d.breaker===1?'in':'in'+k, b=d.breaker===1?'out':'out'+k; uf.union(tid(c.id,a),tid(c.id,b)); } }
+    // motor/bec = sarcina: fara union intern
+  });
+  // potentiale sursa
+  const pots={}; // root -> Set potentiale
+  const supplyTerms=[];
+  comps.filter(c=>c.type==='supply').forEach(c=> defOf(c).terms.forEach(t=>{ const r=uf.find(tid(c.id,t.name)); (pots[r]=pots[r]||new Set()).add(t.pot); supplyTerms.push({root:r,pot:t.pot}); }));
+
+  // SCURTCIRCUIT: un nod cu >=2 potentiale dintre L1,L2,L3,N (sau faza+PE)
+  let short=null;
+  for(const r in pots){ const s=[...pots[r]]; const phases=s.filter(p=>p[0]==='L'); const hasN=s.includes('N'), hasPE=s.includes('PE');
+    if(phases.length>=2 || (phases.length>=1 && (hasN||hasPE))){ short={root:r,pots:s}; break; } }
+
+  if(short){
+    // marcheaza firele din nodul scurt
+    wires.forEach(w=>{ if(uf.find(tid(w.a.comp,w.a.term))===short.root){ w.fault=true; } });
+    // exista siguranta inchisa pe traseu? -> declanseaza; altfel se arde la sursa
+    let tripped=null;
+    comps.forEach(c=>{ const d=defOf(c); if(d.breaker&&c.on){ const anyIn=d.terms.some(t=>uf.find(tid(c.id,t.name))===short.root); if(anyIn){ c.tripped=true; c.on=false; tripped=c; } } });
+    if(tripped){ setMsg('⚠ <b>SCURTCIRCUIT!</b> Ai legat '+short.pots.join(' cu ')+' fara consumator. Siguranta a <b>declansat</b> si a sarit pe O (a protejat instalatia).','bad'); }
+    else { setMsg('💥 <b>SCURTCIRCUIT fara protectie!</b> '+short.pots.join(' cu ')+' legate direct. <b>S-a ars</b> (fara siguranta pe traseu).','bad');
+      comps.filter(c=>c.type==='supply').forEach(c=>c.burn=true); }
+    stopMotor(); render(); return false;
+  }
+
+  // MOTOR: U,V,W pe 3 faze distincte
+  let ran=false, becLit=false;
+  comps.filter(c=>c.type==='motor').forEach(c=>{
+    const map={}; ['U','V','W'].forEach(n=>{ const r=uf.find(tid(c.id,n)); const s=pots[r]; if(s){ const ph=[...s].find(p=>p[0]==='L'); if(ph) map[n]=ph; } });
+    const phs=Object.values(map);
+    if(phs.length===3 && new Set(phs).size===3){ c.run=true; c.dir=(map.U==='L1'&&map.V==='L2')?1:((map.U==='L1'&&map.V==='L3')?-1:(map.V==='L1'?-1:1)); ran=true;
+      wires.forEach(w=>{ if(w.a.comp===c.id||w.b.comp===c.id) w.live=true; });
+    } else if(phs.length>0){ setMsg('Motorul are doar '+phs.length+' faza/faze conectate corect. Are nevoie de <b>3 faze diferite</b> (L1, L2, L3) pe U, V, W.', 'bad'); }
+  });
+  // BEC: o faza + nul
+  comps.filter(c=>c.type==='bec').forEach(c=>{ const ra=pots[uf.find(tid(c.id,'a'))], rb=pots[uf.find(tid(c.id,'b'))];
+    const A=ra?[...ra]:[], B=rb?[...rb]:[]; const phaseSide=A.some(p=>p[0]==='L')||B.some(p=>p[0]==='L'); const nSide=A.includes('N')||B.includes('N');
+    if(phaseSide&&nSide){ c.lit=true; becLit=true; wires.forEach(w=>{ if(w.a.comp===c.id||w.b.comp===c.id) w.live=true; }); } });
+
+  if(ran){ const c=comps.find(x=>x.run); setMsg('✅ <b>Motorul porneste!</b> Se invarte spre <b>'+(c.dir>0?'dreapta ▶':'stanga ◀')+'</b>. Inverseaza doua faze ca sa schimbi sensul.','ok'); startMotor(); }
+  else if(becLit){ setMsg('✅ <b>Becul s-a aprins</b> (faza + nul prin siguranta).','ok'); stopMotor(); }
+  else { const anyOff=comps.some(c=>defOf(c).breaker&&!c.on);
+    setMsg(anyOff? 'Circuit pregatit. <b>Ridica siguranta</b> (click pe maneta) ca sa alimentezi consumatorul.' : 'Circuit alimentat, dar niciun consumator nu porneste. Leaga un <b>motor</b> (3 faze) sau un <b>bec</b> (faza + nul).'); stopMotor(); }
+  render(); return ran||becLit;
+}
+
+function startMotor(){ if(sim.timer) return; sim.running=true; sim.timer=setInterval(()=>{ const c=comps.find(x=>x.run); if(!c){ stopMotor(); return; } sim.angle=(sim.angle+(c.dir>0?9:-9)+360)%360; const rot=document.getElementById('rotor'+c.id); if(rot) rot.setAttribute('transform',`rotate(${sim.angle} ${defOf(c).w/2} 30)`); },40); }
+function stopMotor(){ if(sim.timer){ clearInterval(sim.timer); sim.timer=null; } }
+function stopSim(){ stopMotor(); sim.running=false; comps.forEach(c=>{ c.run=false; c.lit=false; c.burn=false; }); wires.forEach(w=>{w.fault=false;w.live=false;}); }
+
+$('tSim').onclick=()=>{ sim.running=true; evaluate(); };
+$('tStop').onclick=()=>{ stopSim(); setMsg('Simulare oprita.'); render(); };
+
+/* ===== salvare (modul comun) ===== */
+window.PROFCEISS_PROJECT={app:'academy-editor',label:'Schema',full:true,
+  getState(){ return {comps,wires,uid,wuid,view}; },
+  setState(s){ if(!s) return; comps=s.comps||[]; wires=s.wires||[]; uid=s.uid||1; wuid=s.wuid||1; if(s.view) view=s.view; stopSim(); render(); }
+};
+
+/* ===== start ===== */
+function demo(){ const s=addComp('supply',60,30); const b=addComp('mcb3',70,160); const m=addComp('motor',64,300);
+  // legaturi L1,L2,L3 -> mcb3 in; mcb3 out -> motor U,V,W
+  wires.push({id:wuid++,a:{comp:s.id,term:'L1'},b:{comp:b.id,term:'in1'},color:COND.L});
+  wires.push({id:wuid++,a:{comp:s.id,term:'L2'},b:{comp:b.id,term:'in2'},color:'#8a5a2b'});
+  wires.push({id:wuid++,a:{comp:s.id,term:'L3'},b:{comp:b.id,term:'in3'},color:'#7d8794'});
+  wires.push({id:wuid++,a:{comp:b.id,term:'out1'},b:{comp:m.id,term:'U'},color:COND.L});
+  wires.push({id:wuid++,a:{comp:b.id,term:'out2'},b:{comp:m.id,term:'V'},color:'#8a5a2b'});
+  wires.push({id:wuid++,a:{comp:b.id,term:'out3'},b:{comp:m.id,term:'W'},color:'#7d8794'});
+  pushHist(); render();
+}
+demo();
+render();
+</script>
+<script src="../../assets/profceiss-projects.js" defer></script>
+</body>
+</html>

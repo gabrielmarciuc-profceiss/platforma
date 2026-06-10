@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teste · Profceiss Academy</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{--bg:#eef3f9;--panel:#ffffff;--line:#d2dce8;--ink:#1d2b44;--muted:#5d6b82;--solar:#d98200;--pv:#1c7bd6;--good:#1a8a4f;--bad:#c0392b}
+  body{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+  .brand-bar{display:flex;align-items:center;gap:12px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+  .brand-bar img{height:28px}
+  .brand-bar .sub{font-size:12px;color:var(--muted)}
+  .back{margin-left:auto;font-size:12px;color:var(--ink);text-decoration:none;border:1px solid var(--line);background:#eef3f9;border-radius:8px;padding:6px 12px;font-weight:600}
+  .timer{font-weight:700;font-size:15px;background:#fff4e0;border:1px solid #ecd0a0;border-radius:8px;padding:5px 12px;color:#9a5b00}
+  .timer.low{background:#fdecec;border-color:#e6b8b8;color:var(--bad)}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 18px 60px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 2px 10px rgba(20,40,80,.05);margin-bottom:16px}
+  h1{font-size:24px;margin-bottom:6px}h1 b{color:var(--pv)}
+  .lead{color:var(--muted);font-size:14px;line-height:1.55;margin-bottom:16px}
+  label.fld{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+  input[type=text]{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:16px;font-family:inherit;color:var(--ink)}
+  input:focus{outline:none;border-color:var(--pv);box-shadow:0 0 0 2px rgba(28,123,214,.12)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn.primary{background:linear-gradient(180deg,#38a0ee,var(--pv));color:#fff}
+  .btn.go{background:linear-gradient(180deg,#46c178,var(--good));color:#04240f}
+  .btn.ghost{background:#eef3f9;color:var(--ink);border:1px solid var(--line)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:8px}
+  .meta b{color:var(--ink)}
+  .progress{height:7px;background:#e3ebf4;border-radius:5px;overflow:hidden;margin:4px 0 16px}
+  .progress > i{display:block;height:100%;background:linear-gradient(90deg,#38a0ee,var(--pv));transition:width .25s}
+  .qnum{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .qtxt{font-size:17px;font-weight:600;line-height:1.45;margin:6px 0 12px}
+  .qtag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:999px;background:#eaf1fb;color:var(--pv);margin-bottom:8px}
+  .qtag.pv{background:#fff4e0;color:var(--solar)}
+  .qimg{display:flex;justify-content:center;margin:6px 0 14px}
+  .qimg svg{max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#f7fafe}
+  .opts{display:flex;flex-direction:column;gap:9px}
+  .opt{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:12px 14px;cursor:pointer;font-size:14.5px;line-height:1.4;transition:.12s}
+  .opt:hover{border-color:var(--pv);background:#f6faff}
+  .opt.sel{border-color:var(--pv);background:#eaf3fd;box-shadow:inset 0 0 0 1px var(--pv)}
+  .opt .mk{width:22px;height:22px;border-radius:50%;border:2px solid #b7c4d6;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+  .opt.sel .mk{background:var(--pv);border-color:var(--pv)}
+  .nav{display:flex;gap:10px;margin-top:18px;align-items:center}
+  .nav .sp{flex:1}
+  .res-big{font-size:30px;font-weight:800;text-align:center;margin:8px 0}
+  .res-big.ok{color:var(--good)}.res-big.no{color:var(--bad)}
+  .scorebar{height:14px;border-radius:8px;background:#e3ebf4;overflow:hidden;margin:12px 0}
+  .scorebar>i{display:block;height:100%}
+  .rev{font-size:13px;border-top:1px solid var(--line);padding:9px 0;display:flex;gap:8px;align-items:flex-start}
+  .rev .ic{flex:none;font-weight:800}
+  .rev .ic.ok{color:var(--good)}.rev .ic.no{color:var(--bad)}
+  .hidden{display:none!important}
+  @media(max-width:640px){ .wrap{padding:16px 12px 50px} .card{padding:16px} h1{font-size:20px} }
+</style>
+</head>
+<body>
+<div class="brand-bar">
+  <img src="../../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
+  <div class="sub">Profceiss Academy &middot; Teste</div>
+  <div class="timer hidden" id="timer">30:00</div>
+  <a class="back" href="../">&larr; Academy</a>
+</div>
+
+<div class="wrap">
+  <!-- START -->
+  <div id="screenStart">
+    <div class="card">
+      <h1>Examen <b>Profceiss</b></h1>
+      <p class="lead">Test de electrica si fotovoltaice. <b>26 de intrebari</b>, timp <b>30 de minute</b>. Pragul de promovare este <b>22 din 26</b> raspunsuri corecte (ca la permis). La final poti exporta rezultatul in PDF.</p>
+      <label class="fld">Nume</label>
+      <input type="text" id="fNume" placeholder="ex: Popescu" autocomplete="off">
+      <label class="fld">Prenume</label>
+      <input type="text" id="fPrenume" placeholder="ex: Ion" autocomplete="off">
+      <label class="fld">Numar de telefon</label>
+      <input type="text" id="fTel" placeholder="ex: 0722 000 000" autocomplete="off">
+      <div class="nav"><button class="btn go" id="btnStart">Incepe testul &rarr;</button></div>
+      <div class="meta"><span>Intrebari: <b>26</b></span><span>Timp: <b>30 min</b></span><span>Promovare: <b>22/26</b></span></div>
+    </div>
+  </div>
+
+  <!-- EXAM -->
+  <div id="screenExam" class="hidden">
+    <div class="card">
+      <div class="qnum" id="qnum">Intrebarea 1 din 26</div>
+      <div class="progress"><i id="prog" style="width:4%"></i></div>
+      <div id="qbody"></div>
+      <div class="nav">
+        <button class="btn ghost" id="btnPrev">&larr; Inapoi</button>
+        <div class="sp"></div>
+        <button class="btn primary" id="btnNext">Urmatoarea &rarr;</button>
+        <button class="btn go hidden" id="btnFinish">Finalizeaza testul</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screenResult" class="hidden">
+    <div class="card">
+      <div class="res-big" id="resVerdict">—</div>
+      <div class="scorebar"><i id="scoreFill"></i></div>
+      <p class="lead" id="resLine" style="text-align:center"></p>
+      <div class="nav" style="justify-content:center;flex-wrap:wrap">
+        <button class="btn primary" id="btnPdf">⬇ Export PDF rezultat</button>
+        <button class="btn ghost" id="btnMail">✉ Trimite administratorului</button>
+        <button class="btn ghost" id="btnRetry">↺ Reia testul</button>
+      </div>
+    </div>
+    <div class="card">
+      <h1 style="font-size:16px">Recapitulare raspunsuri</h1>
+      <div id="review"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../../assets/no-diacritics.js"></script>
+<script src="questions.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const PASS=22, TOTAL=26, MINUTES=30, ADMIN_EMAIL='tehnic@profceiss.ro';
+let bank=[], cur=0, answers=[], cand={}, tLeft=MINUTES*60, tInt=null, startedAt=null;
+
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pickBank(){
+  // ia 26 intrebari (toate daca sunt exact 26), amesteca intrebarile si optiunile
+  let qs=shuffle(QUESTIONS).slice(0,TOTAL);
+  return qs.map(q=>{ const idx=q.opts.map((_,i)=>i); const order=shuffle(idx);
+    return { q:q.q, tag:q.tag, img:q.img||null, explain:q.explain||'',
+      opts:order.map(i=>q.opts[i]), correct:order.indexOf(q.correct) }; });
+}
+
+$('btnStart').onclick=()=>{
+  const nume=$('fNume').value.trim(), pren=$('fPrenume').value.trim(), tel=$('fTel').value.trim();
+  if(!nume||!pren||!tel){ alert('Completeaza nume, prenume si telefon ca sa incepi.'); return; }
+  cand={nume,pren,tel}; bank=pickBank(); answers=new Array(bank.length).fill(null); cur=0; startedAt=new Date();
+  $('screenStart').classList.add('hidden'); $('screenExam').classList.remove('hidden'); $('timer').classList.remove('hidden');
+  tLeft=MINUTES*60; tick(); tInt=setInterval(tick,1000); renderQ();
+};
+function tick(){ const m=Math.floor(tLeft/60), s=tLeft%60; const t=$('timer'); t.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s; t.classList.toggle('low',tLeft<=120); if(tLeft<=0){ clearInterval(tInt); finish(true); return; } tLeft--; }
+
+function renderQ(){
+  const q=bank[cur];
+  $('qnum').textContent='Intrebarea '+(cur+1)+' din '+bank.length;
+  $('prog').style.width=Math.round((cur+1)/bank.length*100)+'%';
+  let h='<span class="qtag'+(q.tag==='Fotovoltaice'?' pv':'')+'">'+q.tag+'</span>';
+  h+='<div class="qtxt">'+q.q+'</div>';
+  if(q.img) h+='<div class="qimg">'+q.img+'</div>';
+  h+='<div class="opts">'+q.opts.map((o,i)=>'<div class="opt'+(answers[cur]===i?' sel':'')+'" data-i="'+i+'"><span class="mk">'+(answers[cur]===i?'✓':String.fromCharCode(65+i))+'</span><span>'+o+'</span></div>').join('')+'</div>';
+  $('qbody').innerHTML=h;
+  $('qbody').querySelectorAll('.opt').forEach(el=> el.onclick=()=>{ answers[cur]=+el.dataset.i; renderQ(); });
+  $('btnPrev').style.visibility=cur===0?'hidden':'visible';
+  const last=cur===bank.length-1;
+  $('btnNext').classList.toggle('hidden',last);
+  $('btnFinish').classList.toggle('hidden',!last);
+}
+$('btnNext').onclick=()=>{ if(cur<bank.length-1){ cur++; renderQ(); } };
+$('btnPrev').onclick=()=>{ if(cur>0){ cur--; renderQ(); } };
+$('btnFinish').onclick=()=>{ const un=answers.filter(a=>a===null).length; if(un>0 && !confirm('Mai ai '+un+' intrebari fara raspuns. Finalizezi oricum?')) return; finish(false); };
+
+function score(){ let c=0; bank.forEach((q,i)=>{ if(answers[i]===q.correct) c++; }); return c; }
+function finish(timeUp){
+  clearInterval(tInt); $('timer').classList.add('hidden');
+  const s=score(), passed=s>=PASS;
+  $('screenExam').classList.add('hidden'); $('screenResult').classList.remove('hidden');
+  const v=$('resVerdict'); v.textContent=passed?'ADMIS':'RESPINS'; v.className='res-big '+(passed?'ok':'no');
+  $('scoreFill').style.width=Math.round(s/bank.length*100)+'%'; $('scoreFill').style.background=passed?'var(--good)':'var(--bad)';
+  $('resLine').innerHTML=(timeUp?'<b>Timp expirat.</b> ':'')+'Scor: <b>'+s+' / '+bank.length+'</b> &middot; prag promovare: '+PASS+' &middot; '+cand.nume+' '+cand.pren;
+  let r='';
+  bank.forEach((q,i)=>{ const ok=answers[i]===q.correct; const given=answers[i]==null?'(fara raspuns)':q.opts[answers[i]];
+    r+='<div class="rev"><span class="ic '+(ok?'ok':'no')+'">'+(ok?'✓':'✗')+'</span><div><b>'+(i+1)+'.</b> '+q.q+'<br><span style="color:var(--muted)">Raspunsul tau: '+given+(ok?'':' &middot; Corect: '+q.opts[q.correct])+'</span>'+(q.explain&&!ok?'<br><span style="color:#5d6b82;font-size:12px">'+q.explain+'</span>':'')+'</div></div>'; });
+  $('review').innerHTML=r;
+  window.scrollTo(0,0);
+  lastResult={s,passed,timeUp};
+}
+let lastResult=null;
+
+$('btnRetry').onclick=()=>{ if(confirm('Reiei testul de la inceput?')) location.reload(); };
+
+function resultLines(){ const s=lastResult.s, p=lastResult.passed; const dt=new Date();
+  return ['PROFCEISS ACADEMY - REZULTAT TEST',
+    'Nume: '+cand.nume+' '+cand.pren, 'Telefon: '+cand.tel,
+    'Data: '+dt.toLocaleString('ro-RO'),
+    'Scor: '+s+' / '+bank.length+'  (prag '+PASS+')',
+    'Rezultat: '+(p?'ADMIS':'RESPINS')]; }
+
+$('btnPdf').onclick=()=>{
+  const { jsPDF }=window.jspdf; const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210; let y=20;
+  doc.setFillColor(28,123,214); doc.rect(0,0,W,16,'F');
+  doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text('PROFCEISS ACADEMY',14,11);
+  doc.setTextColor(30,43,68); y=28;
+  doc.setFontSize(15); doc.text('Rezultat examen electrica / fotovoltaice',14,y); y+=10;
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  const dt=new Date();
+  [['Nume si prenume', cand.nume+' '+cand.pren],['Telefon',cand.tel],['Data',dt.toLocaleString('ro-RO')],
+   ['Scor', lastResult.s+' / '+bank.length+'  (prag de promovare: '+PASS+')']].forEach(r=>{ doc.setFont('helvetica','bold'); doc.text(r[0]+':',14,y); doc.setFont('helvetica','normal'); doc.text(String(r[1]),70,y); y+=8; });
+  y+=2; doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.setTextColor(...(lastResult.passed?[26,138,79]:[192,57,43]));
+  doc.text('Rezultat: '+(lastResult.passed?'ADMIS':'RESPINS'),14,y); y+=10;
+  doc.setTextColor(30,43,68); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('Recapitulare:',14,y); y+=6;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  bank.forEach((q,i)=>{ const ok=answers[i]===q.correct; if(y>278){ doc.addPage(); y=20; }
+    const line=(i+1)+'. '+(ok?'[CORECT]':'[GRESIT]')+' '+q.q; const wrapped=doc.splitTextToSize(line,182);
+    doc.setTextColor(...(ok?[26,138,79]:[192,57,43])); doc.text(wrapped,14,y); y+=wrapped.length*4.4+1; });
+  const fn='Test_'+(cand.nume+'_'+cand.pren).replace(/[^\w]+/g,'_')+'.pdf';
+  doc.save(fn);
+};
+
+$('btnMail').onclick=()=>{
+  const body=encodeURIComponent(resultLines().join('\n')+'\n\n(Ataseaza si PDF-ul exportat.)');
+  const subj=encodeURIComponent('Rezultat test Academy - '+cand.nume+' '+cand.pren+(lastResult.passed?' [ADMIS]':' [RESPINS]'));
+  window.location.href='mailto:'+ADMIN_EMAIL+'?subject='+subj+'&body='+body;
+};
+</script>
+<script src="../../assets/profceiss-projects.js" defer></script>
+</body>
+</html>

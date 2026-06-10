@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tutoriale · Profceiss Academy</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{--bg:#eef3f9;--panel:#ffffff;--line:#d2dce8;--ink:#1d2b44;--muted:#5d6b82;--solar:#d98200;--pv:#1c7bd6;--good:#1a8a4f}
+  body{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+  .brand-bar{display:flex;align-items:center;gap:12px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line)}
+  .brand-bar img{height:28px}.brand-bar .sub{font-size:12px;color:var(--muted)}
+  .back{margin-left:auto;font-size:12px;color:var(--ink);text-decoration:none;border:1px solid var(--line);background:#eef3f9;border-radius:8px;padding:6px 12px;font-weight:600}
+  .wrap{max-width:820px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:26px;margin-bottom:4px}h1 b{color:var(--pv)}
+  .lead{color:var(--muted);font-size:14px;margin-bottom:20px}
+  .cat{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 4px 8px}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+  details[open]{box-shadow:0 4px 14px rgba(20,40,80,.07)}
+  summary{cursor:pointer;padding:15px 16px;font-weight:600;font-size:15px;list-style:none;display:flex;align-items:center;gap:10px}
+  summary::-webkit-details-marker{display:none}
+  summary .chip{font-size:18px}
+  summary::after{content:'+';margin-left:auto;color:var(--muted);font-size:20px;font-weight:400}
+  details[open] summary::after{content:'−'}
+  .body{padding:0 16px 16px;font-size:14px;line-height:1.65;color:#2a3a52}
+  .body p{margin:8px 0}.body ul{margin:8px 0 8px 20px}.body li{margin:4px 0}
+  .body b{color:var(--ink)}
+  .tip{background:#eaf3fd;border:1px solid #bcd7f3;border-radius:9px;padding:10px 12px;font-size:13px;margin:10px 0}
+  .cta{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,#38a0ee,var(--pv));color:#fff;text-decoration:none;border-radius:9px;padding:9px 16px;font-weight:700;font-size:13px;margin-top:8px}
+  .vidnote{font-size:12px;color:var(--muted);margin-top:6px}
+  @media(max-width:640px){ .wrap{padding:16px 12px 50px} h1{font-size:21px} }
+</style>
+</head>
+<body>
+<div class="brand-bar">
+  <img src="../../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
+  <div class="sub">Profceiss Academy &middot; Tutoriale</div>
+  <a class="back" href="../">&larr; Academy</a>
+</div>
+<div class="wrap">
+  <h1>Tutoriale <b>Profceiss</b></h1>
+  <p class="lead">Lectii scurte de electrica si fotovoltaice. Citesti aici, exersezi in <a href="../editor/">Design Pro Editor</a>, apoi te verifici la <a href="../teste/">Teste</a>.</p>
+
+  <div class="cat">Electrica - bazele</div>
+
+  <details open>
+    <summary><span class="chip">🎨</span> Codul culorilor conductoarelor</summary>
+    <div class="body">
+      <p>Ca sa nu gresesti niciodata legaturile, conductoarele au culori standard:</p>
+      <ul>
+        <li><b>Faza (L)</b> - de obicei rosu, maro sau negru.</li>
+        <li><b>Nul / neutru (N)</b> - albastru.</li>
+        <li><b>Impamantare (PE)</b> - galben-verde, niciodata altceva.</li>
+      </ul>
+      <p>La trifazat, cele trei faze se noteaza <b>L1, L2, L3</b> (rosu, maro, gri).</p>
+      <div class="tip">Regula de aur: galben-verde se foloseste DOAR pentru impamantare. Nu il folosi niciodata ca faza sau nul.</div>
+    </div>
+  </details>
+
+  <details>
+    <summary><span class="chip">⚡</span> Tensiuni: 230 V si 400 V</summary>
+    <div class="body">
+      <p>Intr-o locuinta obisnuita (monofazat) ai <b>230 V</b> intre faza si nul.</p>
+      <p>La trifazat ai trei faze; intre doua faze sunt aproximativ <b>400 V</b>, iar intre o faza si nul tot 230 V.</p>
+      <p>Motoarele mari si halele folosesc trifazat pentru ca pot porni motoare puternice.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary><span class="chip">🔌</span> Sectiuni de cablu si sigurante</summary>
+    <div class="body">
+      <p>Siguranta protejeaza cablul, deci trebuie potrivita cu sectiunea lui:</p>
+      <ul>
+        <li>Iluminat: <b>1,5 mmp</b> &rarr; siguranta <b>10 A</b>.</li>
+        <li>Prize: <b>2,5 mmp</b> &rarr; siguranta <b>16 A</b>.</li>
+        <li>Consumatori mari (cuptor, masina de spalat, AC): <b>4-6 mmp</b> &rarr; 25-32 A.</li>
+      </ul>
+      <div class="tip">Nu poti pune o siguranta mai mare decat suporta cablul. Vrei 25 A? Intai treci pe 4 mmp.</div>
+    </div>
+  </details>
+
+  <details>
+    <summary><span class="chip">🛡️</span> Siguranta automata vs diferential (RCD)</summary>
+    <div class="body">
+      <p><b>Siguranta automata (MCB)</b> protejeaza <b>cablul</b> la suprasarcina si scurtcircuit.</p>
+      <p><b>Diferentialul (RCD 30 mA)</b> protejeaza <b>omul</b> la electrocutare - detecteaza curentul de fuga si taie alimentarea instant.</p>
+      <p>Intr-un tablou corect ai ambele: general + diferential, apoi sigurantele pe circuite.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary><span class="chip">💡</span> Cum se leaga un bec cu intrerupator</summary>
+    <div class="body">
+      <p>Regula: <b>faza trece prin intrerupator</b>, apoi merge la bec. Nulul si impamantarea merg direct la corpul de iluminat.</p>
+      <p>Asa, cand intrerupatorul e deschis, becul nu mai are faza si poti lucra in siguranta.</p>
+      <a class="cta" href="../editor/">Exerseaza in Editor &rarr;</a>
+    </div>
+  </details>
+
+  <details>
+    <summary><span class="chip">🔁</span> Motor trifazat: sensul de rotatie</summary>
+    <div class="body">
+      <p>Un motor trifazat are nevoie de <b>3 faze diferite</b> pe bornele U, V, W.</p>
+      <p>Daca <b>inversezi doua faze</b> intre ele, motorul se invarte in <b>sens invers</b>. Asa schimbi sensul fara sa schimbi nimic mecanic.</p>
+      <p>Daca legi gresit (o faza la nul), cand ridici siguranta se face <b>scurtcircuit</b> si siguranta sare.</p>
+      <a class="cta" href="../editor/">Incearca simularea in Editor &rarr;</a>
+    </div>
+  </details>
+
+  <div class="cat">Fotovoltaice</div>
+
+  <details>
+    <summary><span class="chip">☀️</span> Cum functioneaza un sistem fotovoltaic</summary>
+    <div class="body">
+      <p>Panourile produc curent <b>continuu (DC)</b> din lumina soarelui. <b>Invertorul</b> transforma DC in <b>alternativ (AC)</b>, ca sa poti folosi energia in casa si sa o injectezi in retea.</p>
+      <p>Un sistem <b>hibrid</b> adauga o <b>baterie</b> (masurata in kWh) ca sa folosesti energia si seara.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary><span class="chip">🔗</span> Serie vs paralel la panouri</summary>
+    <div class="body">
+      <ul>
+        <li><b>In serie</b> (string): se aduna <b>tensiunile</b> (V), curentul ramane acelasi.</li>
+        <li><b>In paralel</b>: se aduna <b>curentii</b> (A), tensiunea ramane aceeasi.</li>
+      </ul>
+      <p>Configuratia se alege ca sa se potriveasca cu fereastra de lucru a invertorului.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary><span class="chip">🏠</span> Ce inseamna prosumator</summary>
+    <div class="body">
+      <p>Prosumatorul <b>produce si consuma</b> energie. Surplusul il injecteaza in retea si primeste compensare de la furnizor.</p>
+      <p>Pentru asta se depune un <b>dosar de prosumator</b> (vezi instrumentele Profceiss) si se monteaza protectiile cerute pe partea DC si AC.</p>
+    </div>
+  </details>
+
+  <p class="vidnote">Vrei si lectii video? Pot adauga aici clipuri (YouTube / fisiere) - spune-mi ce subiecte sa includem.</p>
+</div>
+<script src="../../assets/no-diacritics.js"></script>
+</body>
+</html>

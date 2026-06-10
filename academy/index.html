@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profceiss Academy</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{--bg:#eef3f9;--panel:#ffffff;--line:#d2dce8;--ink:#1d2b44;--muted:#5d6b82;--solar:#d98200;--pv:#1c7bd6;--good:#1a8a4f}
+  body{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif;background:
+    radial-gradient(1100px 700px at 80% -10%, rgba(28,123,214,.10), transparent 60%),
+    radial-gradient(900px 600px at -8% 110%, rgba(217,130,0,.07), transparent 55%), var(--bg);
+    color:var(--ink);min-height:100vh}
+  .brand-bar{display:flex;align-items:center;gap:14px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  .brand-bar img{height:34px;width:auto;max-width:160px;object-fit:contain}
+  .brand-bar .sub{font-size:12px;color:var(--muted)}
+  .back{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#eef3f9;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;font-size:12px;font-weight:600}
+  .back:hover{background:#e3ebf4}
+  .wrap{max-width:1040px;margin:0 auto;padding:30px 20px 50px}
+  h1{font-size:28px;font-weight:700;letter-spacing:.01em}
+  h1 b{color:var(--pv)}
+  .subtitle{color:var(--muted);font-size:14px;margin:6px 0 26px}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;text-decoration:none;color:inherit;box-shadow:0 2px 10px rgba(20,40,80,.05);transition:.16s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(20,40,80,.13);border-color:#b9cce6}
+  .card .ic{width:78px;height:78px;margin-bottom:14px}
+  .badge{position:absolute;top:14px;right:14px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+  .badge.active{background:#e3f5ea;color:var(--good)}
+  .badge.soon{background:#fff4e0;color:var(--solar)}
+  .card .t{font-size:18px;font-weight:700;margin-bottom:6px}
+  .card .d{font-size:13px;color:var(--muted);line-height:1.55;flex:1}
+  .card .cta{margin-top:14px;font-size:13px;font-weight:700;color:var(--pv)}
+  .footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
+  @media (max-width:820px){ .cards{grid-template-columns:1fr} h1{font-size:23px} }
+</style>
+</head>
+<body>
+<div class="brand-bar">
+  <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
+  <div class="sub">Profceiss Academy &middot; scoala interna de electrica si fotovoltaice</div>
+  <a class="back" href="../">&larr; Instrumente</a>
+</div>
+
+<div class="wrap">
+  <h1>Profceiss <b>Academy</b></h1>
+  <p class="subtitle">Inveti din tutoriale, exersezi in editorul Design Pro, apoi te testezi. Alege de unde incepi.</p>
+
+  <div class="cards">
+    <a class="card" href="tutoriale/">
+      <span class="badge active">Activ</span>
+      <svg class="ic" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Tutoriale">
+        <rect x="16" y="22" width="68" height="50" rx="6" fill="#2f8be0" stroke="#0f4e96" stroke-width="2.5"/>
+        <rect x="22" y="28" width="56" height="38" rx="3" fill="#eaf3fc"/>
+        <path d="M44 38 L60 47 L44 56 Z" fill="#1c7bd6"/>
+        <rect x="34" y="76" width="32" height="5" rx="2.5" fill="#0f4e96"/>
+      </svg>
+      <div class="t">Tutoriale</div>
+      <div class="d">Lectii pas cu pas de electrica si fotovoltaice: cum legi un tablou, sigurante, circuite, scheme. Text, imagini si video.</div>
+      <div class="cta">Invata &rarr;</div>
+    </a>
+
+    <a class="card" href="editor/">
+      <span class="badge active">Activ</span>
+      <svg class="ic" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Design Pro Editor">
+        <rect x="14" y="30" width="72" height="40" rx="4" fill="#cdd9ea" stroke="#0f4e96" stroke-width="2.5"/>
+        <rect x="26" y="34" width="11" height="32" rx="2" fill="#fff" stroke="#274b73" stroke-width="1.6"/>
+        <rect x="44" y="34" width="11" height="32" rx="2" fill="#fff" stroke="#274b73" stroke-width="1.6"/>
+        <rect x="62" y="34" width="11" height="32" rx="2" fill="#fff" stroke="#274b73" stroke-width="1.6"/>
+        <rect x="29.5" y="40" width="4" height="9" rx="1" fill="#1a8a4f"/>
+        <rect x="47.5" y="46" width="4" height="9" rx="1" fill="#c0392b"/>
+        <rect x="65.5" y="40" width="4" height="9" rx="1" fill="#1a8a4f"/>
+        <path d="M20 74 C40 86 60 86 80 74" fill="none" stroke="#e23b3b" stroke-width="2.6" stroke-linecap="round"/>
+      </svg>
+      <div class="t">Design Pro Editor</div>
+      <div class="d">Construiesti un tablou ca in realitate: sigurante pe sina DIN, tragi firele de faza si nul, faci punti, editezi curbura firelor si simulezi (ridici siguranta, motorul porneste sau face scurt).</div>
+      <div class="cta">Deschide &rarr;</div>
+    </a>
+
+    <a class="card" href="teste/">
+      <span class="badge active">Activ</span>
+      <svg class="ic" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Teste">
+        <rect x="24" y="16" width="52" height="68" rx="6" fill="#fff" stroke="#0f4e96" stroke-width="2.5"/>
+        <rect x="38" y="12" width="24" height="10" rx="3" fill="#2f8be0" stroke="#0f4e96" stroke-width="2"/>
+        <path d="M33 36 l5 5 l9 -10" fill="none" stroke="#1a8a4f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M33 54 l5 5 l9 -10" fill="none" stroke="#1a8a4f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="54" y1="38" x2="68" y2="38" stroke="#5d6b82" stroke-width="3" stroke-linecap="round"/>
+        <line x1="54" y1="56" x2="68" y2="56" stroke="#5d6b82" stroke-width="3" stroke-linecap="round"/>
+        <path d="M50 66 L44 76 L49 76 L46 84 L56 72 L50 72 L54 66 Z" fill="#ffd23d" stroke="#caa011" stroke-width="1.2" stroke-linejoin="round"/>
+      </svg>
+      <div class="t">Teste</div>
+      <div class="d">Examen interactiv: introduci nume, prenume, telefon, raspunzi la 26 de intrebari pe timp (22 corecte = admis). Intrebari din electrica si fotovoltaice, plus scheme de completat cu mouse-ul. La final exporti PDF cu rezultatul.</div>
+      <div class="cta">Da testul &rarr;</div>
+    </a>
+  </div>
+</div>
+
+<div class="footer">PROFCEISS Electric SRL &middot; PROFCEISS Green Energy SRL &middot; Academy v1.0</div>
+<script src="../assets/no-diacritics.js"></script>
+</body>
+</html>
