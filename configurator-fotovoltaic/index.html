@@ -3938,9 +3938,12 @@ function genOferta(){
 function viewOffer(id){ const offers=getSavedOffers(); const o=offers.find(x=>x.id===id); if(!o){ alert('Oferta nu a fost gasita.'); return; }
   restoreOfferState(o.state); try{ calcAll(); }catch(e){ console.warn(e); }
   setTimeout(()=>{ try{ window.print(); }catch(e){} }, 500); }
-// Editare = reincarca oferta in formular (precompletat), de la pasul 1
+// Editare = reincarca oferta in formular (precompletat) si deschide pasul Sistem
 function editOffer(id){ const offers=getSavedOffers(); const o=offers.find(x=>x.id===id); if(!o){ alert('Oferta nu a fost gasita.'); return; }
-  restoreOfferState(o.state); try{ if(typeof goStep==='function') goStep(1); }catch(e){} }
+  try{ restoreOfferState(o.state); }catch(e){ console.error('[editOffer] restore', e); }
+  try{ if(typeof goStep==='function') goStep(2); }catch(e){ console.error('[editOffer] goStep', e); }
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+  const det=document.getElementById('saved_offers_details'); if(det) det.open=false; }
 
 // Incarca o oferta salvata — pune toate valorile inapoi in formular.
 function loadSavedOffer(id){
