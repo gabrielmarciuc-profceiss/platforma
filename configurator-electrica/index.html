@@ -325,11 +325,11 @@ function loadTesseract(){ return new Promise((res,rej)=>{ if(window.Tesseract) r
 async function ocrScale(pts, canvas){ await loadTesseract();
   const res=await window.Tesseract.recognize(canvas,'eng');
   const words=((res.data&&res.data.words)||[]).map(w=>{ const v=parseInt(String(w.text).replace(/[^0-9]/g,''),10); if(!v||v<20||v>5000) return null; const b=w.bbox||{x0:0,y0:0,x1:0,y1:0}; return {val:v,cx:(b.x0+b.x1)/2,cy:(b.y0+b.y1)/2}; }).filter(Boolean);
-  const maxD=0.2*Math.max(canvas.width,canvas.height); const ratios=[];
+  const maxD=0.22*Math.max(canvas.width,canvas.height); const ratios=[]; const edgeCm=[];
   for(let i=0;i<pts.length;i++){ const p=pts[i], q=pts[(i+1)%pts.length]; const mx=(p.x+q.x)/2,my=(p.y+q.y)/2; const plen=Math.hypot(q.x-p.x,q.y-p.y)||1;
-    let best=null,bd=maxD; words.forEach(w=>{ const d=Math.hypot(w.cx-mx,w.cy-my); if(d<bd){bd=d;best=w;} }); if(best) ratios.push((best.val/100)/plen); }
+    let best=null,bd=maxD; words.forEach(w=>{ const d=Math.hypot(w.cx-mx,w.cy-my); if(d<bd){bd=d;best=w;} }); edgeCm[i]=best?best.val:null; if(best) ratios.push((best.val/100)/plen); }
   let scaleMpp=null; if(ratios.length){ ratios.sort((a,b)=>a-b); scaleMpp=ratios[Math.floor(ratios.length/2)]; }
-  return {scaleMpp, numbers:words.map(w=>w.val)};
+  return {scaleMpp, numbers:words.map(w=>w.val), edgeCm};
 }
 /* gruparea coordonatelor apropiate = indreapta liniile aproape drepte, pastreaza ce e clar stramb */
 function clusterAxis(vals,tol){ const idx=vals.map((v,i)=>i).sort((a,b)=>vals[a]-vals[b]); const out=new Array(vals.length); let s=0;
@@ -337,22 +337,39 @@ function clusterAxis(vals,tol){ const idx=vals.map((v,i)=>i).sort((a,b)=>vals[a]
 function regularize(points){ if(points.length<3) return points; const xs=points.map(p=>p.x), zs=points.map(p=>p.z);
   const bw=Math.max(...xs)-Math.min(...xs), bh=Math.max(...zs)-Math.min(...zs); const tol=Math.max(0.05,0.03*Math.max(bw,bh));
   const sx=clusterAxis(xs,tol), sz=clusterAxis(zs,tol); return points.map((p,i)=>({x:+sx[i].toFixed(2),z:+sz[i].toFixed(2)})); }
+function pixDirs(pts, straighten){ let P=pts.map(p=>({x:p.x,y:p.y}));
+  if(straighten){ const xs=P.map(p=>p.x), ys=P.map(p=>p.y); const tolx=Math.max(8,0.03*((Math.max(...xs)-Math.min(...xs))||1)); const toly=Math.max(8,0.03*((Math.max(...ys)-Math.min(...ys))||1)); const sx=clusterAxis(xs,tolx), sy=clusterAxis(ys,toly); P=P.map((p,i)=>({x:sx[i],y:sy[i]})); }
+  const edges=P.map((p,i)=>{ const q=P[(i+1)%P.length]; const dx=q.x-p.x, dy=q.y-p.y; const len=Math.hypot(dx,dy)||1; return {dx:dx/len,dy:dy/len,plen:len}; });
+  return {P,edges}; }
 async function handleSketch(ev){ const file=ev.target.files[0]; ev.target.value=''; if(!file) return; const btn=$('loadSketch'); const o=btn.textContent; btn.disabled=true; btn.textContent='Procesez imaginea...';
-  try{ const r=await detectWalls(file); if(!r.pts||r.pts.length<3){ alert('Nu am gasit un contur clar. Incearca o poza mai clara, cu liniile drepte si bine vizibile, pe fundal deschis.'); return; } sketchResult=r; openSketchModal(r); }
+  try{ const r=await detectWalls(file); if(!r.pts||r.pts.length<3){ alert('Nu am gasit un contur clar. Incearca o poza mai clara, cu liniile drepte si bine vizibile, pe fundal deschis.'); return; }
+    btn.textContent='Citesc cotele (OCR)...'; let ocr=null; try{ ocr=await ocrScale(r.pts, r.ocrCanvas); }catch(e){ console.warn('OCR esuat', e); }
+    sketchResult=r; openSketchModal(r, ocr); }
   catch(e){ console.error(e); alert('Eroare la procesare: '+e.message); } finally{ btn.disabled=false; btn.textContent=o; } }
-function openSketchModal(r){ openModal(`<button class="close" id="mClose">✕</button><h2>🖼️ Contur detectat (${r.pts.length} colturi)</h2>
-   <img src="${r.preview}" style="max-width:100%;border:1px solid var(--line);border-radius:8px;display:block;margin-bottom:12px">
-   <label class="fld">Latimea reala a planului (cm)</label><input id="skW" type="number" value="400" style="width:150px">
-   <label style="display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:13px"><input type="checkbox" id="skReg" checked style="width:auto"> Indreapta automat liniile aproape drepte (toleranta ~3%)</label>
-   <p class="muted">Abaterile mici ale desenului de mana le indrept singur; ce e facut clar stramb pastrez. Dupa aplicare poti ajusta colturile manual.</p>
-   <div class="dl"><button class="btn act" id="skApply">Foloseste conturul</button></div>`);
-  $('mClose').onclick=closeModal; $('skApply').onclick=()=>{ applySketch(r, parseFloat($('skW').value)||400, $('skReg').checked); closeModal(); };
+function openSketchModal(r, ocr){ const n=r.pts.length; const {edges}=pixDirs(r.pts,true);
+  const xs=r.pts.map(p=>p.x); const bboxW=(Math.max(...xs)-Math.min(...xs))||1;
+  const widthCm=(ocr&&ocr.scaleMpp)? Math.round(ocr.scaleMpp*bboxW*100) : 400;
+  const numsTxt=(ocr&&ocr.numbers&&ocr.numbers.length)? ('<p class="muted" style="margin:2px 0 6px">Cifre citite din poza: <b>'+ocr.numbers.join(', ')+'</b></p>') : '<p class="muted" style="margin:2px 0 6px">OCR nu a gasit cifre clare — completeaza tu lungimile.</p>';
+  let rowsH=''; for(let i=0;i<n;i++){ const d=edges[i]; const dir=Math.abs(d.dx)>Math.abs(d.dy)?'orizontal':(Math.abs(d.dy)>Math.abs(d.dx)?'vertical':'oblic'); const sug=(ocr&&ocr.edgeCm&&ocr.edgeCm[i])||'';
+    rowsH+='<tr><td style="padding:3px 6px">Perete '+(i+1)+' <span class="muted">('+dir+(i===n-1?', se inchide automat':'')+')</span></td><td style="padding:3px 6px"><input type="number" data-wl="'+i+'" value="'+sug+'" placeholder="cm" style="width:92px"></td></tr>'; }
+  openModal(`<button class="close" id="mClose">✕</button><h2>🖼️ Contur detectat — verifica cotele</h2>
+    <img src="${r.preview}" style="max-width:100%;border:1px solid var(--line);border-radius:8px;display:block;margin-bottom:8px">
+    ${numsTxt}
+    <p class="muted">Verifica lungimea sugerata (OCR) pentru fiecare perete si corecteaza unde nu a citit bine. Lasa gol = o calculez din scara.</p>
+    <table style="margin:6px 0">${rowsH}</table>
+    <label class="fld">Latimea totala a planului (cm) — folosita unde nu ai pus cota</label><input id="skW" type="number" value="${widthCm}" style="width:150px">
+    <label style="display:flex;align-items:center;gap:8px;margin:12px 0 2px;font-size:13px"><input type="checkbox" id="skReg" checked style="width:auto"> Indreapta automat liniile aproape drepte</label>
+    <div class="dl"><button class="btn act" id="skApply">Construieste camera</button></div>`);
+  $('mClose').onclick=closeModal;
+  $('skApply').onclick=()=>{ const lens={}; document.querySelectorAll('[data-wl]').forEach(inp=>{ const v=parseInt(inp.value,10); if(v) lens[+inp.dataset.wl]=v; }); applySketch(r, parseFloat($('skW').value)||400, $('skReg').checked, lens); closeModal(); };
 }
-function applySketch(r,realWcm,reg){ const xs=r.pts.map(p=>p.x), ys=r.pts.map(p=>p.y); const minX=Math.min(...xs),minY=Math.min(...ys),maxX=Math.max(...xs); const bw=Math.max(1,maxX-minX); const mpp=(realWcm/100)/bw;
-  let pts=r.pts.map(p=>({x:+(((p.x-minX)*mpp)).toFixed(2), z:+(((p.y-minY)*mpp)).toFixed(2)}));
-  if(reg) pts=regularize(pts);
+function applySketch(r, widthCm, reg, lensCm){ const {edges}=pixDirs(r.pts, reg); const n=edges.length;
+  const xs=r.pts.map(p=>p.x); const bboxW=(Math.max(...xs)-Math.min(...xs))||1; const mpp=(widthCm/100)/bboxW;
+  const lenM=edges.map((e,i)=> (lensCm&&lensCm[i])? lensCm[i]/100 : e.plen*mpp );
+  let pts=[{x:0,z:0}]; let x=0,z=0;
+  for(let i=0;i<n-1;i++){ x+=edges[i].dx*lenM[i]; z+=edges[i].dy*lenM[i]; pts.push({x:+x.toFixed(2),z:+z.toFixed(2)}); }
   pts=pts.filter((p,i)=>{ const q=pts[(i+1)%pts.length]; return !(Math.abs(p.x-q.x)<0.03 && Math.abs(p.z-q.z)<0.03); });
-  if(pts.length<3){ alert('Conturul a iesit prea simplu dupa indreptare. Reincarca si debifeaza indreptarea automata.'); return; }
+  if(pts.length<3){ alert('Prea putine colturi valide dupa reconstructie. Verifica cotele si reincearca.'); return; }
   plan.points=pts; plan.closed=true; plan.openings=[]; planMode='edit'; setPlanModeUI(); renderWallRows(); refreshPlan();
 }
 $('loadSketch').onclick=()=>$('sketchFile').click();
