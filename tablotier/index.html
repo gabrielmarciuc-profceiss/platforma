@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablotier · Proiectare tablouri electrice</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{--bg:#eef3f9;--panel:#fff;--panel2:#f1f6fc;--line:#d2dce8;--ink:#1d2b44;--muted:#5d6b82;--solar:#d98200;--pv:#1c7bd6;--good:#1a8a4f;--bad:#c0392b}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header img{height:26px}
+  header .ttl{font-weight:700;font-size:14px}header .ttl b{color:var(--pv)}
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px}
+  .seg button{border:0;background:transparent;color:var(--muted);font-weight:600;font-size:12px;padding:6px 11px;border-radius:6px;cursor:pointer;font-family:inherit}
+  .seg button.on{background:#dfeaf7;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(28,123,214,.4)}
+  .back{margin-left:auto;font-size:12px;color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 12px;font-weight:600}
+  .main{flex:1;display:flex;min-height:0}
+  .palette{width:184px;flex:none;background:#fff;border-right:1px solid var(--line);overflow-y:auto;padding:10px}
+  .palette h4{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 2px 6px}
+  .pbtn{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:7px 8px;margin-bottom:5px;cursor:pointer;font-size:12px;color:var(--ink);font-family:inherit;text-align:left}
+  .pbtn:hover{border-color:var(--pv)}
+  .pbtn.on{border-color:var(--solar);box-shadow:inset 0 0 0 1px rgba(217,130,0,.4)}
+  .pbtn .mw{margin-left:auto;font-size:10px;color:var(--muted);font-weight:700}
+  .cwrap{flex:1;position:relative;min-width:0;display:flex;flex-direction:column;background:linear-gradient(160deg,#e7eef6,#f2f6fb)}
+  .topbar{display:flex;gap:6px;flex-wrap:wrap;padding:8px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.7);align-items:center}
+  .tool{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 11px;font-size:12.5px;cursor:pointer;font-weight:600;font-family:inherit;color:var(--ink)}
+  .tool.act{background:linear-gradient(180deg,#ffc24d,var(--solar));color:#241600;border:0}
+  .tool.gen{background:#eaf1fb;border-color:#cdd9ea}
+  .scroll{flex:1;overflow:auto;padding:18px}
+  #panel{display:block;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 18px rgba(20,40,80,.1)}
+  .side{width:230px;flex:none;background:#fff;border-left:1px solid var(--line);overflow-y:auto;padding:12px}
+  .side h4{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .fld{font-size:11px;color:var(--muted);display:block;margin:8px 0 3px}
+  input,select{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px;font-size:13px;font-family:inherit;color:var(--ink);background:#fff}
+  .btn{display:block;width:100%;text-align:center;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:9px;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--ink);margin-top:8px}
+  .btn.bad{background:#fdecec;border-color:#e6b8b8;color:var(--bad)}
+  .hint{color:var(--muted);font-size:12px;line-height:1.5}
+  .info{position:absolute;bottom:10px;left:200px;right:10px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12.5px;pointer-events:none;max-width:640px}
+  .overlay{position:fixed;inset:0;background:rgba(8,16,30,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .overlay.on{display:flex}
+  .modal{background:#fff;border-radius:14px;max-width:780px;width:100%;max-height:90vh;overflow:auto;padding:20px;position:relative}
+  .modal h2{font-size:17px;margin-bottom:10px}
+  .modal .close{position:absolute;top:14px;right:16px;border:0;background:none;font-size:20px;cursor:pointer;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  .dl{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .step{display:flex;gap:10px;margin:8px 0;font-size:13.5px;line-height:1.5}
+  .step .n{flex:none;width:24px;height:24px;border-radius:50%;background:#eaf1fb;color:var(--pv);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}
+  @media (max-width:900px){ .palette{width:140px} .side{display:none} .info{left:150px} }
+</style>
+</head>
+<body>
+<header>
+  <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
+  <span class="ttl">Tablo<b>tier</b></span>
+  <div class="seg" id="sys"><button data-sys="mono" class="on">Monofazat</button><button data-sys="tri">Trifazat</button></div>
+  <a class="back" href="../">&larr; Instrumente</a>
+</header>
+
+<div class="main">
+  <div class="palette" id="palette"></div>
+
+  <div class="cwrap">
+    <div class="topbar">
+      <button class="tool" id="addRow">＋ Rand sina</button>
+      <button class="tool" id="delRow">－ Rand</button>
+      <span class="tool" style="cursor:default;display:flex;gap:6px;align-items:center">Module/rand
+        <select id="mods" style="width:auto;padding:4px 6px;border:1px solid var(--line);border-radius:6px">
+          <option>12</option><option>18</option><option selected>24</option><option>36</option></select></span>
+      <button class="tool" id="zOut">−</button><button class="tool" id="zIn">＋</button>
+      <span style="flex:1"></span>
+      <button class="tool gen" id="genBOM">📋 Materiale</button>
+      <button class="tool gen" id="genTut">🛠 Tutorial montaj</button>
+      <button class="tool gen" id="genPNG">📷 Poza</button>
+      <button class="tool gen" id="genSVG">📐 Schita</button>
+    </div>
+    <div class="scroll"><svg id="panel" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="info" id="info">Alege o componenta din stanga, apoi click pe un loc liber de pe sina ca sa o asezi. Click pe o piesa = o editezi.</div>
+  </div>
+
+  <div class="side" id="side">
+    <h4>Sumar tablou</h4>
+    <div class="hint" id="summary"></div>
+    <div id="editor"></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal"><div class="modal" id="modalBody"></div></div>
+
+<script src="../assets/no-diacritics.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const SVGNS='http://www.w3.org/2000/svg';
+const MODW=26, ROWH=118, COMB_H=20, DEV_H=70, PADX=28, PADTOP=26, BARH=14;
+const PH=['#e23b3b','#7a4a23','#8a93a0']; const PHN=['L1','L2','L3'];
+
+/* ===== catalog ===== */
+const CAT={
+  main2:{w:2,name:'Disjunctor general 2P',kind:'breaker',rating:'C40/2'},
+  main4:{w:4,name:'Disjunctor general 4P',kind:'breaker',rating:'C40/4'},
+  rcd2:{w:2,name:'Diferential 2P 30mA',kind:'rcd',rating:'40A/30mA'},
+  rcd4:{w:4,name:'Diferential 4P 30mA',kind:'rcd',rating:'40A/30mA'},
+  mcb1:{w:1,name:'Siguranta 1P',kind:'breaker',rating:'C16'},
+  mcb2:{w:2,name:'Siguranta 2P',kind:'breaker',rating:'C16/2'},
+  mcb3:{w:3,name:'Siguranta 3P',kind:'breaker',rating:'C16/3'},
+  mcb4:{w:4,name:'Siguranta 4P',kind:'breaker',rating:'C16/4'},
+  rcbo:{w:1,name:'RCBO (dif+sig)',kind:'rcbo',rating:'C16/30mA'},
+  spd:{w:2,name:'Descarcator SPD',kind:'spd',rating:'Tip 2'},
+  contactor:{w:2,name:'Contactor modular',kind:'contactor',rating:'25A'},
+  releu:{w:1,name:'Releu de impuls',kind:'relay',rating:'16A'},
+  priza:{w:2,name:'Priza modulara',kind:'socket',rating:'16A'},
+  lampa:{w:1,name:'Lampa semnalizare',kind:'lamp',rating:'230V'},
+  buton:{w:1,name:'Buton modular',kind:'button',rating:''},
+  bornier:{w:1,name:'Bornier / cleme',kind:'terminal',rating:''},
+  gol:{w:1,name:'Spatiu liber',kind:'blank',rating:''}
+};
+const GROUPS=[
+  ['Protectie generala',['main2','main4','rcd2','rcd4']],
+  ['Sigurante',['mcb1','mcb2','mcb3','mcb4','rcbo']],
+  ['Diverse',['spd','contactor','releu','priza','lampa','buton','bornier','gol']]
+];
+
+/* ===== stare ===== */
+let rows=[{mods:24},{mods:24}];
+let devices=[];   // {id,type,row,pos,on,rating,label,circuit}
+let uid=1, selId=null, armType=null, system='mono', zoom=1;
+
+/* ===== ocupare sloturi ===== */
+function rowCells(ri){ const cap=rows[ri].mods, arr=new Array(cap).fill(null);
+  devices.filter(d=>d.row===ri).forEach(d=>{ const w=CAT[d.type].w; for(let k=0;k<w;k++) if(d.pos+k<cap) arr[d.pos+k]=d.id; }); return arr; }
+function fits(ri,pos,w,ignore){ const cap=rows[ri].mods; if(pos<0||pos+w>cap) return false; const arr=rowCells(ri);
+  for(let k=0;k<w;k++){ const id=arr[pos+k]; if(id!==null && id!==ignore) return false; } return true; }
+function freeStart(ri,w){ const cap=rows[ri].mods; for(let s=0;s<=cap-w;s++) if(fits(ri,s,w)) return s; return -1; }
+function addDev(type,ri,pos){ const c=CAT[type]; const d={id:uid++,type,row:ri,pos,on:true,rating:c.rating,label:'',circuit:''}; devices.push(d); return d; }
+function placeAuto(type){ const w=CAT[type].w;
+  for(let ri=0;ri<rows.length;ri++){ const s=freeStart(ri,w); if(s>=0) return addDev(type,ri,s); }
+  rows.push({mods:rows.length?rows[rows.length-1].mods:24}); const ri=rows.length-1; const s=freeStart(ri,w); return s>=0?addDev(type,ri,s):null; }
+
+/* ===== geometrie ===== */
+function maxMods(){ return Math.max(6,...rows.map(r=>r.mods)); }
+function contentW(){ return PADX*2 + maxMods()*MODW; }
+function contentH(){ return PADTOP + rows.length*ROWH + 50; }
+function cellX(i){ return PADX + i*MODW; }
+function rowY(ri){ return PADTOP + ri*ROWH; }
+
+/* ===== render ===== */
+function elns(tag,a){ const e=document.createElementNS(SVGNS,tag); if(a) for(const k in a) e.setAttribute(k,a[k]); return e; }
+function render(){
+  const sv=$('panel'); sv.innerHTML=''; const W=contentW(), H=contentH();
+  sv.setAttribute('viewBox',`0 0 ${W} ${H}`); sv.setAttribute('width',W*zoom); sv.setAttribute('height',H*zoom);
+  // carcasa
+  sv.appendChild(elns('rect',{x:8,y:8,width:W-16,height:H-16,rx:10,fill:'#eef2f7',stroke:'#34507a','stroke-width':3}));
+  sv.appendChild(elns('rect',{x:14,y:14,width:W-28,height:H-28,rx:7,fill:'#fbfdff',stroke:'#c4d0df'}));
+  rows.forEach((r,ri)=>{ drawRow(sv,ri); });
+  // bara de nul + PE jos
+  const by=PADTOP+rows.length*ROWH+6, W2=maxMods()*MODW;
+  sv.appendChild(elns('rect',{x:PADX,y:by,width:W2,height:BARH,rx:3,fill:'#2f6fd0'}));
+  sv.appendChild(elns('text',{x:PADX+6,y:by+10,'font-size':9,fill:'#fff','font-weight':'700'})).textContent='BARA NUL (N)';
+  sv.appendChild(elns('rect',{x:PADX,y:by+BARH+5,width:W2,height:BARH,rx:3,fill:'#e6c200'}));
+  sv.appendChild(elns('text',{x:PADX+6,y:by+BARH+15,'font-size':9,fill:'#5a4a00','font-weight':'700'})).textContent='BARA PE';
+  renderSummary();
+}
+function drawRow(sv,ri){
+  const y=rowY(ri), cap=rows[ri].mods, W2=cap*MODW, x0=PADX;
+  // sina DIN
+  sv.appendChild(elns('rect',{x:x0-4,y:y+COMB_H+DEV_H+4,width:W2+8,height:9,rx:2,fill:'#c4ccd6',stroke:'#9aa7bb'}));
+  // pieptene faza (sus)
+  const arr=rowCells(ri);
+  for(let i=0;i<cap;i++){ const px=cellX(i); const col= system==='tri'? PH[i%3] : '#e23b3b';
+    sv.appendChild(elns('rect',{x:px+2,y:y+4,width:MODW-4,height:8,rx:2,fill:'#eaeef4',stroke:'#cdd6e1'}));
+    if(arr[i]!==null){ const d=devices.find(z=>z.id===arr[i]); if(d && CAT[d.type].kind!=='blank' && CAT[d.type].kind!=='terminal') sv.appendChild(elns('rect',{x:px+5,y:y+6,width:MODW-10,height:5,rx:1.5,fill:col})); }
+    // slot gol -> tinta de plasare
+    if(arr[i]===null){ const g=elns('rect',{x:px+1,y:y+COMB_H,width:MODW-2,height:DEV_H,rx:3,fill: armType?'#eef7f0':'#f2f6fb',stroke: armType?'#bfe3cc':'#dde6f0','stroke-dasharray':'4 3'}); g.dataset.cell=ri+':'+i; g.style.cursor= armType?'copy':'default'; sv.appendChild(g); }
+  }
+  // dispozitive
+  devices.filter(d=>d.row===ri).sort((a,b)=>a.pos-b.pos).forEach(d=> drawDevice(sv,d,y));
+  // eticheta rand
+  sv.appendChild(elns('text',{x:8+6,y:y+COMB_H+DEV_H/2,'font-size':8,fill:'#9aa7bb',transform:`rotate(-90 ${14} ${y+COMB_H+DEV_H/2})`})).textContent='Rand '+(ri+1);
+}
+function drawDevice(sv,d,y){ const c=CAT[d.type]; const x=cellX(d.pos), w=c.w*MODW, h=DEV_H, top=y+COMB_H;
+  const g=elns('g'); g.dataset.dev=d.id; g.style.cursor='pointer'; sv.appendChild(g);
+  const sel=(selId===d.id);
+  const body=(fill,stroke)=>{ g.appendChild(elns('rect',{x:x+1.5,y:top,width:w-3,height:h,rx:3,fill:fill,stroke:sel?'#1c7bd6':(stroke||'#9aa7bb'),'stroke-width':sel?2.2:1.3})); };
+  const T=(tx,ty,s,fs,col,wt)=>{ const t=elns('text',{x:tx,y:ty,'text-anchor':'middle','font-size':fs||8,fill:col||'#34507a'}); if(wt)t.setAttribute('font-weight',wt); t.style.pointerEvents='none'; t.textContent=s; g.appendChild(t); };
+  const poles=c.w; const cx=x+w/2;
+  if(c.kind==='breaker'||c.kind==='rcbo'){ body('#f4f6f8');
+    g.appendChild(elns('rect',{x:x+3,y:top+3,width:w-6,height:8,rx:1.5,fill:'#d9e0e8'}));
+    g.appendChild(elns('rect',{x:x+3,y:top+h-11,width:w-6,height:8,rx:1.5,fill:'#d9e0e8'}));
+    const lw=Math.min(14,w-8), lx=cx-lw/2, ly=d.on?top+20:top+34;
+    const lev=elns('rect',{x:lx,y:ly,width:lw,height:12,rx:2,fill:d.on?'#1f9d57':'#e2842b'}); lev.dataset.lever=d.id; g.appendChild(lev);
+    T(cx,ly+9,d.on?'I':'O',8,'#fff','700');
+    T(cx,top+h-14,d.rating||c.rating,7.5,'#34507a','700');
+    if(d.circuit) T(cx,top+h-3,trim(d.circuit,Math.floor(w/5)),6.5,'#5d6b82');
+    if(c.kind==='rcbo') T(cx,top+16,'RCBO',6,'#1a8a4f','700');
+  } else if(c.kind==='rcd'){ body('#eef7f0','#1a8a4f');
+    g.appendChild(elns('rect',{x:x+3,y:top+3,width:w-6,height:8,rx:1.5,fill:'#cfe6d6'}));
+    g.appendChild(elns('rect',{x:x+3,y:top+h-11,width:w-6,height:8,rx:1.5,fill:'#cfe6d6'}));
+    const lw=Math.min(14,w-8), lx=cx-lw/2, ly=d.on?top+20:top+34;
+    const lev=elns('rect',{x:lx,y:ly,width:lw,height:12,rx:2,fill:d.on?'#1f9d57':'#e2842b'}); lev.dataset.lever=d.id; g.appendChild(lev);
+    T(cx,ly+9,d.on?'I':'O',8,'#fff','700');
+    g.appendChild(elns('rect',{x:x+w-14,y:top+h-26,width:10,height:10,rx:2,fill:'#1a8a4f'})); T(x+w-9,top+h-18,'T',7,'#fff','700');
+    T(cx,top+16,'30mA',7,'#1a8a4f','700'); T(cx,top+h-14,d.rating||c.rating,7,'#1a8a4f','700');
+  } else if(c.kind==='spd'){ body('#eef2f7','#34507a'); T(cx,top+16,'SPD',8,'#34507a','700');
+    g.appendChild(elns('rect',{x:cx-9,y:top+24,width:18,height:14,rx:2,fill:'#1f9d57'})); T(cx,top+34,'OK',7,'#fff','700');
+    T(cx,top+h-12,d.rating||c.rating,7,'#34507a','700');
+  } else if(c.kind==='contactor'){ body('#dfe5ee','#34507a'); T(cx,top+16,'KM',8,'#34507a','700');
+    g.appendChild(elns('rect',{x:x+6,y:top+26,width:w-12,height:16,rx:2,fill:'#8696b0'})); T(cx,top+37,'A1-A2',6.5,'#fff','700');
+    T(cx,top+h-12,d.rating||c.rating,7,'#34507a','700');
+  } else if(c.kind==='socket'){ body('#eef3f9'); g.appendChild(elns('circle',{cx:cx,cy:top+26,r:13,fill:'#fff',stroke:'#9aa7bb'}));
+    g.appendChild(elns('circle',{cx:cx-4,cy:top+26,r:2,fill:'#34507a'})); g.appendChild(elns('circle',{cx:cx+4,cy:top+26,r:2,fill:'#34507a'}));
+    T(cx,top+h-10,'Priza '+(d.rating||c.rating),7,'#34507a','700');
+  } else if(c.kind==='lamp'){ body('#eef3f9'); g.appendChild(elns('circle',{cx:cx,cy:top+24,r:11,fill:'#ffd23d',stroke:'#caa011'})); T(cx,top+h-12,'Semnal',7,'#9a7b2b','700');
+  } else if(c.kind==='button'){ body('#eef3f9'); g.appendChild(elns('circle',{cx:cx,cy:top+26,r:11,fill:'#1f9d57',stroke:'#0c5'})); T(cx,top+30,'I',9,'#fff','700');
+  } else if(c.kind==='terminal'){ body('#e7ebf0','#9aa7bb'); for(let k=2;k<w*MODW-4;k+=5) g.appendChild(elns('line',{x1:x+k,y1:top+4,x2:x+k,y2:top+h-4,stroke:'#b8c2cf'})); T(cx,top+h/2+3,'cleme',7,'#5d6b82','700');
+  } else { /* blank */ g.appendChild(elns('rect',{x:x+2,y:top+2,width:w-4,height:h-4,rx:3,fill:'#eef2f7',stroke:'#dde6f0','stroke-dasharray':'3 3'})); T(cx,top+h/2+3,'gol',7,'#aeb9c8'); }
+  // legaturi nul/PE (jos) - vizual de ordonare
+  if(c.kind!=='blank'&&c.kind!=='terminal'){ const by=rowY(rows.length-1); const nbarY=PADTOP+rows.length*ROWH+6;
+    if(d.row===rows.length-1){ g.appendChild(elns('line',{x1:cx-3,y1:top+h,x2:cx-3,y2:nbarY,stroke:'#2f6fd0','stroke-width':1.4,opacity:.55}));
+      g.appendChild(elns('line',{x1:cx+3,y1:top+h,x2:cx+3,y2:nbarY+BARH+5,stroke:'#e6c200','stroke-width':1.4,opacity:.55})); } }
+  if(sel){ const xb=elns('g'); xb.dataset.del=d.id; xb.style.cursor='pointer';
+    xb.appendChild(elns('circle',{cx:x+w-2,cy:top-2,r:7,fill:'#c0392b',stroke:'#fff','stroke-width':1.4}));
+    xb.appendChild(elns('path',{d:`M ${x+w-4.5} ${top-4.5} l 5 5 M ${x+w+0.5} ${top-4.5} l -5 5`,stroke:'#fff','stroke-width':1.6,'stroke-linecap':'round'})); sv.appendChild(xb); }
+}
+function trim(s,n){ s=String(s); return s.length>n? s.slice(0,n-1)+'.' : s; }
+
+/* ===== paleta ===== */
+function buildPalette(){ const p=$('palette'); let h='';
+  GROUPS.forEach(([title,keys])=>{ h+='<h4>'+title+'</h4>'; keys.forEach(k=>{ const c=CAT[k];
+    h+='<button class="pbtn" data-add="'+k+'">'+miniIcon(c)+' <span>'+c.name+'</span><span class="mw">'+c.w+' mod</span></button>'; }); });
+  p.innerHTML=h;
+  p.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ armType=(armType===b.dataset.add)?null:b.dataset.add;
+    p.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('on')); if(armType) b.classList.add('on');
+    setInfo(armType?('Click pe un loc liber pe sina ca sa asezi: <b>'+CAT[armType].name+'</b> ('+CAT[armType].w+' module). Sau apasa din nou pentru auto-plasare.'):'Selectie anulata.');
+    render(); });
+}
+function miniIcon(c){ const col=c.kind==='rcd'?'#1f9d57':(c.kind==='socket'?'#2f6fd0':(c.kind==='contactor'?'#8696b0':'#e2842b'));
+  return '<svg width="22" height="20" viewBox="0 0 22 20"><rect x="3" y="2" width="16" height="16" rx="2" fill="#f4f6f8" stroke="#9aa7bb"/><rect x="8" y="6" width="6" height="5" rx="1" fill="'+col+'"/></svg>'; }
+
+/* ===== interactiune ===== */
+$('panel').addEventListener('click',ev=>{
+  const lever=ev.target.closest('[data-lever]'); if(lever){ const d=devices.find(x=>x.id===+lever.dataset.lever); d.on=!d.on; render(); return; }
+  const del=ev.target.closest('[data-del]'); if(del){ devices=devices.filter(x=>x.id!==+del.dataset.del); selId=null; render(); renderEditor(); return; }
+  const cell=ev.target.closest('[data-cell]'); if(cell && armType){ const [ri,i]=cell.dataset.cell.split(':').map(Number); const w=CAT[armType].w;
+    if(fits(ri,i,w)){ const d=addDev(armType,ri,i); selId=d.id; render(); renderEditor(); } else setInfo('Nu incape aici ('+w+' module). Alege alt loc.'); return; }
+  const dev=ev.target.closest('[data-dev]'); if(dev){ selId=+dev.dataset.dev; render(); renderEditor(); return; }
+  selId=null; render(); renderEditor();
+});
+
+/* auto-plasare: dublu-click pe buton paleta (sau click buton cand e deja armat) */
+$('palette').addEventListener('dblclick',ev=>{ const b=ev.target.closest('[data-add]'); if(b){ const d=placeAuto(b.dataset.add); if(d){ selId=d.id; render(); renderEditor(); } } });
+
+/* ===== editor lateral ===== */
+function renderEditor(){ const e=$('editor'); const d=devices.find(x=>x.id===selId);
+  if(!d){ e.innerHTML='<p class="hint" style="margin-top:12px">Selecteaza o piesa ca sa o editezi, sau alege din catalog si aseaz-o pe sina.</p>'; return; }
+  const c=CAT[d.type];
+  e.innerHTML='<h4 style="margin-top:14px">'+c.name+'</h4>'+
+    '<label class="fld">Amperaj / tip</label><input id="eRat" value="'+esc(d.rating)+'">'+
+    '<label class="fld">Nume circuit</label><input id="eCirc" placeholder="ex: Prize bucatarie" value="'+esc(d.circuit)+'">'+
+    '<button class="btn" id="eLeft">&larr; Muta stanga</button><button class="btn" id="eRight">Muta dreapta &rarr;</button>'+
+    '<button class="btn bad" id="eDel">Sterge piesa</button>';
+  $('eRat').oninput=()=>{ d.rating=$('eRat').value; render(); };
+  $('eCirc').oninput=()=>{ d.circuit=$('eCirc').value; render(); };
+  $('eLeft').onclick=()=>moveDev(d,-1); $('eRight').onclick=()=>moveDev(d,1);
+  $('eDel').onclick=()=>{ devices=devices.filter(x=>x.id!==d.id); selId=null; render(); renderEditor(); };
+}
+function moveDev(d,dir){ const w=CAT[d.type].w; const np=d.pos+dir; if(fits(d.row,np,w,d.id)){ d.pos=np; render(); } }
+
+function renderSummary(){ const used=devices.reduce((s,d)=>s+CAT[d.type].w,0); const cap=rows.reduce((s,r)=>s+r.mods,0);
+  const need=Math.ceil(used*1.3); const STD=[12,18,24,36,48,54,72]; const pick=STD.find(s=>s>=need)||Math.ceil(need/12)*12;
+  $('summary').innerHTML='Sistem: <b>'+(system==='tri'?'Trifazat':'Monofazat')+'</b><br>Randuri sina: <b>'+rows.length+'</b><br>Module ocupate: <b>'+used+'</b> / '+cap+
+    '<br>Piese: <b>'+devices.length+'</b><br>Recomandat (cu 30% rezerva): <b>'+pick+' module</b>';
+}
+function setInfo(h){ $('info').innerHTML=h; }
+
+/* ===== controale ===== */
+document.querySelectorAll('#sys button').forEach(b=> b.onclick=()=>{ system=b.dataset.sys; document.querySelectorAll('#sys button').forEach(x=>x.classList.toggle('on',x===b)); render(); });
+$('addRow').onclick=()=>{ rows.push({mods:parseInt($('mods').value,10)||24}); render(); };
+$('delRow').onclick=()=>{ if(rows.length<=1) return; const ri=rows.length-1; if(devices.some(d=>d.row===ri)){ if(!confirm('Randul are piese. Le stergi odata cu randul?')) return; devices=devices.filter(d=>d.row!==ri); } rows.pop(); render(); };
+$('mods').onchange=()=>{ const m=parseInt($('mods').value,10); rows.forEach(r=>r.mods=m); devices=devices.filter(d=>{ if(d.pos+CAT[d.type].w>m){ return false; } return true; }); render(); };
+$('zIn').onclick=()=>{ zoom=Math.min(2.4,zoom*1.15); render(); };
+$('zOut').onclick=()=>{ zoom=Math.max(.5,zoom/1.15); render(); };
+
+/* ===== modale ===== */
+function openModal(html){ $('modalBody').innerHTML='<button class="close" onclick="closeModal()">✕</button>'+html; $('modal').classList.add('on'); }
+function closeModal(){ $('modal').classList.remove('on'); }
+$('modal').addEventListener('click',e=>{ if(e.target===$('modal')) closeModal(); });
+
+/* ===== lista materiale ===== */
+function bom(){ const map={}; devices.forEach(d=>{ const c=CAT[d.type]; if(c.kind==='blank') return; const key=c.name+(d.rating?(' '+d.rating):''); map[key]=(map[key]||0)+1; });
+  const rowsB=Object.keys(map).sort().map(k=>[k,map[k],'buc']);
+  rowsB.push(['Sina DIN (rand)',rows.length,'buc']);
+  rowsB.push(['Pieptene distributie faza',rows.length,'buc']);
+  rowsB.push(['Bara de nul (N)',1,'buc']);
+  rowsB.push(['Bara de impamantare (PE)',1,'buc']);
+  const used=devices.reduce((s,d)=>s+CAT[d.type].w,0); const STD=[12,18,24,36,48,54,72]; const pick=STD.find(s=>s>=Math.ceil(used*1.3))||72;
+  rowsB.push(['Carcasa / tablou '+pick+' module',1,'buc']);
+  rowsB.push(['Conductor faza/nul (estimativ)',Math.max(5,devices.length*2),'m']);
+  return rowsB;
+}
+$('genBOM').onclick=()=>{ const b=bom();
+  let h='<h2>📋 Lista de materiale</h2><table><thead><tr><th>Material</th><th>Cant.</th><th>UM</th></tr></thead><tbody>'+
+    b.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>').join('')+'</tbody></table>'+
+    '<div class="dl"><button class="btn" style="width:auto" onclick="dlCSV()">⬇ Descarca CSV</button><button class="btn" style="width:auto" onclick="window.print()">🖨 Printeaza</button></div>';
+  openModal(h); };
+function dlCSV(){ const b=bom(); const csv='Material,Cantitate,UM\n'+b.map(r=>'"'+r[0]+'",'+r[1]+','+r[2]).join('\n'); dl('lista-materiale.csv',csv,'text/csv'); }
+
+/* ===== tutorial montaj ===== */
+$('genTut').onclick=()=>{ const steps=[
+  'Monteaza carcasa pe perete si fixeaza sinele DIN orizontale.',
+  'Aseaza intai protectia generala (disjunctor general) in stanga primului rand.',
+  'Monteaza diferentialul (RCD) imediat dupa general; verifica butonul de test.',
+  'Distribuie fazele cu pieptenele pe capetele de sus ale sigurantelor'+(system==='tri'?' (rotind L1-L2-L3 pe coloane).':' (toate pe aceeasi faza).'),
+  'Monteaza sigurantele de circuit de la stanga la dreapta, in ordine logica (lumina, prize, consumatori mari).',
+  'Leaga nulurile circuitelor la bara de nul (N), ordonat, fara incrucisari.',
+  'Leaga conductoarele de protectie (PE) la bara PE.',
+  'Eticheteaza fiecare circuit (nume + amperaj).',
+  'Strange toate bornele la cuplul recomandat si verifica vizual.',
+  'Testeaza: ridica sigurantele, verifica diferentialul cu butonul de test, masoara continuitatea PE.'
+];
+  let h='<h2>🛠 Tutorial de montaj</h2>'+steps.map((s,i)=>'<div class="step"><span class="n">'+(i+1)+'</span><span>'+s+'</span></div>').join('')+
+    '<p class="hint" style="margin-top:10px">Respecta separarea pe circuite si rezerva de ~30% module pentru viitor.</p>';
+  openModal(h); };
+
+/* ===== export poza / schita ===== */
+function svgString(){ const sv=$('panel').cloneNode(true); sv.removeAttribute('width'); sv.removeAttribute('height'); const W=contentW(),H=contentH(); sv.setAttribute('width',W); sv.setAttribute('height',H);
+  return '<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(sv); }
+$('genSVG').onclick=()=>dl('tablou-schita.svg',svgString(),'image/svg+xml');
+$('genPNG').onclick=()=>{ const W=contentW(),H=contentH(); const img=new Image();
+  img.onload=()=>{ const cv=document.createElement('canvas'); cv.width=W*2; cv.height=H*2; const ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height); ctx.drawImage(img,0,0,cv.width,cv.height); const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='tablou-poza.png'; a.click(); };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgString()); };
+function dl(name,content,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:type||'text/plain'})); a.download=name; a.click(); }
+
+/* ===== salvare ===== */
+window.PROFCEISS_PROJECT={app:'tablotier',label:'Tablou',full:true,
+  getState(){ return {rows,devices,uid,system,zoom}; },
+  setState(s){ if(!s) return; rows=s.rows||[{mods:24}]; devices=s.devices||[]; uid=s.uid||1; system=s.system||'mono'; zoom=s.zoom||1;
+    document.querySelectorAll('#sys button').forEach(x=>x.classList.toggle('on',x.dataset.sys===system)); selId=null; render(); renderEditor(); }
+};
+
+/* ===== start ===== */
+buildPalette(); render(); renderEditor();
+// demo: general + rcd + cateva sigurante
+(function demo(){ const g=addDev('main2',0,0); const r=addDev('rcd2',0,2); ['mcb1','mcb1','mcb2','mcb1'].forEach((t,i)=>{ const s=freeStart(0,CAT[t].w); if(s>=0) addDev(t,0,s); }); render(); renderSummary(); })();
+</script>
+<script src="../assets/profceiss-projects.js" defer></script>
+</body>
+</html>
