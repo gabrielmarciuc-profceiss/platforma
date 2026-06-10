@@ -550,7 +550,7 @@ document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.da
 function renderSwatches(){ const c=$('swatches'); if(!c) return;
   c.innerHTML=CABLE_COLORS.map(x=>`<div class="swatch${x.h===activeColor?' on':''}" data-col="${x.h}" title="${x.n}" style="background:${x.h}"></div>`).join('');
   const cur=CABLE_COLORS.find(x=>x.h===activeColor); $('swName').textContent= (sel&&sel.kind==='wire')?('Schimba culoarea firului selectat: '+(cur?cur.n:'')):(cur?cur.n:'');
-  c.querySelectorAll('.swatch').forEach(s=> s.onclick=()=>{ activeColor=s.dataset.col; if(sel&&sel.kind==='wire'){ const w=wires.find(x=>x.id===sel.id); if(w){ w.color=activeColor; pushHist(); } } renderSwatches(); render(); }); }
+  c.querySelectorAll('.swatch').forEach(s=> s.onclick=()=>{ activeColor=s.dataset.col; if(sel&&sel.kind==='wire'){ const w=wires.find(x=>x.id===sel.id); if(w){ w.color=activeColor; pushHist(); } } render(); if(typeof hideColorPop==='function') hideColorPop(); }); }
 renderSwatches();
 
 /* zoom */
