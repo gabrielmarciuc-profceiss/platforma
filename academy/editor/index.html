@@ -111,7 +111,7 @@
       <button class="tool" id="tUndo">↶ Undo</button>
       <button class="tool" id="tClear">🗑 Goleste</button>
     </div>
-    <div class="hint" id="hint">Adauga piese din stanga. Mod <b>Fir</b>: click pe o borna, apoi pe alta. Click pe maneta sigurantei o ridica/coboara. <b>Simuleaza</b> verifica circuitul.</div>
+    <div class="hint" id="hint">Mod <b>Fir</b>: click pe o borna, apoi pe alta (sau click pe un fir ca sa legi firele intre ele). <b>Radius</b> regleaza rotunjirea coltului firului selectat (0 = patrat). Trage o <b>siguranta</b> peste o <b>bara</b> ca sa o asezi si sa o conectezi automat. Click pe maneta = ridica/coboara. <b>Simuleaza</b> verifica circuitul.</div>
     <div class="hud">
       <div class="msg" id="msg">Construieste un tablou: pune <b>Alimentare</b>, <b>sigurante</b>, leaga firele la un <b>motor</b>, apoi apasa <b>Simuleaza</b>.</div>
       <div class="zoom">
@@ -469,6 +469,8 @@ function setMode(m){ mode=m; wireStart=null; addType=null;
 $('tSelect').onclick=()=>setMode('select');
 $('tWire').onclick=()=>setMode('wire');
 $('tBend').onclick=()=>setMode('bend');
+$('wireR').oninput=e=>{ const v=+e.target.value; if(sel&&sel.kind==='wire'){ const w=wires.find(x=>x.id===sel.id); if(w) w.r=v; } else { GLOBAL_R=v; } render(); };
+$('wireR').onchange=()=>pushHist();
 $('delMode').onclick=()=>setMode('delete');
 $('tUndo').onclick=undo;
 $('tClear').onclick=()=>{ if(confirm('Golesti schema?')){ comps=[];wires=[];sel=null;stopSim(); pushHist(); render(); } };
@@ -513,6 +515,7 @@ function buildUF(){
     else if(d.switchpole && c.on){ uf.union(tid(c.id,'in'),tid(c.id,'out')); }
     else if(d.button){ const closed=(d.button==='NO')?!!c.pressed:!c.pressed; if(closed) uf.union(tid(c.id,'p1'),tid(c.id,'p2')); }
     else if(d.contactor && c.energized){ for(let k=1;k<=3;k++) uf.union(tid(c.id,'in'+k),tid(c.id,'out'+k)); uf.union(tid(c.id,'13'),tid(c.id,'14')); }
+    else if(d.node && c.tap){ uf.union(tid(c.id,'p'), tid(c.tap.comp,c.tap.term)); }   // nod pe fir
     // sarcini (motor/bec/lampa/priza) + bobina contactor: fara union intern
   });
   return uf;
