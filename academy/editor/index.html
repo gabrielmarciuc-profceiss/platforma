@@ -52,6 +52,23 @@
     .pbtn{font-size:11px;padding:6px}
     .hint{display:none}
   }
+  @media (max-width:640px){
+    header{padding:6px 8px;gap:6px}
+    header .ttl{font-size:13px}
+    .palette{width:108px;padding:6px}
+    .palette h4{font-size:9px;margin:8px 1px 4px}
+    .pbtn{font-size:10px;padding:5px;gap:4px}
+    .pbtn svg{width:18px;height:18px}
+    /* bara de unelte: o singura linie cu scroll, ca sa nu acopere desenul */
+    .topbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-width:calc(100% - 16px);top:8px;left:8px;padding-bottom:3px;-webkit-overflow-scrolling:touch}
+    .tool{padding:7px 9px;font-size:12px;white-space:nowrap;flex:none}
+    .topbar>span:not(.tool){display:none}
+    .hud{flex-direction:column;gap:6px}
+    .msg{font-size:11.5px;max-width:none}
+    .zoom{margin-left:0}
+    .zoom button{width:40px;height:40px}
+    #colorPop{max-width:190px}
+  }
 </style>
 </head>
 <body>
@@ -63,9 +80,6 @@
 
 <div class="main">
   <div class="palette">
-    <h4>Culoare cablu</h4>
-    <div class="swatches" id="swatches"></div>
-    <p id="swName" style="font-size:11px;color:var(--muted);margin:2px 0 6px;min-height:14px"></p>
     <h4>Alimentare</h4>
     <button class="pbtn" data-add="supply"><svg width="26" height="26" viewBox="0 0 26 26"><rect x="3" y="6" width="20" height="14" rx="2" fill="#c9d3e2" stroke="#5d6b82"/><text x="13" y="16" font-size="7" text-anchor="middle" fill="#1d2b44" font-weight="700">400V</text></svg> Alimentare 3F+N</button>
     <button class="pbtn" data-add="supply1"><svg width="26" height="26" viewBox="0 0 26 26"><rect x="3" y="6" width="20" height="14" rx="2" fill="#c9d3e2" stroke="#5d6b82"/><text x="13" y="16" font-size="7" text-anchor="middle" fill="#1d2b44" font-weight="700">230V</text></svg> Alimentare mono</button>
@@ -108,6 +122,11 @@
       <button class="tool" id="tDelSel" style="background:#fdecec;border-color:#e6b8b8">✖ Sterge piesa</button>
       <button class="tool" id="tUndo">↶ Undo</button>
       <button class="tool" id="tClear">🗑 Goleste</button>
+    </div>
+    <div id="colorPop" style="position:absolute;display:none;z-index:6;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;box-shadow:0 8px 22px rgba(20,40,80,.18);max-width:216px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Culoare cablu</div>
+      <div class="swatches" id="swatches"></div>
+      <p id="swName" style="font-size:11px;color:var(--muted);margin:4px 0 0;min-height:14px"></p>
     </div>
     <div class="hint" id="hint">Mod <b>Fir</b>: click pe o borna, apoi pe alta (sau click pe un fir ca sa legi firele intre ele). <b>Radius</b> regleaza rotunjirea coltului firului selectat (0 = patrat). Trage o <b>siguranta</b> peste o <b>bara</b> ca sa o asezi si sa o conectezi automat. Click pe maneta = ridica/coboara. <b>Simuleaza</b> verifica circuitul.</div>
     <div class="hud">
@@ -206,24 +225,35 @@ function toWorld(ev){ const r=cv.getBoundingClientRect(); const px=(ev.clientX-r
 
 /* ===== render ===== */
 function el(tag,attrs){ const e=document.createElementNS(SVGNS,tag); if(attrs) for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
-function orthoPath(a,b,r,vf){
+function roundedPath(pts,r){ if(pts.length<2) return ''; let d='M '+pts[0].x+' '+pts[0].y;
+  for(let i=1;i<pts.length-1;i++){ const p0=pts[i-1],p1=pts[i],p2=pts[i+1];
+    const v1x=p1.x-p0.x,v1y=p1.y-p0.y,v2x=p2.x-p1.x,v2y=p2.y-p1.y; const l1=Math.hypot(v1x,v1y)||1,l2=Math.hypot(v2x,v2y)||1; const rr=Math.min(r,l1/2,l2/2);
+    d+=' L '+(p1.x-v1x/l1*rr)+' '+(p1.y-v1y/l1*rr)+' Q '+p1.x+' '+p1.y+' '+(p1.x+v2x/l2*rr)+' '+(p1.y+v2y/l2*rr); }
+  const L=pts[pts.length-1]; return d+' L '+L.x+' '+L.y;
+}
+// regula generala: fiecare fir pe banda lui, ca sa nu se suprapuna (lane = deplasare laterala)
+function orthoPath(a,b,r,vf,lane){ lane=lane||0; const GAP=6;
   const dx=b.x-a.x, dy=b.y-a.y;
-  if(Math.abs(dx)<2||Math.abs(dy)<2) return `M ${a.x} ${a.y} L ${b.x} ${b.y}`;   // aliniate -> drept
-  r=Math.max(0, Math.min(r, Math.abs(dx)-1, Math.abs(dy)-1));
-  const sx=Math.sign(dx), sy=Math.sign(dy);
-  if(vf){ const cx=a.x, cy=b.y;   // vertical intai
-    return `M ${a.x} ${a.y} L ${cx} ${cy-sy*r} Q ${cx} ${cy} ${cx+sx*r} ${cy} L ${b.x} ${b.y}`; }
-  const cx=b.x, cy=a.y;           // orizontal intai
-  return `M ${a.x} ${a.y} L ${cx-sx*r} ${cy} Q ${cx} ${cy} ${cx} ${cy+sy*r} L ${b.x} ${b.y}`;
+  if(Math.abs(dx)<2&&Math.abs(dy)<2) return `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
+  if(Math.abs(dx)<2){ if(!lane) return `M ${a.x} ${a.y} L ${b.x} ${b.y}`; const off=lane*GAP, sy=Math.sign(dy||1); return roundedPath([a,{x:a.x+off,y:a.y+sy*9},{x:a.x+off,y:b.y-sy*9},b],r); }
+  if(Math.abs(dy)<2){ if(!lane) return `M ${a.x} ${a.y} L ${b.x} ${b.y}`; const off=lane*GAP, sx=Math.sign(dx||1); return roundedPath([a,{x:a.x+sx*9,y:a.y+off},{x:b.x-sx*9,y:a.y+off},b],r); }
+  if(vf){ const laneY=b.y+lane*GAP; return roundedPath([a,{x:a.x,y:laneY},{x:b.x,y:laneY},b],r); }
+  const laneX=b.x+lane*GAP; return roundedPath([a,{x:laneX,y:a.y},{x:laneX,y:b.y},b],r);
+}
+function assignLanes(){ const g={};
+  wires.forEach(w=>{ const a=termWorld(compById(w.a.comp),w.a.term), b=termWorld(compById(w.b.comp),w.b.term); const vf=(w.vf!==false); w._la=a; w._lb=b;
+    const key=vf? ('H'+Math.round(b.y/4)) : ('V'+Math.round(b.x/4)); (g[key]=g[key]||[]).push(w); });
+  Object.keys(g).forEach(k=>{ const arr=g[k]; const horiz=k[0]==='H'; arr.sort((p,q)=> horiz? (p._la.x-q._la.x):(p._la.y-q._la.y)); arr.forEach((w,i)=> w._lane = arr.length>1? (i-(arr.length-1)/2) : 0); });
 }
 function render(){
   cv.innerHTML='';
   const root=el('g',{transform:`translate(${view.x},${view.y}) scale(${view.s})`}); cv.appendChild(root);
   const gW=el('g'), gC=el('g'); root.appendChild(gW); root.appendChild(gC);
-  // fire (traseu ortogonal cu colturi rotunjite)
+  assignLanes();
+  // fire (traseu ortogonal cu colturi rotunjite, fiecare pe banda lui)
   wires.forEach(w=>{ const a=termWorld(compById(w.a.comp),w.a.term), b=termWorld(compById(w.b.comp),w.b.term);
     const r=(w.r!=null?w.r:GLOBAL_R); const vf=(w.vf!==false);
-    const p=el('path',{d:orthoPath(a,b,r,vf),fill:'none',stroke:w.color,'stroke-width':3.4,'stroke-linecap':'round','stroke-linejoin':'round'});
+    const p=el('path',{d:orthoPath(a,b,r,vf,w._lane||0),fill:'none',stroke:w.color,'stroke-width':3.4,'stroke-linecap':'round','stroke-linejoin':'round'});
     p.dataset.wire=w.id; if(w.live) p.setAttribute('class','livewire');
     if(sel&&sel.kind==='wire'&&sel.id===w.id){ p.setAttribute('stroke-width',4.4); }
     gW.appendChild(p);
@@ -449,10 +479,10 @@ function onDown(ev){
   if(mode==='wire' && !term){ const we=ev.target.closest('[data-wire]'); if(we){ const w=wires.find(x=>x.id===+we.dataset.wire); const pt=toWorld(ev); const n=addNode(pt.x,pt.y,{comp:w.a.comp,term:w.a.term}); wireStart={comp:n.id,term:'p'}; pushHist(); render(); setMsg('Nod creat pe fir. Click pe alta borna ca sa continui legatura.'); return; } }
   if(mode==='delete'){ if(compEl){ delComp(+compEl.dataset.comp); } else { const we=ev.target.closest('[data-wire]'); if(we) delWire(+we.dataset.wire); } return; }
   const we=ev.target.closest('[data-wire]');
-  if(mode==='select' && we && !compEl){ sel={kind:'wire',id:+we.dataset.wire}; const w=wires.find(x=>x.id===sel.id); if(w&&w.color) activeColor=w.color; syncRadius(); renderSwatches(); render(); return; }
-  if(mode==='select' && compEl){ const c=compById(+compEl.dataset.comp); const w0=toWorld(ev); drag={kind:'comp',c,ox:w0.x-c.x,oy:w0.y-c.y,moved:false}; sel={kind:'comp',id:c.id}; renderSwatches(); render(); return; }
+  if(mode==='select' && we && !compEl){ sel={kind:'wire',id:+we.dataset.wire}; const w=wires.find(x=>x.id===sel.id); if(w&&w.color) activeColor=w.color; syncRadius(); renderSwatches(); showColorPop(); render(); return; }
+  if(mode==='select' && compEl){ const c=compById(+compEl.dataset.comp); const w0=toWorld(ev); drag={kind:'comp',c,ox:w0.x-c.x,oy:w0.y-c.y,moved:false}; sel={kind:'comp',id:c.id}; renderSwatches(); if(mode!=='wire') hideColorPop(); render(); return; }
   // pan
-  drag={kind:'pan',sx:ev.clientX,sy:ev.clientY,vx:view.x,vy:view.y}; sel=null; renderSwatches(); render();
+  drag={kind:'pan',sx:ev.clientX,sy:ev.clientY,vx:view.x,vy:view.y}; sel=null; renderSwatches(); if(mode!=='wire') hideColorPop(); render();
 }
 function onMove(ev){ if(!drag) return;
   if(drag.kind==='pan'){ view.x=drag.vx+(ev.clientX-drag.sx); view.y=drag.vy+(ev.clientY-drag.sy); render(); }
@@ -485,11 +515,16 @@ function delComp(id){ comps=comps.filter(c=>c.id!==id); wires=wires.filter(w=>w.
 function delWire(id){ wires=wires.filter(w=>w.id!==id); sel=null; pushHist(); render(); }
 
 /* ===== unelte ===== */
+function showColorPop(){ const pop=$('colorPop'), btn=$('tWire'), wrap=document.querySelector('.cwrap'); if(!pop||!btn||!wrap) return;
+  const br=btn.getBoundingClientRect(), cr=wrap.getBoundingClientRect();
+  pop.style.left=Math.round(br.left-cr.left)+'px'; pop.style.top=Math.round(br.bottom-cr.top+6)+'px'; pop.style.display='block'; renderSwatches(); }
+function hideColorPop(){ const pop=$('colorPop'); if(pop) pop.style.display='none'; }
 function setMode(m){ mode=m; wireStart=null; addType=null;
   [['tSelect','select'],['tWire','wire'],['tBend','bend']].forEach(([id,mm])=>$(id).classList.toggle('on',m===mm));
   document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));
   $('delMode').classList.toggle('on',m==='delete');
   cv.style.cursor = m==='wire'?'crosshair':(m==='delete'?'not-allowed':'default');
+  if(m==='wire') showColorPop(); else hideColorPop();
   render();
 }
 $('tSelect').onclick=()=>setMode('select');
