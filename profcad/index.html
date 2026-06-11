@@ -41,6 +41,13 @@
   .walls .wchip{display:flex;align-items:center;gap:4px;flex:none;font-size:11px;color:var(--muted);border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 7px;white-space:nowrap}
   .walls .wchip b{color:var(--pv)}
   .walls .wchip input{width:56px;padding:3px 4px;font-size:11.5px}
+  .elems{display:flex;flex-direction:column;gap:4px;padding:4px 8px;max-height:130px;overflow-y:auto}
+  .elems:empty{display:none}
+  .elems .ehead{font-size:11px;font-weight:700;color:var(--muted)}
+  .elems .erow{display:flex;align-items:center;gap:5px;font-size:11px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;background:#fff}
+  .elems .erow .enm{flex:1;font-weight:600}
+  .elems .erow input{width:46px;padding:2px 3px;font-size:11px}
+  .elems .erow .xb{border:1px solid #e6b8b8;background:#fdecec;color:#c0392b;border-radius:6px;padding:1px 7px;font-weight:700;cursor:pointer}
   .dims{display:flex;gap:10px;flex-wrap:wrap;padding:8px;border-top:1px solid var(--line);align-items:center;font-size:12px;color:var(--muted)}
   .dims label{display:flex;align-items:center;gap:5px}
   .dims input{width:64px}
@@ -130,8 +137,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-import Delaunator from 'https://cdn.jsdelivr.net/npm/delaunator@5.0.1/+esm';
 const $=id=>document.getElementById(id);
+let Delaunator=null; import('https://cdn.jsdelivr.net/npm/delaunator@5.0.1/+esm').then(m=>{ Delaunator=m.default||m; try{ if(footClosed) build3D(); }catch(e){} }).catch(()=>{});
 
 /* ===== stare (metri) ===== */
 let foot=[{x:0,z:0},{x:8,z:0},{x:8,z:6},{x:0,z:6}];
@@ -141,7 +148,7 @@ let pendingRidge=null, mouseW=null;        // primul capat plasat + pozitia mous
 let openings=[];               // {wall,pos,w,sill,head,type}
 let chimneys=[];               // {x,z,size,height}
 let wallH=3.0, ridgeRaise=1.6, orientationDeg=0, roofType='tigla', eaveOverhang=0.4, roofLogic='auto';
-let chimSize=0.6, chimH=1.0, openType='fereastra';
+let chimSize=0.6, chimH=1.0, openType='';
 let pvItems=[];                // elemente sistem fotovoltaic plasate {cat,name,h,w,d (m),x,z,place}
 let veluxes=[];                // ferestre de mansarda {x,z,w,l (m)} pe acoperis
 let roofEdgesCache=[], roofScaleCache=1;   // pt inaltimea acoperisului intr-un punct (velux)
@@ -152,7 +159,7 @@ function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map
 function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,orientationDeg,roofType}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
 function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; orientationDeg=o.orientationDeg; roofType=o.roofType;
-  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); }
+  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); renderElemList(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
 /* ===== canvas 2D ===== */
@@ -312,7 +319,8 @@ function switchCat(cat){ document.querySelectorAll('.cat').forEach(x=>x.classLis
   $('toolsCasa').style.display = cat==='casa'?'flex':'none';
   $('toolsPv').style.display   = cat==='pv'?'flex':'none';
   $('dimsCasa').style.display  = cat==='casa'?'flex':'none';
-  $('wallList').style.display  = cat==='casa'?'':'none'; }
+  $('wallList').style.display  = cat==='casa'?'':'none';
+  $('elemList').style.display  = cat==='casa'?'':'none'; }
 document.querySelectorAll('.cat').forEach(b=> b.onclick=()=>switchCat(b.dataset.cat));
 document.querySelectorAll('.vbtn').forEach(b=> b.onclick=()=>setView(b.dataset.view));
 
@@ -345,6 +353,27 @@ function renderBom(){ const host=$('bom'); if(!host) return; if(!pvItems.length)
   host.innerHTML=html;
   host.querySelectorAll('select[data-bi]').forEach(s=> s.onchange=()=>{ const it=pvItems[+s.dataset.bi]; if(it){ it.place=s.value; build3D(); commit(); } });
   host.querySelectorAll('button[data-del]').forEach(b=> b.onclick=()=>{ pvItems.splice(+b.dataset.del,1); drawPlan(); build3D(); renderBom(); commit(); }); }
+
+/* ===== lista unificata de elemente (usa/fereastra/horn/velux) cu cote in cm + delete ===== */
+function elemLabel(t){ return ({usa:'Usa',gol_usa:'Gol usa',fereastra:'Fereastra',gol_fereastra:'Gol fereastra'})[t]||t; }
+function renderElemList(){ const host=$('elemList'); if(!host) return;
+  if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#elemList')) return;
+  const total=openings.length+chimneys.length+veluxes.length; if(!total){ host.innerHTML=''; return; }
+  let h='<div class="ehead">Elemente ('+total+') · cote in cm</div>';
+  openings.forEach((o,i)=>{ h+='<div class="erow"><span class="enm">🚪 '+elemLabel(o.type)+'</span>L<input type="number" data-ow="'+i+'" min="30" step="5" value="'+Math.round(o.w*100)+'">H<input type="number" data-oh="'+i+'" min="30" step="5" value="'+Math.round((o.head-o.sill)*100)+'"><button class="xb" data-od="'+i+'">x</button></div>'; });
+  chimneys.forEach((c,i)=>{ h+='<div class="erow"><span class="enm">🏠 Horn</span>L<input type="number" data-cw="'+i+'" min="20" step="5" value="'+Math.round(c.size*100)+'">H<input type="number" data-cc="'+i+'" min="20" step="10" value="'+Math.round(c.height*100)+'"><button class="xb" data-cd="'+i+'">x</button></div>'; });
+  veluxes.forEach((v,i)=>{ h+='<div class="erow"><span class="enm">🪟 Velux</span>Lg<input type="number" data-vl="'+i+'" min="40" step="5" value="'+Math.round(v.l*100)+'">Lt<input type="number" data-vw="'+i+'" min="40" step="5" value="'+Math.round(v.w*100)+'"><button class="xb" data-vd="'+i+'">x</button></div>'; });
+  host.innerHTML=h;
+  const upd=()=>{ drawPlan(); build3D(); commit(); };
+  host.querySelectorAll('[data-ow]').forEach(el=>el.onchange=()=>{ const o=openings[+el.dataset.ow]; if(o) o.w=Math.max(0.3,(parseInt(el.value,10)||90)/100); upd(); });
+  host.querySelectorAll('[data-oh]').forEach(el=>el.onchange=()=>{ const o=openings[+el.dataset.oh]; if(o) o.head=Math.min(wallH,o.sill+(parseInt(el.value,10)||100)/100); upd(); });
+  host.querySelectorAll('[data-od]').forEach(el=>el.onclick=()=>{ openings.splice(+el.dataset.od,1); upd(); renderElemList(); });
+  host.querySelectorAll('[data-cw]').forEach(el=>el.onchange=()=>{ const c=chimneys[+el.dataset.cw]; if(c) c.size=Math.max(0.2,(parseInt(el.value,10)||60)/100); upd(); });
+  host.querySelectorAll('[data-cc]').forEach(el=>el.onchange=()=>{ const c=chimneys[+el.dataset.cc]; if(c) c.height=Math.max(0.2,(parseInt(el.value,10)||100)/100); upd(); });
+  host.querySelectorAll('[data-cd]').forEach(el=>el.onclick=()=>{ chimneys.splice(+el.dataset.cd,1); upd(); renderElemList(); });
+  host.querySelectorAll('[data-vl]').forEach(el=>el.onchange=()=>{ const v=veluxes[+el.dataset.vl]; if(v) v.l=Math.max(0.4,(parseInt(el.value,10)||118)/100); upd(); });
+  host.querySelectorAll('[data-vw]').forEach(el=>el.onchange=()=>{ const v=veluxes[+el.dataset.vw]; if(v) v.w=Math.max(0.4,(parseInt(el.value,10)||78)/100); upd(); });
+  host.querySelectorAll('[data-vd]').forEach(el=>el.onclick=()=>{ veluxes.splice(+el.dataset.vd,1); upd(); renderElemList(); }); }
 
 /* ===== catalog din Excel (sheet-uri: Invertor, Panouri, Echipament electric, Baterii) ===== */
 function pvStatus(t){ const s=$('pvStatus'); if(s) s.textContent=t; }
@@ -541,12 +570,12 @@ function animate(){ requestAnimationFrame(animate); controls.update(); renderer.
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
   getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,orientationDeg,roofType}; },
   setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; veluxes=s.veluxes||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
-    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); }
+    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); renderElemList(); }
 };
 
 /* ===== start ===== */
 window.addEventListener('resize',()=>{ sizeView(); drawPlan(); });
-sizeView(); setTools(); drawCompassDial(); drawPlan(); build3D(); renderBom(); commit(); animate();
+sizeView(); setTools(); drawCompassDial(); drawPlan(); build3D(); renderBom(); renderElemList(); commit(); animate();
 </script>
 <script src="../assets/profceiss-projects.js" defer></script>
 </body>
