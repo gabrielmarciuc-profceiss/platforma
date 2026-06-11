@@ -89,6 +89,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import Delaunator from 'https://cdn.jsdelivr.net/npm/delaunator@5.0.1/+esm';
 const $=id=>document.getElementById(id);
 
 /* ===== stare (metri) ===== */
@@ -121,6 +122,20 @@ function computeMap(){ const W=pc.clientWidth,H=pc.clientHeight,pts=allPts(); le
 const SX=x=>planMap.ox+x*planMap.s, SY=z=>planMap.oy-z*planMap.s;
 function world(ev){ const r=pc.getBoundingClientRect(); return {x:(ev.clientX-r.left-planMap.ox)/planMap.s, z:(planMap.oy-(ev.clientY-r.top))/planMap.s}; }
 const snap=v=>Math.round(v/0.05)*0.05;
+/* ===== geometrie comuna ===== */
+function projOnSeg(p,a,b){ const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1; let t=((p.x-a.x)*dx+(p.z-a.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); return {x:a.x+t*dx,z:a.z+t*dz}; }
+function pointInPoly(x,z){ let inside=false; const n=foot.length; for(let i=0,j=n-1;i<n;j=i++){ const xi=foot[i].x,zi=foot[i].z,xj=foot[j].x,zj=foot[j].z; if(((zi>z)!==(zj>z)) && (x<(xj-xi)*(z-zi)/((zj-zi)||1e-9)+xi)) inside=!inside; } return inside; }
+function distToFoot(p){ let d=1e9; const n=foot.length; for(let i=0;i<n;i++){ const q=projOnSeg(p,foot[i],foot[(i+1)%n]); d=Math.min(d,Math.hypot(p.x-q.x,p.z-q.z)); } return d; }
+// lipeste un punct de coama (capat/segment) sau colt existent, ca sa imbini coamele
+function snapRidgePoint(w){
+  let best=null,bd=0.4; ridges.forEach(r=>['a','b'].forEach(k=>{ const d=Math.hypot(w.x-r[k].x,w.z-r[k].z); if(d<bd){bd=d;best={x:r[k].x,z:r[k].z};} }));
+  if(best) return best;
+  let bs=null,bsd=0.3; ridges.forEach(r=>{ const q=projOnSeg(w,r.a,r.b); const d=Math.hypot(w.x-q.x,w.z-q.z); if(d<bsd){bsd=d;bs=q;} });
+  if(bs) return {x:snap(bs.x),z:snap(bs.z)};
+  let bc=null,bcd=0.4; foot.forEach(p=>{ const d=Math.hypot(w.x-p.x,w.z-p.z); if(d<bcd){bcd=d;bc=p;} });
+  if(bc) return {x:bc.x,z:bc.z};
+  return {x:snap(w.x),z:snap(w.z)};
+}
 
 function drawPlan(){ fitPC(); computeMap(); const W=pc.clientWidth,H=pc.clientHeight; px.clearRect(0,0,W,H);
   px.strokeStyle='#dce5f0'; px.lineWidth=1; const pts=allPts(); let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; pts.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
@@ -155,16 +170,15 @@ function nearestWall(w){ let bi=-1,bd=0.6,bt=0; const n=foot.length; for(let i=0
 pc.addEventListener('pointerdown',ev=>{ const w=world(ev);
   if(mode==='addwall'){ const hit=nearestWall(w); if(hit){ const A=foot[hit.wall],B=foot[(hit.wall+1)%foot.length]; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; foot.splice(hit.wall+1,0,{x:snap(A.x+ux/L*hit.pos),z:snap(A.z+uz/L*hit.pos)}); openings=openings.filter(o=>o.wall!==hit.wall); openings.forEach(o=>{ if(o.wall>hit.wall) o.wall++; }); mode='edit'; setTools(); drawPlan(); build3D(); } return; }
   if(mode==='del'){ delElement(w); return; }
-  if(mode==='edit'){ const i=nearest(foot,w,0.35); if(i>=0) drag={kind:'foot',i}; return; }
+  if(mode==='edit'){ const i=nearest(foot,w,0.35); if(i>=0){ drag={kind:'foot',i}; return; }
+    let best=null,bd=0.35; ridges.forEach((r,ri)=>['a','b'].forEach(k=>{ const d=Math.hypot(w.x-r[k].x,w.z-r[k].z); if(d<bd){bd=d;best={ri,k};} })); if(best) drag={kind:'ridge',ri:best.ri,k:best.k}; return; }
   if(mode==='horn'){ const i=nearest(chimneys,w,0.4); if(i>=0){ drag={kind:'horn',i}; return; } chimneys.push({x:snap(w.x),z:snap(w.z),size:chimSize,height:chimH}); drawPlan(); build3D(); return; }
   if(mode==='open'){ const hit=nearestWall(w); if(hit){ const d=OPEN_DEF[openType]; const L=wallLen(hit.wall); let pos=Math.max(0,Math.min(L-d.w,hit.pos-d.w/2)); openings.push({wall:hit.wall,pos,w:d.w,sill:d.sill,head:Math.min(d.head,wallH),type:openType}); drawPlan(); build3D(); } return; }
   if(mode==='ridge'){
-    // prinde un capat existent ca sa-l muti
-    let best=null,bd=0.35; ridges.forEach((r,ri)=>{ ['a','b'].forEach(k=>{ const d=Math.hypot(w.x-r[k].x,w.z-r[k].z); if(d<bd){bd=d;best={ri,k};} }); });
-    if(best){ drag={kind:'ridge',ri:best.ri,k:best.k}; return; }
-    // plaseaza capete: click 1 = un capat, click 2 = celalalt capat
-    if(!pendingRidge){ pendingRidge={x:snap(w.x),z:snap(w.z)}; }
-    else { const b={x:snap(w.x),z:snap(w.z)}; if(Math.hypot(b.x-pendingRidge.x,b.z-pendingRidge.z)>0.05){ ridges.push({a:pendingRidge,b}); } pendingRidge=null; commit(); }
+    // doar desen: click 1 = un capat, click 2 = celalalt capat. Se lipeste de coame/colturi existente (imbinare).
+    const p=snapRidgePoint(w);
+    if(!pendingRidge){ pendingRidge=p; }
+    else { if(Math.hypot(p.x-pendingRidge.x,p.z-pendingRidge.z)>0.05){ ridges.push({a:pendingRidge,b:p}); } pendingRidge=null; commit(); }
     drawPlan(); build3D(); return; }
   // contur
   if(footClosed){ footClosed=false; foot=[]; openings=[]; }
@@ -176,7 +190,7 @@ pc.addEventListener('pointermove',ev=>{ if(!drag) return; const w=world(ev);
   else if(drag.kind==='ridge'){ const r=ridges[drag.ri]; if(r) r[drag.k]={x:snap(w.x),z:snap(w.z)}; }
   else if(drag.kind==='horn'){ chimneys[drag.i].x=snap(w.x); chimneys[drag.i].z=snap(w.z); }
   drawPlan(); build3D(); });
-pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){ mouseW=world(ev); drawPlan(); } });
+pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){ mouseW=snapRidgePoint(world(ev)); drawPlan(); } });
 window.addEventListener('pointerup',()=>{ drag=null; commit(); });
 pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&pendingRidge){ pendingRidge=null; drawPlan(); } });
 pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
@@ -247,6 +261,26 @@ function meshFromTris(arr,mat){ const g=new THREE.BufferGeometry(); g.setAttribu
 function V(x,y,z){ return {x,y,z}; }
 function centroidXZ(){ let x=0,z=0; foot.forEach(p=>{x+=p.x;z+=p.z;}); return {x:x/foot.length,z:z/foot.length}; }
 function nearestOnRidges(p,y){ let best=null,bd=1e9; ridges.forEach(r=>{ const a=r.a,b=r.b; const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1; let t=((p.x-a.x)*dx+(p.z-a.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=a.x+t*dx,qz=a.z+t*dz,d=(p.x-qx)**2+(p.z-qz)**2; if(d<bd){bd=d;best={x:qx,y,z:qz};} }); return best; }
+// inaltimea acoperisului intr-un punct: cort pe camp de distante (perete=jos, coama=sus) -> formeaza vai si T-uri
+function roofYat(p){ const dW=distToFoot(p); const nr=nearestOnRidges(p,0); const dR=nr?Math.hypot(p.x-nr.x,p.z-nr.z):1e9; const s=dW+dR; return wallH + (s<1e-6?0:ridgeRaise*dW/s); }
+function buildRoofTent(rpos){
+  let mnx=1e9,mxx=-1e9,mnz=1e9,mxz=-1e9; foot.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mnz=Math.min(mnz,p.z);mxz=Math.max(mxz,p.z);});
+  const step=Math.max(0.3, Math.min(mxx-mnx,mxz-mnz)/22);
+  const pts=[], seen=new Set(); const add=(x,z)=>{ const k=Math.round(x/0.1)+'_'+Math.round(z/0.1); if(seen.has(k)) return; seen.add(k); pts.push({x,z}); };
+  // puncte pe pereti (streasina) + putin in interior, ca sa prinda forma
+  const n=foot.length;
+  for(let i=0;i<n;i++){ const A=foot[i],B=foot[(i+1)%n]; const L=Math.hypot(B.x-A.x,B.z-A.z)||1; const seg=Math.max(1,Math.round(L/step)); for(let k=0;k<seg;k++){ const t=k/seg; add(A.x+(B.x-A.x)*t, A.z+(B.z-A.z)*t); } }
+  // puncte pe coame (creasta) ca varfurile sa fie definite
+  ridges.forEach(r=>{ const L=Math.hypot(r.b.x-r.a.x,r.b.z-r.a.z)||1; const seg=Math.max(1,Math.round(L/step)); for(let k=0;k<=seg;k++){ const t=k/seg; const x=r.a.x+(r.b.x-r.a.x)*t, z=r.a.z+(r.b.z-r.a.z)*t; if(pointInPoly(x,z)) add(x,z); } });
+  // grila interioara
+  for(let x=mnx+step*0.5;x<mxx;x+=step) for(let z=mnz+step*0.5;z<mxz;z+=step){ if(pointInPoly(x,z) && distToFoot({x,z})>step*0.35) add(x,z); }
+  if(pts.length<3) return;
+  let tris; try{ tris=Delaunator.from(pts,p=>p.x,p=>p.z).triangles; }catch(e){ return; }
+  const H=pts.map(roofYat);
+  for(let i=0;i<tris.length;i+=3){ const ia=tris[i],ib=tris[i+1],ic=tris[i+2]; const A=pts[ia],B=pts[ib],C=pts[ic];
+    const cx=(A.x+B.x+C.x)/3, cz=(A.z+B.z+C.z)/3; if(!pointInPoly(cx,cz)) continue;   // pastreaza doar triunghiurile din interior
+    tri(rpos, V(A.x,H[ia],A.z), V(B.x,H[ib],B.z), V(C.x,H[ic],C.z)); }
+}
 function makeText(t,color){ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle=color; x.font='bold 46px system-ui'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(t,32,34); const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); sp.scale.set(1.1,1.1,1.1); return sp; }
 
 function build3D(){
@@ -274,9 +308,8 @@ function build3D(){
   // podea
   const fpos=[]; for(let i=1;i<n-1;i++) tri(fpos,V(foot[0].x,0,foot[0].z),V(foot[i].x,0,foot[i].z),V(foot[i+1].x,0,foot[i+1].z)); building.add(meshFromTris(fpos,matFloor));
   // acoperis
-  const rpos=[]; const ry=wallH+ridgeRaise;
-  if(ridges.length && ridgeRaise>0.02){ const apex=foot.map(p=> nearestOnRidges(p,ry)||V(p.x,ry,p.z));
-    for(let i=0;i<n;i++){ const a=V(foot[i].x,wallH,foot[i].z),b=V(foot[(i+1)%n].x,wallH,foot[(i+1)%n].z),aa=apex[i],ab=apex[(i+1)%n]; tri(rpos,a,b,ab); tri(rpos,a,ab,aa); } }
+  const rpos=[];
+  if(ridges.length && ridgeRaise>0.02) buildRoofTent(rpos);
   else { for(let i=1;i<n-1;i++) tri(rpos,V(foot[0].x,wallH+0.1,foot[0].z),V(foot[i].x,wallH+0.1,foot[i].z),V(foot[i+1].x,wallH+0.1,foot[i+1].z)); }
   building.add(meshFromTris(rpos,matRoof));
   // hornuri
