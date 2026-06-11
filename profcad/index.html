@@ -248,9 +248,9 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
 }
 
 /* ===== elevatie 2D pe fatade ===== */
-function elevH(p){ if(planView==='spate') return -p.x; if(planView==='dreapta') return p.z; if(planView==='stanga') return -p.z; return p.x; }
+function elevH(p){ if(planView==='spate') return -p.x; if(planView==='dreapta') return -p.z; if(planView==='stanga') return p.z; return p.x; }
 function wallFaces(i){ const n=foot.length, A=foot[i],B=foot[(i+1)%n]; let dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; const c=centroidXZ(); const mx=(A.x+B.x)/2,mz=(A.z+B.z)/2; let nx=dz,nz=-dx; if((mx-c.x)*nx+(mz-c.z)*nz<0){ nx=-nx; nz=-nz; } const dir=({fata:{x:0,z:1},spate:{x:0,z:-1},dreapta:{x:1,z:0},stanga:{x:-1,z:0}})[planView]||{x:0,z:1}; return (nx*dir.x+nz*dir.z)>0.25; }
-function hd2xz(h,depth){ if(planView==='spate') return {x:-h,z:depth}; if(planView==='dreapta') return {x:depth,z:h}; if(planView==='stanga') return {x:depth,z:-h}; return {x:h,z:depth}; }
+function hd2xz(h,depth){ if(planView==='spate') return {x:-h,z:depth}; if(planView==='dreapta') return {x:depth,z:-h}; if(planView==='stanga') return {x:depth,z:h}; return {x:h,z:depth}; }
 // silueta reala a acoperisului vazut din fatada: pt fiecare coloana h, inaltimea maxima peste adancime (acelasi algoritm ca 3D auto)
 function roofProfile(wMn,wMx){ const prof=[]; const P=autoRoofParams();
   if(!P.edges.length){ prof.push({h:wMn,y:wallH}); prof.push({h:wMx,y:wallH}); return prof; }
