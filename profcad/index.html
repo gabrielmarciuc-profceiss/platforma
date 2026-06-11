@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R60 (buton panou + catalog)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R61 (fix PV mod+lista)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -366,7 +366,7 @@ pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev
       if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hl+2){ drag={kind:'velux',i}; return; } } }
   // manere elemente PV: X = sterge, corp = muta
   { const sp=screenPt(ev); for(let i=pvItems.length-1;i>=0;i--){ const it=pvItems[i], cx=SX(it.x), cy=SY(it.z), hw=Math.max(5,it.w*planMap.s/2), hd=Math.max(5,it.d*planMap.s/2);
-      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hd))<12){ pvItems.splice(i,1); drawPlan(); build3D(); renderBom(); commit(); return; }
+      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hd))<12){ pvItems.splice(i,1); renderBom(); drawPlan(); build3D(); commit(); return; }
       if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hd+2){ drag={kind:'pv',i}; return; } } }
   // manere goluri (usa/fereastra): X = sterge, corp = muta pe perete
   { const sp=screenPt(ev); for(let i=openings.length-1;i>=0;i--){ const o=openings[i],A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) continue; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2),cx=SX(mx),cy=SY(mz);
@@ -434,7 +434,9 @@ function switchCat(cat){ document.querySelectorAll('.cat').forEach(x=>x.classLis
   $('toolsPv').style.display   = cat==='pv'?'flex':'none';
   $('dimsCasa').style.display  = cat==='casa'?'flex':'none';
   $('wallList').style.display  = cat==='casa'?'':'none';
-  $('elemList').style.display  = cat==='casa'?'':'none'; }
+  $('elemList').style.display  = cat==='casa'?'':'none';
+  if(cat==='pv'){ if(mode==='open'){ mode='edit'; } openType=''; const sel=$('openType'); if(sel){ sel.value=''; } setTools(); }   // nu mai ramane "adauga usa/fereastra" activ in PV
+}
 document.querySelectorAll('.cat').forEach(b=> b.onclick=()=>switchCat(b.dataset.cat));
 document.querySelectorAll('.vbtn').forEach(b=> b.onclick=()=>setView(b.dataset.view));
 document.querySelectorAll('.pvb').forEach(b=> b.onclick=()=>{ planView=b.dataset.pview; document.querySelectorAll('.pvb').forEach(x=>x.classList.toggle('on',x===b)); planZoom=1; planPan={x:0,y:0}; drawPlan(); orient3DToFacade(planView); });
@@ -467,7 +469,7 @@ function renderBom(){ const host=$('bom'); if(!host) return; if(!pvItems.length)
     '<button data-del="'+idx+'" class="btn bad" style="padding:2px 7px">x</button></div>'; });
   host.innerHTML=html;
   host.querySelectorAll('select[data-bi]').forEach(s=> s.onchange=()=>{ const it=pvItems[+s.dataset.bi]; if(it){ it.place=s.value; build3D(); commit(); } });
-  host.querySelectorAll('button[data-del]').forEach(b=> b.onclick=()=>{ pvItems.splice(+b.dataset.del,1); drawPlan(); build3D(); renderBom(); commit(); }); }
+  host.querySelectorAll('button[data-del]').forEach(b=> b.onclick=()=>{ b.blur(); pvItems.splice(+b.dataset.del,1); renderBom(); drawPlan(); build3D(); commit(); }); }
 
 /* ===== lista unificata de elemente (usa/fereastra/horn/velux) cu cote in cm + delete ===== */
 function elemLabel(t){ return ({usa:'Usa',gol_usa:'Gol usa',fereastra:'Fereastra',gol_fereastra:'Gol fereastra'})[t]||t; }
