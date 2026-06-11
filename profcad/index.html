@@ -169,9 +169,9 @@ function allPts(){ const a=foot.slice(); ridges.forEach(r=>a.push(r.a,r.b)); if(
 function computeMap(){ const W=pc.clientWidth,H=pc.clientHeight,pts=allPts(); let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; pts.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
   const pad=46,baseS=Math.min((W-2*pad)/Math.max(1,mxx-mnx),(H-2*pad)/Math.max(1,mxz-mnz)),bS=Math.min(80,Math.max(8,baseS));
   const s=bS*planZoom,cx=(mnx+mxx)/2,cz=(mnz+mxz)/2;
-  planMap={s, ox:W/2-cx*s+planPan.x, oy:H/2+cz*s+planPan.y}; }
-const SX=x=>planMap.ox+x*planMap.s, SY=z=>planMap.oy-z*planMap.s;
-function world(ev){ const r=pc.getBoundingClientRect(); return {x:(ev.clientX-r.left-planMap.ox)/planMap.s, z:(planMap.oy-(ev.clientY-r.top))/planMap.s}; }
+  planMap={s, ox:W/2-cx*s+planPan.x, oy:H/2-cz*s+planPan.y}; }
+const SX=x=>planMap.ox+x*planMap.s, SY=z=>planMap.oy+z*planMap.s;   // +z in jos pe ecran => Nord (-z) sus, la fel ca in 3D (nu mai e oglinda)
+function world(ev){ const r=pc.getBoundingClientRect(); return {x:(ev.clientX-r.left-planMap.ox)/planMap.s, z:((ev.clientY-r.top)-planMap.oy)/planMap.s}; }
 const snap=v=>Math.round(v/0.05)*0.05;
 /* ===== geometrie comuna ===== */
 function projOnSeg(p,a,b){ const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1; let t=((p.x-a.x)*dx+(p.z-a.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); return {x:a.x+t*dx,z:a.z+t*dz}; }
@@ -210,7 +210,7 @@ function drawPlan(){ fitPC(); computeMap(); const W=pc.clientWidth,H=pc.clientHe
       const p1={x:A.x+ux*o.pos,z:A.z+uz*o.pos}, p2={x:A.x+ux*(o.pos+o.w),z:A.z+uz*(o.pos+o.w)};
       px.strokeStyle=o.type.indexOf('usa')>=0?'#8a5a2b':'#3a9fd6'; px.lineWidth=6; px.beginPath(); px.moveTo(SX(p1.x),SY(p1.z)); px.lineTo(SX(p2.x),SY(p2.z)); px.stroke(); });
     px.fillStyle='#1b2a44'; px.font='700 12px system-ui'; const n=footClosed?foot.length:foot.length-1;
-    for(let i=0;i<n;i++){ const a2=foot[i],b=foot[(i+1)%foot.length]; const len=Math.round(Math.hypot(b.x-a2.x,b.z-a2.z)*100); px.fillText(len+' cm',(SX(a2.x)+SX(b.x))/2,(SY(a2.z)+SY(b.z))/2-6); }
+    for(let i=0;i<n;i++){ const a2=foot[i],b=foot[(i+1)%foot.length]; const len=Math.round(Math.hypot(b.x-a2.x,b.z-a2.z)*100); const mx2=(SX(a2.x)+SX(b.x))/2,my2=(SY(a2.z)+SY(b.z))/2; px.fillStyle='#1b2a44'; px.fillText(len+' cm',mx2,my2-6); px.fillStyle='#1c7bd6'; px.font='800 12px system-ui'; px.fillText('P'+(i+1),mx2,my2+9); px.font='700 12px system-ui'; }
     foot.forEach((p,i)=>{ px.fillStyle=(i===0&&mode==='foot')?'#34d399':'#ffb020'; px.beginPath(); px.arc(SX(p.x),SY(p.z),6,0,7); px.fill(); }); }
   // coame (segmente)
   ridges.forEach(r=>{ px.strokeStyle='#d98200'; px.lineWidth=3; px.setLineDash([7,5]); px.beginPath(); px.moveTo(SX(r.a.x),SY(r.a.z)); px.lineTo(SX(r.b.x),SY(r.b.z)); px.stroke(); px.setLineDash([]);
@@ -309,9 +309,9 @@ pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){
 window.addEventListener('pointerup',()=>{ drag=null; commit(); });
 pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&pendingRidge){ pendingRidge=null; drawPlan(); } });
 pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
-  const wx=(mx-planMap.ox)/planMap.s, wz=(planMap.oy-my)/planMap.s;
+  const wx=(mx-planMap.ox)/planMap.s, wz=(my-planMap.oy)/planMap.s;
   planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89)));
-  computeMap(); planPan.x += mx-(planMap.ox+wx*planMap.s); planPan.y += my-(planMap.oy-wz*planMap.s);
+  computeMap(); planPan.x += mx-(planMap.ox+wx*planMap.s); planPan.y += my-(planMap.oy+wz*planMap.s);
   drawPlan();
 },{passive:false});
 /* ===== categorii post-it (Elemente casa / Sistem fotovoltaic) ===== */
@@ -531,6 +531,10 @@ function build3D(){
     ops.forEach(o=>{ const mat=(o.type==='usa')?matDoor:(o.type==='fereastra')?matWin:null; if(!mat) return; const fp=[]; tri(fp,P(o.pos,o.sill),P(o.e,o.sill),P(o.e,o.head)); tri(fp,P(o.pos,o.sill),P(o.e,o.head),P(o.pos,o.head)); building.add(meshFromTris(fp,mat)); });
   }
   building.add(meshFromTris(wpos,matWall));
+  // etichete pereti P1, P2... in 3D (la fel ca in plan)
+  { let area=0; for(let i=0;i<n;i++){ const a=foot[i],b=foot[(i+1)%n]; area+=a.x*b.z-b.x*a.z; } const sg=area>0?1:-1;
+    for(let i=0;i<n;i++){ const A=foot[i],B=foot[(i+1)%n]; const mx=(A.x+B.x)/2,mz=(A.z+B.z)/2; let dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; const ox=dz*sg,oz=-dx*sg;
+      const s=makeText('P'+(i+1),'#1c7bd6'); s.position.set(mx+ox*0.45, wallH*0.6, mz+oz*0.45); s.scale.set(0.9,0.9,0.9); building.add(s); } }
   // podea
   const fpos=[]; for(let i=1;i<n-1;i++) tri(fpos,V(foot[0].x,0,foot[0].z),V(foot[i].x,0,foot[i].z),V(foot[i+1].x,0,foot[i+1].z)); building.add(meshFromTris(fpos,matFloor));
   // acoperis (pe conturul marit cu streasina)
@@ -542,9 +546,13 @@ function build3D(){
   building.add(meshFromTris(rpos,matRoof));
   // hornuri
   chimneys.forEach(ch=>{ const total=ridgeRaise+ch.height; const m=new THREE.Mesh(new THREE.BoxGeometry(ch.size,total,ch.size),matChim); m.position.set(ch.x, wallH+total/2, ch.z); building.add(m); });
-  // velux (fereastra de mansarda) plata pe acoperis
-  const matVlx=new THREE.MeshStandardMaterial({color:0x9fd2ff,roughness:.25,metalness:.1,transparent:true,opacity:.75,side:THREE.DoubleSide});
-  veluxes.forEach(v=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(v.w,0.06,v.l),matVlx); m.position.set(v.x, roofHeightAt(v.x,v.z)+0.05, v.z); building.add(m); });
+  // velux (fereastra de mansarda) - se aseaza pe panta, inclinata dupa apa acoperisului
+  const matVlx=new THREE.MeshStandardMaterial({color:0x9fd2ff,roughness:.25,metalness:.1,transparent:true,opacity:.8,side:THREE.DoubleSide});
+  veluxes.forEach(v=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(v.w,0.07,v.l),matVlx);
+    let nx=0,nz=0;   // normala pantei: surface y = wallH + scale*distInterioara, deci gradient = scale*normalaInterioara
+    if(roofLogic==='auto' && roofEdgesCache.length){ let bd=1e9,best=null; for(const e of roofEdgesCache){ const d=(v.x-e.ax)*e.nx+(v.z-e.az)*e.nz; if(d<bd){bd=d;best=e;} } if(best){ nx=-roofScaleCache*best.nx; nz=-roofScaleCache*best.nz; } }
+    const nrm=new THREE.Vector3(nx,1,nz).normalize(); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),nrm);
+    m.position.set(v.x, roofHeightAt(v.x,v.z)+0.04, v.z); building.add(m); });
   // elemente sistem fotovoltaic (cutii la dimensiunile din Excel)
   const PV_COL={ invertor:0x2b6cb0, baterii:0x2f855a, echipament:0x6b7280, panouri:0x1a3a6b };
   pvItems.forEach(it=>{ const mat=new THREE.MeshStandardMaterial({color:PV_COL[it.cat]||0x2b6cb0,roughness:.55,metalness:.2});
