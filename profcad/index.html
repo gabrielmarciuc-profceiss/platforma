@@ -160,9 +160,9 @@ let planZoom=1, planPan={x:0,y:0}; const history=[];
 let planView='sus', elevMap={s:30,ox:0,oy:0};   // Sus = plan; fata/spate/stanga/dreapta = elevatie 2D
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
 function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
-function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,orientationDeg,roofType}); }
+function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,orientationDeg,roofType}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
-function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; orientationDeg=o.orientationDeg; roofType=o.roofType;
+function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; if(o.ridgeA0!=null)ridgeA0=o.ridgeA0; if(o.ridgeA1!=null)ridgeA1=o.ridgeA1; if(o.ridgeOffFrac!=null)ridgeOffFrac=o.ridgeOffFrac; orientationDeg=o.orientationDeg; roofType=o.roofType;
   $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); renderElemList(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
@@ -359,8 +359,13 @@ pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev
       if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hd+2){ drag={kind:'pv',i}; return; } } }
   // manere goluri (usa/fereastra): X = sterge, corp = muta pe perete
   { const sp=screenPt(ev); for(let i=openings.length-1;i>=0;i--){ const o=openings[i],A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) continue; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2),cx=SX(mx),cy=SY(mz);
-      if(Math.hypot(sp.x-(cx+10),sp.y-(cy-10))<12){ openings.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
+      if(Math.hypot(sp.x-(cx+10),sp.y-(cy-10))<12){ openings.splice(i,1); drawPlan(); build3D(); renderElemList(true); commit(); return; }
       if(Math.hypot(sp.x-cx,sp.y-cy)<11){ drag={kind:'opening',i}; return; } } }
+  // buline coama in plan: capete (alungire) + mijloc (mutare)
+  if(footClosed && foot.length>=3 && ridgeRaise>0.02 && roofLogic==='auto'){ const sp=screenPt(ev); const rs=ridgeSeg(); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2;
+    if(Math.hypot(sp.x-SX(rs.a.x),sp.y-SY(rs.a.z))<13){ drag={kind:'rdgEnd',end:'a'}; return; }
+    if(Math.hypot(sp.x-SX(rs.b.x),sp.y-SY(rs.b.z))<13){ drag={kind:'rdgEnd',end:'b'}; return; }
+    if(Math.hypot(sp.x-SX(mx),sp.y-SY(mz))<13){ drag={kind:'rdgMid',lx:w.x,lz:w.z}; return; } }
   if(mode==='addwall'){ const hit=nearestWall(w); if(hit){ const A=foot[hit.wall],B=foot[(hit.wall+1)%foot.length]; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; foot.splice(hit.wall+1,0,{x:snap(A.x+ux/L*hit.pos),z:snap(A.z+uz/L*hit.pos)}); openings=openings.filter(o=>o.wall!==hit.wall); openings.forEach(o=>{ if(o.wall>hit.wall) o.wall++; }); mode='edit'; setTools(); drawPlan(); build3D(); } return; }
   if(mode==='del'){ delElement(w); return; }
   if(mode==='edit'){ const i=nearest(foot,w,0.35); if(i>=0){ drag={kind:'foot',i}; return; }
@@ -399,6 +404,8 @@ pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev
   else if(drag.kind==='velux'){ const v=veluxes[drag.i]; if(v){ v.x=snap(w.x); v.z=snap(w.z); } }
   else if(drag.kind==='veluxsize'){ const v=veluxes[drag.i]; if(v){ v.w=Math.max(0.4,Math.min(3,snap(Math.abs(w.x-v.x)*2))); v.l=Math.max(0.4,Math.min(4,snap(Math.abs(w.z-v.z)*2))); } }
   else if(drag.kind==='opening'){ const o=openings[drag.i]; const hit=nearestWall(w); if(o&&hit){ o.wall=hit.wall; const L=wallLen(hit.wall); o.pos=Math.max(0,Math.min(L-o.w,hit.pos-o.w/2)); } }
+  else if(drag.kind==='rdgEnd'){ const b=roofBBox(),axX=ridgeAxisX(); const aMn=axX?b.xmn:b.zmn,aMx=axX?b.xmx:b.zmx; let f=((axX?w.x:w.z)-aMn)/((aMx-aMn)||1); f=Math.max(0,Math.min(1,f)); if(drag.end==='a') ridgeA0=Math.min(f,ridgeA1-0.03); else ridgeA1=Math.max(f,ridgeA0+0.03); }
+  else if(drag.kind==='rdgMid'){ const b=roofBBox(),axX=ridgeAxisX(); const aMn=axX?b.xmn:b.zmn,aMx=axX?b.xmx:b.zmx,pMn=axX?b.zmn:b.xmn,pMx=axX?b.zmx:b.xmx; const aL=(aMx-aMn)||1,pL=(pMx-pMn)||1; const len=ridgeA1-ridgeA0; let c=(ridgeA0+ridgeA1)/2+((axX?w.x:w.z)-(axX?drag.lx:drag.lz))/aL; c=Math.max(len/2,Math.min(1-len/2,c)); ridgeA0=c-len/2; ridgeA1=c+len/2; ridgeOffFrac=Math.max(-0.45,Math.min(0.45,((axX?w.z:w.x)-(pMn+pMx)/2)/pL)); drag.lx=w.x; drag.lz=w.z; }
   drawPlan(); build3D(); renderElemList(); });
 pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){ mouseW=snapRidgePoint(world(ev)); drawPlan(); } });
 window.addEventListener('pointerup',()=>{ drag=null; commit(); });
@@ -693,8 +700,8 @@ function animate(){ requestAnimationFrame(animate);
 
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
-  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,orientationDeg,roofType}; },
-  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; veluxes=s.veluxes||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
+  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,orientationDeg,roofType}; },
+  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; veluxes=s.veluxes||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; if(s.ridgeA0!=null)ridgeA0=s.ridgeA0; if(s.ridgeA1!=null)ridgeA1=s.ridgeA1; if(s.ridgeOffFrac!=null)ridgeOffFrac=s.ridgeOffFrac; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
     $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); renderElemList(); }
 };
 
