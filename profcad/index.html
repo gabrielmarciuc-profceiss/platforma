@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R65 (elemente dupa inclinatia suportului)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R66 (lista componente per fatada)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -459,7 +459,7 @@ function switchCat(cat){ curCat=cat; document.querySelectorAll('.cat').forEach(x
 }
 document.querySelectorAll('.cat').forEach(b=> b.onclick=()=>switchCat(b.dataset.cat));
 document.querySelectorAll('.vbtn').forEach(b=> b.onclick=()=>setView(b.dataset.view));
-document.querySelectorAll('.pvb').forEach(b=> b.onclick=()=>{ planView=b.dataset.pview; document.querySelectorAll('.pvb').forEach(x=>x.classList.toggle('on',x===b)); planZoom=1; planPan={x:0,y:0}; drawPlan(); orient3DToFacade(planView); });
+document.querySelectorAll('.pvb').forEach(b=> b.onclick=()=>{ planView=b.dataset.pview; document.querySelectorAll('.pvb').forEach(x=>x.classList.toggle('on',x===b)); planZoom=1; planPan={x:0,y:0}; drawPlan(); renderBom(); orient3DToFacade(planView); });
 
 /* ===== catalog PV (implicit; suprascris de Excel) ===== dimensiuni in cm: h=inaltime, w=latime, d=grosime */
 const PV_DEFAULT={
