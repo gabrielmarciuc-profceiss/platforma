@@ -28,6 +28,11 @@
   #plan{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
   .right{flex:1;position:relative;min-width:0;background:linear-gradient(160deg,#dfe8f2,#eef3f9)}
   #view{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .walls{display:flex;gap:6px;overflow-x:auto;padding:6px 8px;border-top:1px solid var(--line);background:var(--panel2)}
+  .walls:empty{display:none}
+  .walls .wchip{display:flex;align-items:center;gap:4px;flex:none;font-size:11px;color:var(--muted);border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 7px;white-space:nowrap}
+  .walls .wchip b{color:var(--pv)}
+  .walls .wchip input{width:56px;padding:3px 4px;font-size:11.5px}
   .dims{display:flex;gap:10px;flex-wrap:wrap;padding:8px;border-top:1px solid var(--line);align-items:center;font-size:12px;color:var(--muted)}
   .dims label{display:flex;align-items:center;gap:5px}
   .dims input{width:64px}
@@ -62,10 +67,11 @@
     </div>
     <div class="planwrap">
       <canvas id="plan"></canvas>
-      <div class="hint" id="hint"><b>Contur</b>: pune colturile, click pe primul (verde) = inchizi. <b>＋ Perete</b>: click pe o muchie ca sa inserezi un colt/perete. <b>＋ Coama</b>: trage o coama noua. <b>Usa/Fereastra</b>: click pe perete. <b>Horn</b>: click pe acoperis. <b>🗑 Sterge element</b>: click pe orice (perete, coama, usa, horn) ca sa-l stergi individual. <b>Orientare</b> roteste Nordul.</div>
+      <div class="hint" id="hint"><b>Contur</b>: pune colturile, click pe primul (verde) = inchizi. <b>＋ Perete</b>: click pe o muchie ca sa inserezi un colt/perete. <b>＋ Coama</b>: click = un capat, al doilea click = celalalt capat (linia de varf). Ambele capete stau sus la inaltimea coamei; pantele coboara singure spre pereti. Poti pune oricate coame. <b>Usa/Fereastra</b>: click pe perete. <b>Horn</b>: click pe acoperis. <b>🗑 Sterge element</b>: click pe orice (perete, coama, usa, horn) ca sa-l stergi individual. <b>Orientare</b> roteste Nordul.</div>
     </div>
+    <div class="walls" id="wallList"></div>
     <div class="dims">
-      <label>Pereti <input id="wallH" type="number" min="180" max="600" step="10" value="300"> cm</label>
+      <label>Inaltime pereti <input id="wallH" type="number" min="180" max="600" step="10" value="300"> cm</label>
       <label>Coama <input id="ridgeH" type="number" min="0" max="400" step="10" value="160"> cm</label>
       <label>Acoperis <select id="roofType" style="width:auto"><option value="tigla">Tigla</option><option value="tabla">Tabla cutata</option><option value="tabla_tigla">Tabla tip tigla</option><option value="terasa">Terasa (membrana)</option></select></label>
       <label>Orientare <input id="orient" type="number" min="0" max="359" step="5" value="0"> &deg;</label>
@@ -88,7 +94,8 @@ const $=id=>document.getElementById(id);
 /* ===== stare (metri) ===== */
 let foot=[{x:0,z:0},{x:8,z:0},{x:8,z:6},{x:0,z:6}];
 let footClosed=true;
-let ridges=[[{x:0,z:3},{x:8,z:3}]];
+let ridges=[{a:{x:0,z:3},b:{x:8,z:3}}];   // coame = segmente {a,b}, ambele capete la inaltimea coamei
+let pendingRidge=null, mouseW=null;        // primul capat plasat + pozitia mouse (linie elastica)
 let openings=[];               // {wall,pos,w,sill,head,type}
 let chimneys=[];               // {x,z,size,height}
 let wallH=3.0, ridgeRaise=1.6, orientationDeg=0, roofType='tigla';
@@ -96,16 +103,17 @@ let chimSize=0.6, chimH=1.0, openType='fereastra';
 let mode='foot', drag=null, planMap={s:30,ox:0,oy:0};
 let planZoom=1, planPan={x:0,y:0}; const history=[];
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
+function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
 function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,wallH,ridgeRaise,orientationDeg,roofType}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
-function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=o.ridges; openings=o.openings; chimneys=o.chimneys; wallH=o.wallH; ridgeRaise=o.ridgeRaise; orientationDeg=o.orientationDeg; roofType=o.roofType;
+function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; wallH=o.wallH; ridgeRaise=o.ridgeRaise; orientationDeg=o.orientationDeg; roofType=o.roofType;
   $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('orient').value=orientationDeg; $('roofType').value=roofType; drawPlan(); build3D(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
 /* ===== canvas 2D ===== */
 const pc=$('plan'), px=pc.getContext('2d');
 function fitPC(){ const r=pc.getBoundingClientRect(),dpr=devicePixelRatio||1; pc.width=r.width*dpr; pc.height=r.height*dpr; px.setTransform(dpr,0,0,dpr,0,0); }
-function allPts(){ const a=foot.slice(); ridges.forEach(r=>a.push(...r)); chimneys.forEach(c=>a.push(c)); return a.length?a:[{x:0,z:0},{x:6,z:4}]; }
+function allPts(){ const a=foot.slice(); ridges.forEach(r=>a.push(r.a,r.b)); if(pendingRidge) a.push(pendingRidge); chimneys.forEach(c=>a.push(c)); return a.length?a:[{x:0,z:0},{x:6,z:4}]; }
 function computeMap(){ const W=pc.clientWidth,H=pc.clientHeight,pts=allPts(); let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; pts.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
   const pad=46,baseS=Math.min((W-2*pad)/Math.max(1,mxx-mnx),(H-2*pad)/Math.max(1,mxz-mnz)),bS=Math.min(80,Math.max(8,baseS));
   const s=bS*planZoom,cx=(mnx+mxx)/2,cz=(mnz+mxz)/2;
@@ -130,10 +138,15 @@ function drawPlan(){ fitPC(); computeMap(); const W=pc.clientWidth,H=pc.clientHe
     px.fillStyle='#1b2a44'; px.font='700 12px system-ui'; const n=footClosed?foot.length:foot.length-1;
     for(let i=0;i<n;i++){ const a2=foot[i],b=foot[(i+1)%foot.length]; const len=Math.round(Math.hypot(b.x-a2.x,b.z-a2.z)*100); px.fillText(len+' cm',(SX(a2.x)+SX(b.x))/2,(SY(a2.z)+SY(b.z))/2-6); }
     foot.forEach((p,i)=>{ px.fillStyle=(i===0&&mode==='foot')?'#34d399':'#ffb020'; px.beginPath(); px.arc(SX(p.x),SY(p.z),6,0,7); px.fill(); }); }
-  // coame
-  ridges.forEach(r=>{ if(r.length<1) return; px.strokeStyle='#d98200'; px.lineWidth=3; px.setLineDash([7,5]); px.beginPath(); r.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); px.stroke(); px.setLineDash([]); r.forEach(p=>{ px.fillStyle='#d98200'; px.beginPath(); px.arc(SX(p.x),SY(p.z),5,0,7); px.fill(); }); });
+  // coame (segmente)
+  ridges.forEach(r=>{ px.strokeStyle='#d98200'; px.lineWidth=3; px.setLineDash([7,5]); px.beginPath(); px.moveTo(SX(r.a.x),SY(r.a.z)); px.lineTo(SX(r.b.x),SY(r.b.z)); px.stroke(); px.setLineDash([]);
+    [r.a,r.b].forEach(p=>{ px.fillStyle='#d98200'; px.beginPath(); px.arc(SX(p.x),SY(p.z),5,0,7); px.fill(); }); });
+  // capat coama in asteptare + linie elastica spre cursor
+  if(mode==='ridge'&&pendingRidge){ if(mouseW){ px.strokeStyle='#f0a020'; px.lineWidth=2; px.setLineDash([4,4]); px.beginPath(); px.moveTo(SX(pendingRidge.x),SY(pendingRidge.z)); px.lineTo(SX(mouseW.x),SY(mouseW.z)); px.stroke(); px.setLineDash([]); }
+    px.fillStyle='#34d399'; px.beginPath(); px.arc(SX(pendingRidge.x),SY(pendingRidge.z),7,0,7); px.fill(); px.strokeStyle='#0d8f55'; px.lineWidth=2; px.stroke(); }
   // hornuri (patrat)
   chimneys.forEach(c=>{ const h=c.size*planMap.s; px.fillStyle='rgba(120,80,40,.8)'; px.strokeStyle='#5a3a10'; px.lineWidth=2; px.fillRect(SX(c.x)-h/2,SY(c.z)-h/2,h,h); px.strokeRect(SX(c.x)-h/2,SY(c.z)-h/2,h,h); });
+  renderWalls();
 }
 
 /* ===== interactiune 2D ===== */
@@ -145,7 +158,14 @@ pc.addEventListener('pointerdown',ev=>{ const w=world(ev);
   if(mode==='edit'){ const i=nearest(foot,w,0.35); if(i>=0) drag={kind:'foot',i}; return; }
   if(mode==='horn'){ const i=nearest(chimneys,w,0.4); if(i>=0){ drag={kind:'horn',i}; return; } chimneys.push({x:snap(w.x),z:snap(w.z),size:chimSize,height:chimH}); drawPlan(); build3D(); return; }
   if(mode==='open'){ const hit=nearestWall(w); if(hit){ const d=OPEN_DEF[openType]; const L=wallLen(hit.wall); let pos=Math.max(0,Math.min(L-d.w,hit.pos-d.w/2)); openings.push({wall:hit.wall,pos,w:d.w,sill:d.sill,head:Math.min(d.head,wallH),type:openType}); drawPlan(); build3D(); } return; }
-  if(mode==='ridge'){ for(let ri=0;ri<ridges.length;ri++){ const i=nearest(ridges[ri],w,0.3); if(i>=0){ drag={kind:'ridge',ri,i}; return; } } if(!ridges.length||ridges[ridges.length-1]._done) ridges.push([{x:snap(w.x),z:snap(w.z)}]); else ridges[ridges.length-1].push({x:snap(w.x),z:snap(w.z)}); drawPlan(); build3D(); return; }
+  if(mode==='ridge'){
+    // prinde un capat existent ca sa-l muti
+    let best=null,bd=0.35; ridges.forEach((r,ri)=>{ ['a','b'].forEach(k=>{ const d=Math.hypot(w.x-r[k].x,w.z-r[k].z); if(d<bd){bd=d;best={ri,k};} }); });
+    if(best){ drag={kind:'ridge',ri:best.ri,k:best.k}; return; }
+    // plaseaza capete: click 1 = un capat, click 2 = celalalt capat
+    if(!pendingRidge){ pendingRidge={x:snap(w.x),z:snap(w.z)}; }
+    else { const b={x:snap(w.x),z:snap(w.z)}; if(Math.hypot(b.x-pendingRidge.x,b.z-pendingRidge.z)>0.05){ ridges.push({a:pendingRidge,b}); } pendingRidge=null; commit(); }
+    drawPlan(); build3D(); return; }
   // contur
   if(footClosed){ footClosed=false; foot=[]; openings=[]; }
   if(foot.length>=3){ const f=foot[0]; if(Math.hypot(w.x-f.x,w.z-f.z)<0.3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); return; } }
@@ -153,11 +173,12 @@ pc.addEventListener('pointerdown',ev=>{ const w=world(ev);
 });
 pc.addEventListener('pointermove',ev=>{ if(!drag) return; const w=world(ev);
   if(drag.kind==='foot') foot[drag.i]={x:snap(w.x),z:snap(w.z)};
-  else if(drag.kind==='ridge') ridges[drag.ri][drag.i]={x:snap(w.x),z:snap(w.z)};
+  else if(drag.kind==='ridge'){ const r=ridges[drag.ri]; if(r) r[drag.k]={x:snap(w.x),z:snap(w.z)}; }
   else if(drag.kind==='horn'){ chimneys[drag.i].x=snap(w.x); chimneys[drag.i].z=snap(w.z); }
   drawPlan(); build3D(); });
-window.addEventListener('pointerup',()=>{ if(drag&&drag.kind==='ridge'){ const r=ridges[drag.ri]; if(r) r._done=true; } drag=null; commit(); });
-pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&ridges.length) ridges[ridges.length-1]._done=true; });
+pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){ mouseW=world(ev); drawPlan(); } });
+window.addEventListener('pointerup',()=>{ drag=null; commit(); });
+pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&pendingRidge){ pendingRidge=null; drawPlan(); } });
 pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
   const wx=(mx-planMap.ox)/planMap.s, wz=(planMap.oy-my)/planMap.s;
   planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89)));
@@ -165,17 +186,30 @@ pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingCli
   drawPlan();
 },{passive:false});
 function wallLen(i){ const A=foot[i],B=foot[(i+1)%foot.length]; return Math.hypot(B.x-A.x,B.z-A.z); }
+function renderWalls(){ const host=$('wallList'); if(!host) return;
+  if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#wallList')) return; // nu intrerupe scrisul
+  if(!footClosed||foot.length<3){ host.innerHTML=''; return; }
+  const n=foot.length; let html='';
+  for(let i=0;i<n;i++){ const len=Math.round(wallLen(i)*100);
+    if(i<n-1) html+='<span class="wchip"><b>P'+(i+1)+'</b><input type="number" min="20" step="5" value="'+len+'" data-wi="'+i+'"> cm</span>';
+    else html+='<span class="wchip"><b>P'+(i+1)+'</b> '+len+' cm <span style="color:#9aa7bb">(auto)</span></span>'; }
+  host.innerHTML=html;
+  host.querySelectorAll('input[data-wi]').forEach(inp=>{ inp.onchange=()=>{ const v=parseInt(inp.value,10); if(v>=20) setSegLen(+inp.dataset.wi,v); }; }); }
+function setSegLen(i,cm){ const L=cm/100, n=foot.length; const A=foot[i],B=foot[(i+1)%n]; let dx=B.x-A.x,dz=B.z-A.z,cur=Math.hypot(dx,dz)||1; const ux=dx/cur,uz=dz/cur;
+  const ddx=(A.x+ux*L)-B.x, ddz=(A.z+uz*L)-B.z;            // muta B + lantul urmator rigid (pastreaza celelalte lungimi)
+  for(let k=i+1;k<n;k++){ foot[k].x=snap(foot[k].x+ddx); foot[k].z=snap(foot[k].z+ddz); }
+  drawPlan(); build3D(); renderWalls(); commit(); }
 function delElement(w){
   let i=nearest(chimneys,w,0.5); if(i>=0){ chimneys.splice(i,1); drawPlan(); build3D(); return; }
   let bo=-1,bd=0.5; openings.forEach((o,k)=>{ const A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) return; const ux=B.x-A.x,uz=B.z-A.z,L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2); const d=Math.hypot(w.x-mx,w.z-mz); if(d<bd){bd=d;bo=k;} }); if(bo>=0){ openings.splice(bo,1); drawPlan(); build3D(); return; }
-  for(let ri=0;ri<ridges.length;ri++){ const j=nearest(ridges[ri],w,0.4); if(j>=0){ ridges[ri].splice(j,1); if(ridges[ri].length<1) ridges.splice(ri,1); drawPlan(); build3D(); return; } }
+  { let br=-1,bd=0.5; ridges.forEach((r,ri)=>{ const mx=(r.a.x+r.b.x)/2,mz=(r.a.z+r.b.z)/2; [r.a,r.b,{x:mx,z:mz}].forEach(pt=>{ const d=Math.hypot(w.x-pt.x,w.z-pt.z); if(d<bd){bd=d;br=ri;} }); }); if(br>=0){ ridges.splice(br,1); drawPlan(); build3D(); return; } }
   let ci=nearest(foot,w,0.4); if(ci>=0){ if(foot.length>3){ foot.splice(ci,1); openings=openings.filter(o=>o.wall<foot.length); drawPlan(); build3D(); } else alert('Conturul are nevoie de minim 3 colturi.'); return; }
 }
-function setTools(){ [['tFoot','foot'],['tEdit','edit'],['tAddWall','addwall'],['tRidge','ridge'],['tOpen','open'],['tHorn','horn'],['tDel','del']].forEach(([id,m])=>$(id).classList.toggle('on',mode===m)); }
+function setTools(){ if(mode!=='ridge') pendingRidge=null; [['tFoot','foot'],['tEdit','edit'],['tAddWall','addwall'],['tRidge','ridge'],['tOpen','open'],['tHorn','horn'],['tDel','del']].forEach(([id,m])=>$(id).classList.toggle('on',mode===m)); }
 $('tFoot').onclick=()=>{ mode='foot'; setTools(); };
 $('tEdit').onclick=()=>{ mode='edit'; setTools(); };
 $('tAddWall').onclick=()=>{ mode='addwall'; setTools(); };
-$('tRidge').onclick=()=>{ mode='ridge'; if(ridges.length) ridges[ridges.length-1]._done=true; setTools(); };
+$('tRidge').onclick=()=>{ mode='ridge'; pendingRidge=null; mouseW=null; setTools(); };
 $('tOpen').onclick=()=>{ mode='open'; setTools(); };
 $('tHorn').onclick=()=>{ mode='horn'; setTools(); };
 $('tDel').onclick=()=>{ mode='del'; setTools(); };
@@ -183,7 +217,7 @@ $('tUndo').onclick=undo;
 $('tFit').onclick=()=>{ planZoom=1; planPan={x:0,y:0}; drawPlan(); };
 window.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ const t=e.target.tagName; if(t==='INPUT'||t==='SELECT') return; e.preventDefault(); undo(); } });
 $('tClose').onclick=()=>{ if(foot.length>=3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); commit(); } };
-$('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=false; ridges=[]; openings=[]; chimneys=[]; mode='foot'; setTools(); drawPlan(); build3D(); commit(); } };
+$('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=false; ridges=[]; pendingRidge=null; openings=[]; chimneys=[]; mode='foot'; setTools(); drawPlan(); build3D(); commit(); } };
 $('openType').onchange=()=>{ openType=$('openType').value; };
 $('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); }; $('wallH').onchange=commit;
 $('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); }; $('ridgeH').onchange=commit;
@@ -212,7 +246,7 @@ function tri(arr,a,b,c){ arr.push(a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z); }
 function meshFromTris(arr,mat){ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3)); g.computeVertexNormals(); return new THREE.Mesh(g,mat); }
 function V(x,y,z){ return {x,y,z}; }
 function centroidXZ(){ let x=0,z=0; foot.forEach(p=>{x+=p.x;z+=p.z;}); return {x:x/foot.length,z:z/foot.length}; }
-function nearestOnRidges(p,y){ let best=null,bd=1e9; ridges.forEach(r=>{ for(let i=0;i<r.length-1;i++){ const a=r[i],b=r[i+1]; const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1; let t=((p.x-a.x)*dx+(p.z-a.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=a.x+t*dx,qz=a.z+t*dz,d=(p.x-qx)**2+(p.z-qz)**2; if(d<bd){bd=d;best={x:qx,y,z:qz};} } if(r.length===1){ const d=(p.x-r[0].x)**2+(p.z-r[0].z)**2; if(d<bd){bd=d;best={x:r[0].x,y,z:r[0].z};} } }); return best; }
+function nearestOnRidges(p,y){ let best=null,bd=1e9; ridges.forEach(r=>{ const a=r.a,b=r.b; const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1; let t=((p.x-a.x)*dx+(p.z-a.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=a.x+t*dx,qz=a.z+t*dz,d=(p.x-qx)**2+(p.z-qz)**2; if(d<bd){bd=d;best={x:qx,y,z:qz};} }); return best; }
 function makeText(t,color){ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle=color; x.font='bold 46px system-ui'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(t,32,34); const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); sp.scale.set(1.1,1.1,1.1); return sp; }
 
 function build3D(){
@@ -241,7 +275,7 @@ function build3D(){
   const fpos=[]; for(let i=1;i<n-1;i++) tri(fpos,V(foot[0].x,0,foot[0].z),V(foot[i].x,0,foot[i].z),V(foot[i+1].x,0,foot[i+1].z)); building.add(meshFromTris(fpos,matFloor));
   // acoperis
   const rpos=[]; const ry=wallH+ridgeRaise;
-  if(ridges.length && ridges.some(r=>r.length>=1) && ridgeRaise>0.02){ const apex=foot.map(p=> nearestOnRidges(p,ry)||V(p.x,ry,p.z));
+  if(ridges.length && ridgeRaise>0.02){ const apex=foot.map(p=> nearestOnRidges(p,ry)||V(p.x,ry,p.z));
     for(let i=0;i<n;i++){ const a=V(foot[i].x,wallH,foot[i].z),b=V(foot[(i+1)%n].x,wallH,foot[(i+1)%n].z),aa=apex[i],ab=apex[(i+1)%n]; tri(rpos,a,b,ab); tri(rpos,a,ab,aa); } }
   else { for(let i=1;i<n-1;i++) tri(rpos,V(foot[0].x,wallH+0.1,foot[0].z),V(foot[i].x,wallH+0.1,foot[i].z),V(foot[i+1].x,wallH+0.1,foot[i+1].z)); }
   building.add(meshFromTris(rpos,matRoof));
@@ -261,7 +295,7 @@ function animate(){ requestAnimationFrame(animate); controls.update(); renderer.
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
   getState(){ return {foot,footClosed,ridges,openings,chimneys,wallH,ridgeRaise,orientationDeg,roofType}; },
-  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=s.ridges||[]; openings=s.openings||[]; chimneys=s.chimneys||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
+  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
     $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('orient').value=orientationDeg; $('roofType').value=roofType; framed=false; drawPlan(); build3D(); }
 };
 
