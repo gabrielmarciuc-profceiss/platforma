@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R66 (lista componente per fatada)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R67 (panouri in limita + umplere auto)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -96,6 +96,7 @@
       <button class="pvbtn" data-pv="teg">📟 <b>TEG</b> <span>tablou electric general</span></button>
       <button class="pvbtn" data-pv="bmp">📦 <b>BMP</b> <span>bloc masura si protectie</span></button>
       <button class="pvbtn" data-pv="bmpt">📦 <b>BMPT</b> <span>bloc masura si protectie trifazat</span></button>
+      <button class="pvbtn" id="pvFill" style="background:#eaf3ff;border-color:#bcd8f5">🟦 <b>Umple acoperisul cu panouri</b> <span>automat, in limita marginilor</span></button>
       <div style="display:flex;gap:6px;margin-top:4px">
         <button class="btn" id="pvLoad" style="flex:1">📥 Incarca Excel</button>
         <button class="btn" id="pvTemplate" style="flex:1">📄 Descarca model</button>
@@ -430,7 +431,7 @@ pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev
   else if(drag.kind==='ridgemove'){ const r=ridges[drag.ri]; if(r){ const ddx=w.x-drag.lx, ddz=w.z-drag.lz; r.a.x=snap(r.a.x+ddx); r.a.z=snap(r.a.z+ddz); r.b.x=snap(r.b.x+ddx); r.b.z=snap(r.b.z+ddz); drag.lx=w.x; drag.lz=w.z; } }
   else if(drag.kind==='horn'){ chimneys[drag.i].x=snap(w.x); chimneys[drag.i].z=snap(w.z); }
   else if(drag.kind==='hornsize'){ const c=chimneys[drag.i]; if(c){ const d=Math.max(Math.abs(w.x-c.x),Math.abs(w.z-c.z))*2; c.size=Math.max(0.2,Math.min(3,snap(d))); } }
-  else if(drag.kind==='pv'){ const it=pvItems[drag.i]; if(it){ it.x=snap(w.x); it.z=snap(w.z); } }
+  else if(drag.kind==='pv'){ const it=pvItems[drag.i]; if(it){ if(it.place==='acoperis'){ const c=clampRoofXZ(w.x,w.z,it.w,it.h); it.x=snap(c.x); it.z=snap(c.z); } else { it.x=snap(w.x); it.z=snap(w.z); } } }
   else if(drag.kind==='velux'){ const v=veluxes[drag.i]; if(v){ v.x=snap(w.x); v.z=snap(w.z); } }
   else if(drag.kind==='veluxsize'){ const v=veluxes[drag.i]; if(v){ v.w=Math.max(0.4,Math.min(3,snap(Math.abs(w.x-v.x)*2))); v.l=Math.max(0.4,Math.min(4,snap(Math.abs(w.z-v.z)*2))); } }
   else if(drag.kind==='opening'){ const o=openings[drag.i]; const hit=nearestWall(w); if(o&&hit){ o.wall=hit.wall; const L=wallLen(hit.wall); o.pos=Math.max(0,Math.min(L-o.w,hit.pos-o.w/2)); } }
@@ -481,7 +482,16 @@ function addPv(btnKey){ const cat=PV_CAT[btnKey]; const p=pvPick(btnKey); if(!p)
   pvPlace={btn:btnKey,cat,name:p.name,h:(+p.h||40)/100,w:(+p.w||40)/100,d:(+p.d||20)/100};
   document.querySelectorAll('.pvbtn').forEach(b=>b.classList.toggle('on', b.dataset.pv===btnKey));
   switchCat('pv'); if(typeof pvStatus==='function') pvStatus('Selectat: '+p.name+' ('+Math.round(pvPlace.h*100)+'×'+Math.round(pvPlace.w*100)+'×'+Math.round(pvPlace.d*100)+' cm). Click pe plan (Sus) sau pe peretele din fatada ca sa-l pui. Re-apasa butonul = renunti.'); }
-function placePvAt(x,z,place,y){ if(!pvPlace) return; const it={cat:pvPlace.cat,name:pvPlace.name,h:pvPlace.h,w:pvPlace.w,d:pvPlace.d,x:snap(x),z:snap(z),place:place||(pvPlace.cat==='panouri'?'acoperis':(pvPlace.cat==='baterii'?'sol':'perete'))}; if(y!=null) it.y=y; pvItems.push(it); renderBom(); drawPlan(); build3D(); commit(); }
+function clampRoofXZ(x,z,w,l){ const b=roofBBox(); const hw=Math.min(w,(b.xmx-b.xmn))/2, hl=Math.min(l,(b.zmx-b.zmn))/2; return { x:Math.max(b.xmn+hw,Math.min(b.xmx-hw,x)), z:Math.max(b.zmn+hl,Math.min(b.zmx-hl,z)) }; }   // panoul nu iese din conturul acoperisului
+function placePvAt(x,z,place,y){ if(!pvPlace) return; place=place||(pvPlace.cat==='panouri'?'acoperis':(pvPlace.cat==='baterii'?'sol':'perete'));
+  if(place==='acoperis'){ const c=clampRoofXZ(x,z,pvPlace.w,pvPlace.h); x=c.x; z=c.z; }
+  const it={cat:pvPlace.cat,name:pvPlace.name,h:pvPlace.h,w:pvPlace.w,d:pvPlace.d,x:snap(x),z:snap(z),place}; if(y!=null) it.y=y; pvItems.push(it); renderBom(); drawPlan(); build3D(); commit(); }
+function fillRoofPanels(){ if(ridgeRaise<=0.02){ alert('Acoperisul nu are panta inclinata.'); return; } const panel=(pvCatalog.panouri&&pvCatalog.panouri[0]); if(!panel){ alert('Nu exista panou in catalog (sheet Panouri).'); return; }
+  const w=(+panel.w||113)/100, l=(+panel.h||223)/100, th=(+panel.d||4)/100, gap=0.03; const b=roofBBox(); const axX=ridgeAxisX(); const rs=ridgeSeg(); const rline=axX?rs.a.z:rs.a.x; let n=0;
+  for(let z=b.zmn+l/2; z<=b.zmx-l/2+1e-6; z+=l+gap){ for(let x=b.xmn+w/2; x<=b.xmx-w/2+1e-6; x+=w+gap){
+    if(axX){ if(z-l/2 < rline && z+l/2 > rline) continue; } else { if(x-w/2 < rline && x+w/2 > rline) continue; }   // nu traversa coama (ramane pe o singura apa)
+    pvItems.push({cat:'panouri',name:panel.name,h:l,w:w,d:th,x:snap(x),z:snap(z),place:'acoperis'}); n++; } }
+  renderBom(); drawPlan(); build3D(); commit(); if(typeof pvStatus==='function') pvStatus(n? ('Umplut: '+n+' panouri pe acoperis (in limita marginilor).') : 'Nu incape niciun panou.'); }
 function elevWallAtH(h){ const n=foot.length; let best=null,bd=1e9; for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); const d=(h>=lo&&h<=hi)?0:Math.min(Math.abs(h-lo),Math.abs(h-hi)); if(d<bd){bd=d;best={A,B,hA,hB};} } return best; }
 function pvWallIndex(it){ let wi=-1,wd=0.9; for(let i=0;i<foot.length;i++){ const q=projOnSeg({x:it.x,z:it.z},foot[i],foot[(i+1)%foot.length]); const d=Math.hypot(it.x-q.x,it.z-q.z); if(d<wd){wd=d;wi=i;} } return wi; }
 function elevAddPv(m){ if(!pvPlace) return; const best=elevWallAtH(m.h); if(!best) return;   // doar pe un perete spre aceasta fatada; fara cadere in centru
@@ -536,6 +546,7 @@ function downloadPvTemplate(){ if(typeof XLSX==='undefined'){ alert('Biblioteca 
   const wb=XLSX.utils.book_new(); const mk=arr=>{ const d=[['Denumire','Inaltime (cm)','Latime (cm)','Grosime (cm)']]; arr.forEach(p=>d.push([p.name,p.h,p.w,p.d])); return XLSX.utils.aoa_to_sheet(d); };
   XLSX.utils.book_append_sheet(wb,mk(pvCatalog.invertor),'Invertor'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.panouri),'Panouri'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.echipament),'Echipament electric'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.baterii),'Baterii');
   XLSX.writeFile(wb,'catalog_componente.xlsx'); }
+if($('pvFill')) $('pvFill').onclick=()=>{ if(curCat!=='pv') switchCat('pv'); fillRoofPanels(); };
 if($('pvLoad')) $('pvLoad').onclick=()=>$('pvFile').click();
 if($('pvFile')) $('pvFile').onchange=e=>{ if(e.target.files[0]) loadPvFile(e.target.files[0]); };
 if($('pvTemplate')) $('pvTemplate').onclick=downloadPvTemplate;
