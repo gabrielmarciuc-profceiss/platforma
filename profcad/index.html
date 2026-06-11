@@ -19,7 +19,15 @@
   .back{margin-left:auto;font-size:12px;color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 12px;font-weight:600}
   .main{flex:1;display:flex;min-height:0;flex-direction:row-reverse}
   .left{width:46%;max-width:560px;flex:none;display:flex;flex-direction:column;border-left:1px solid var(--line);background:#fff}
+  .cats{display:flex;gap:8px;padding:8px 8px 0}
+  .cat{flex:1;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;padding:8px 6px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--ink);box-shadow:0 -1px 3px rgba(0,0,0,.05)}
+  .cat[data-cat="casa"]{background:#fff7d6} .cat[data-cat="pv"]{background:#dcefe1}
+  .cat:not(.on){opacity:.55;filter:saturate(.6)}
+  .cat.on{transform:translateY(-2px)}
   .tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px;border-bottom:1px solid var(--line);align-items:center}
+  .pvbtn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #bfe6c9;background:#f3fff6;border-radius:9px;padding:9px 11px;font-size:12.5px;font-weight:600;font-family:inherit;color:var(--ink);cursor:pointer}
+  .pvbtn b{font-size:13px} .pvbtn span{color:var(--muted);font-weight:500;font-size:11px}
+  #toolsPv{flex-direction:column;align-items:stretch}
   .btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-weight:600;font-family:inherit;color:var(--ink)}
   .btn.on{border-color:var(--solar);background:#fff4e0}
   .btn.bad{background:#fdecec;border-color:#e6b8b8;color:#c0392b}
@@ -51,7 +59,11 @@
 
 <div class="main">
   <div class="left">
-    <div class="tools">
+    <div class="cats">
+      <button class="cat on" data-cat="casa">🏠 Elemente casa</button>
+      <button class="cat" data-cat="pv">☀️ Sistem fotovoltaic</button>
+    </div>
+    <div class="tools" id="toolsCasa">
       <button class="btn on" id="tFoot">✏️ Contur</button>
       <button class="btn" id="tEdit">🖐 Muta colturi</button>
       <button class="btn" id="tAddWall">＋ Perete</button>
@@ -65,12 +77,20 @@
       <button class="btn" id="tClose">⭙ Inchide</button>
       <button class="btn bad" id="tClearAll">Goleste tot</button>
     </div>
+    <div class="tools" id="toolsPv" style="display:none">
+      <button class="pvbtn" data-pv="invertor">🔌 <b>Invertor</b> <span>on-grid / hibrid</span></button>
+      <button class="pvbtn" data-pv="baterie">🔋 <b>Baterie</b> <span>stocare</span></button>
+      <button class="pvbtn" data-pv="tablou">🟩 <b>Tablou electric de protectie</b></button>
+      <button class="pvbtn" data-pv="teg">📟 <b>TEG</b> <span>tablou electric general</span></button>
+      <button class="pvbtn" data-pv="bmp">📦 <b>BMP</b> <span>bloc masura si protectie</span></button>
+      <button class="pvbtn" data-pv="bmpt">📦 <b>BMPT</b> <span>bloc masura si protectie trifazat</span></button>
+    </div>
     <div class="planwrap">
       <canvas id="plan"></canvas>
       <div class="hint" id="hint"><b>Contur</b>: pune colturile, click pe primul (verde) = inchizi. <b>＋ Perete</b>: click pe o muchie ca sa inserezi un colt/perete. <b>＋ Coama</b>: click = un capat, al doilea click = celalalt capat (linia de varf). Ambele capete stau sus la inaltimea coamei; pantele coboara singure spre pereti. Poti pune oricate coame. <b>Usa/Fereastra</b>: click pe perete. <b>Horn</b>: click pe acoperis ca sa-l pui; apoi cercul albastru = redimensionezi, butonul rosu x = stergi, corpul = muti. <b>🖐 Muta colturi</b> muta si capetele coamelor. <b>🗑 Sterge element</b>: click pe orice ca sa-l stergi individual. <b>Orientare</b> roteste Nordul.</div>
     </div>
     <div class="walls" id="wallList"></div>
-    <div class="dims">
+    <div class="dims" id="dimsCasa">
       <label>Inaltime pereti <input id="wallH" type="number" min="180" max="600" step="10" value="300"> cm</label>
       <label>Coama <input id="ridgeH" type="number" min="0" max="400" step="10" value="160"> cm</label>
       <label>Acoperis <select id="roofType" style="width:auto"><option value="tigla">Tigla</option><option value="tabla">Tabla cutata</option><option value="tabla_tigla">Tabla tip tigla</option><option value="terasa">Terasa (membrana)</option></select></label>
@@ -211,6 +231,14 @@ pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingCli
   computeMap(); planPan.x += mx-(planMap.ox+wx*planMap.s); planPan.y += my-(planMap.oy-wz*planMap.s);
   drawPlan();
 },{passive:false});
+/* ===== categorii post-it (Elemente casa / Sistem fotovoltaic) ===== */
+document.querySelectorAll('.cat').forEach(b=> b.onclick=()=>{ const cat=b.dataset.cat;
+  document.querySelectorAll('.cat').forEach(x=>x.classList.toggle('on',x===b));
+  $('toolsCasa').style.display = cat==='casa'?'flex':'none';
+  $('toolsPv').style.display   = cat==='pv'?'flex':'none';
+  $('dimsCasa').style.display  = cat==='casa'?'flex':'none';
+  $('wallList').style.display  = cat==='casa'?'':'none'; });
+document.querySelectorAll('[data-pv]').forEach(b=> b.onclick=()=>{ alert('Elementul "'+b.textContent.replace(/\s+/g,' ').trim()+'" il legam in pasul urmator. Spune-mi ce sa faca (sa apara in 3D langa casa, sa intre in lista de materiale, sa se lege automat la invertor/tablou).'); });
 function wallLen(i){ const A=foot[i],B=foot[(i+1)%foot.length]; return Math.hypot(B.x-A.x,B.z-A.z); }
 function renderWalls(){ const host=$('wallList'); if(!host) return;
   if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#wallList')) return; // nu intrerupe scrisul
