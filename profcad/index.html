@@ -33,6 +33,9 @@
   .btn.bad{background:#fdecec;border-color:#e6b8b8;color:#c0392b}
   select,input{border:1px solid var(--line);border-radius:7px;padding:6px;font-size:12.5px;font-family:inherit;color:var(--ink);background:#fff}
   .planwrap{flex:1;position:relative;background:linear-gradient(160deg,#eef3f9,#f6f9fd);min-height:0}
+  .pviews{position:absolute;top:8px;left:8px;display:flex;gap:4px;flex-wrap:wrap;z-index:5}
+  .pvb{border:1px solid var(--line);background:rgba(255,255,255,.92);border-radius:7px;padding:4px 9px;font-size:11.5px;font-weight:600;font-family:inherit;color:var(--ink);cursor:pointer}
+  .pvb.on{border-color:var(--solar);background:#fff4e0;color:var(--solar)}
   #plan{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
   .right{flex:1;position:relative;min-width:0;background:linear-gradient(160deg,#dfe8f2,#eef3f9)}
   #view{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -101,6 +104,13 @@
       <div id="bom" style="display:flex;flex-direction:column;gap:5px"></div>
     </div>
     <div class="planwrap">
+      <div class="pviews" id="pviews">
+        <button class="pvb on" data-pview="sus">Sus</button>
+        <button class="pvb" data-pview="fata">Fata</button>
+        <button class="pvb" data-pview="spate">Spate</button>
+        <button class="pvb" data-pview="stanga">Stanga</button>
+        <button class="pvb" data-pview="dreapta">Dreapta</button>
+      </div>
       <canvas id="plan"></canvas>
     </div>
     <div class="walls" id="wallList"></div>
@@ -154,6 +164,7 @@ let veluxes=[];                // ferestre de mansarda {x,z,w,l (m)} pe acoperis
 let roofEdgesCache=[], roofScaleCache=1;   // pt inaltimea acoperisului intr-un punct (velux)
 let mode='foot', drag=null, planMap={s:30,ox:0,oy:0};
 let planZoom=1, planPan={x:0,y:0}; const history=[];
+let planView='sus', elevMap={s:30,ox:0,oy:0};   // Sus = plan; fata/spate/stanga/dreapta = elevatie 2D
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
 function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
 function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,orientationDeg,roofType}); }
@@ -194,7 +205,8 @@ function snapRidgePoint(w){
   return {x:snap(w.x),z:snap(w.z)};
 }
 
-function drawPlan(){ fitPC(); computeMap(); const W=pc.clientWidth,H=pc.clientHeight; px.clearRect(0,0,W,H);
+function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch(e){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect(0,0,W,H); px.fillStyle='#c0392b'; px.font='600 13px system-ui'; px.textAlign='left'; px.fillText('Eroare la elevatie: '+e.message,16,24); } return; }
+  computeMap(); const W=pc.clientWidth,H=pc.clientHeight; px.clearRect(0,0,W,H);
   px.strokeStyle='#dce5f0'; px.lineWidth=1; const pts=allPts(); let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; pts.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
   for(let gx=Math.floor(mnx)-1;gx<=Math.ceil(mxx)+1;gx+=0.5){ px.beginPath(); px.moveTo(SX(gx),0); px.lineTo(SX(gx),H); px.stroke(); }
   for(let gz=Math.floor(mnz)-1;gz<=Math.ceil(mxz)+1;gz+=0.5){ px.beginPath(); px.moveTo(0,SY(gz)); px.lineTo(W,SY(gz)); px.stroke(); }
@@ -243,11 +255,43 @@ function drawPlan(){ fitPC(); computeMap(); const W=pc.clientWidth,H=pc.clientHe
   renderWalls();
 }
 
+/* ===== elevatie 2D pe fatade ===== */
+function elevH(p){ if(planView==='spate') return -p.x; if(planView==='dreapta') return p.z; if(planView==='stanga') return -p.z; return p.x; }
+function wallFaces(i){ const n=foot.length, A=foot[i],B=foot[(i+1)%n]; let dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; const c=centroidXZ(); const mx=(A.x+B.x)/2,mz=(A.z+B.z)/2; let nx=dz,nz=-dx; if((mx-c.x)*nx+(mz-c.z)*nz<0){ nx=-nx; nz=-nz; } const dir=({fata:{x:0,z:1},spate:{x:0,z:-1},dreapta:{x:1,z:0},stanga:{x:-1,z:0}})[planView]||{x:0,z:1}; return (nx*dir.x+nz*dir.z)>0.25; }
+function drawElevation(){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect(0,0,W,H);
+  if(foot.length<3||!footClosed){ px.fillStyle='#5d6b82'; px.font='600 13px system-ui'; px.textAlign='center'; px.fillText('Inchide conturul casei (tab Sus) ca sa vezi elevatia.',W/2,H/2); return; }
+  const hs=foot.map(elevH); const wMn=Math.min.apply(null,hs), wMx=Math.max.apply(null,hs); const mnH=wMn-eaveOverhang, mxH=wMx+eaveOverhang;
+  const topY=wallH+ridgeRaise+0.3, widthM=Math.max(1,mxH-mnH), heightM=topY+0.6, pad=48;
+  const s=Math.max(6,Math.min((W-2*pad)/widthM,(H-2*pad)/heightM)*planZoom);
+  const ox=W/2-((mnH+mxH)/2)*s+planPan.x, oy=H-pad+planPan.y; elevMap={s,ox,oy};
+  const EX=h=>ox+h*s, EY=y=>oy-y*s;
+  px.strokeStyle='#e2e9f2'; px.lineWidth=1; for(let gy=0;gy<=Math.ceil(heightM);gy++){ px.beginPath(); px.moveTo(0,EY(gy)); px.lineTo(W,EY(gy)); px.stroke(); }
+  px.strokeStyle='#9aa7bb'; px.lineWidth=2; px.beginPath(); px.moveTo(0,EY(0)); px.lineTo(W,EY(0)); px.stroke();
+  // acoperis (profil aproximativ: de la streasina la coama, varf central)
+  if(ridgeRaise>0.02){ const apexY=wallH+ridgeRaise, cxh=(wMn+wMx)/2; px.fillStyle='rgba(176,83,58,.22)'; px.strokeStyle='#a64a32'; px.lineWidth=3;
+    px.beginPath(); px.moveTo(EX(mnH),EY(wallH)); px.lineTo(EX(cxh),EY(apexY)); px.lineTo(EX(mxH),EY(wallH)); px.closePath(); px.fill(); px.stroke(); }
+  // perete
+  px.fillStyle='#eef1f4'; px.strokeStyle='#1c7bd6'; px.lineWidth=3; px.beginPath(); px.rect(EX(wMn),EY(wallH),(wMx-wMn)*s,wallH*s); px.fill(); px.stroke();
+  // goluri pe peretii spre fatada
+  px.textAlign='center'; px.textBaseline='middle'; const n=foot.length;
+  for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1,ux=dx/L,uz=dz/L;
+    openings.filter(o=>o.wall===i).forEach(o=>{ let h1=elevH({x:A.x+ux*o.pos,z:A.z+uz*o.pos}), h2=elevH({x:A.x+ux*(o.pos+o.w),z:A.z+uz*(o.pos+o.w)}); if(h1>h2){const t=h1;h1=h2;h2=t;}
+      const isUsa=o.type.indexOf('usa')>=0; px.fillStyle=isUsa?'rgba(138,90,43,.35)':'rgba(159,210,255,.5)'; px.strokeStyle=isUsa?'#8a5a2b':'#3a9fd6'; px.lineWidth=2;
+      px.beginPath(); px.rect(EX(h1),EY(o.head),(h2-h1)*s,(o.head-o.sill)*s); px.fill(); px.stroke();
+      px.fillStyle='#1b2a44'; px.font='700 10.5px system-ui'; px.fillText(Math.round(o.w*100)+'×'+Math.round((o.head-o.sill)*100),(EX(h1)+EX(h2))/2,EY(o.head)-8); }); }
+  // velux
+  veluxes.forEach(v=>{ const h=elevH(v), y=roofHeightAt(v.x,v.z); const wpx=Math.max(8,v.w*s), hpx=Math.max(6,0.22*s); px.fillStyle='rgba(159,210,255,.65)'; px.strokeStyle='#2b8fd6'; px.lineWidth=2; px.beginPath(); px.rect(EX(h)-wpx/2,EY(y)-hpx/2,wpx,hpx); px.fill(); px.stroke(); px.fillStyle='#1b2a44'; px.font='700 10.5px system-ui'; px.fillText('Velux '+Math.round(v.l*100)+'×'+Math.round(v.w*100),EX(h),EY(y)-hpx-2); });
+  // cote generale
+  px.fillStyle='#1b2a44'; px.font='700 12px system-ui'; px.textAlign='center'; px.fillText('Latime '+Math.round((wMx-wMn)*100)+' cm',(EX(wMn)+EX(wMx))/2,EY(0)+18);
+  px.save(); px.translate(EX(wMn)-16,EY(wallH/2)); px.rotate(-Math.PI/2); px.fillText('Pereti '+Math.round(wallH*100)+' cm',0,0); px.restore();
+  if(ridgeRaise>0.02){ px.fillStyle='#a64a32'; px.fillText('Coama +'+Math.round(ridgeRaise*100)+' cm',EX((wMn+wMx)/2),EY(wallH+ridgeRaise)-10); }
+  px.fillStyle='#5d6b82'; px.font='700 12px system-ui'; px.textAlign='left'; px.fillText('Elevatie: '+planView.toUpperCase(),12,18);
+}
 /* ===== interactiune 2D ===== */
 function nearest(list,w,maxd){ let bi=-1,bd=maxd; list.forEach((p,i)=>{ const d=Math.hypot(w.x-p.x,w.z-p.z); if(d<bd){bd=d;bi=i;} }); return bi; }
 function nearestWall(w){ let bi=-1,bd=0.6,bt=0; const n=foot.length; for(let i=0;i<n;i++){ const A=foot[i],B=foot[(i+1)%n]; const dx=B.x-A.x,dz=B.z-A.z,L2=dx*dx+dz*dz||1; let t=((w.x-A.x)*dx+(w.z-A.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=A.x+t*dx,qz=A.z+t*dz; const d=Math.hypot(w.x-qx,w.z-qz); if(d<bd){bd=d;bi=i;bt=t*Math.sqrt(L2);} } return bi<0?null:{wall:bi,pos:bt}; }
 function screenPt(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
-pc.addEventListener('pointerdown',ev=>{ const w=world(ev);
+pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus') return; const w=world(ev);
   // manere horn (active in orice mod): X = sterge, cerc albastru = redimensioneaza, corp = muta
   { const sp=screenPt(ev); for(let i=chimneys.length-1;i>=0;i--){ const c=chimneys[i], cx=SX(c.x), cy=SY(c.z), half=c.size*planMap.s/2;
       if(Math.hypot(sp.x-(cx+half),sp.y-(cy-half))<12){ chimneys.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
@@ -309,6 +353,7 @@ pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){
 window.addEventListener('pointerup',()=>{ drag=null; commit(); });
 pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&pendingRidge){ pendingRidge=null; drawPlan(); } });
 pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
+  if(planView!=='sus'){ planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89))); drawPlan(); return; }
   const wx=(mx-planMap.ox)/planMap.s, wz=(my-planMap.oy)/planMap.s;
   planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89)));
   computeMap(); planPan.x += mx-(planMap.ox+wx*planMap.s); planPan.y += my-(planMap.oy+wz*planMap.s);
@@ -323,6 +368,7 @@ function switchCat(cat){ document.querySelectorAll('.cat').forEach(x=>x.classLis
   $('elemList').style.display  = cat==='casa'?'':'none'; }
 document.querySelectorAll('.cat').forEach(b=> b.onclick=()=>switchCat(b.dataset.cat));
 document.querySelectorAll('.vbtn').forEach(b=> b.onclick=()=>setView(b.dataset.view));
+document.querySelectorAll('.pvb').forEach(b=> b.onclick=()=>{ planView=b.dataset.pview; document.querySelectorAll('.pvb').forEach(x=>x.classList.toggle('on',x===b)); planZoom=1; planPan={x:0,y:0}; drawPlan(); });
 
 /* ===== catalog PV (implicit; suprascris de Excel) ===== dimensiuni in cm: h=inaltime, w=latime, d=grosime */
 const PV_DEFAULT={
@@ -428,8 +474,8 @@ window.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerC
 $('tClose').onclick=()=>{ if(foot.length>=3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); commit(); } };
 $('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=false; ridges=[]; pendingRidge=null; openings=[]; chimneys=[]; veluxes=[]; pvItems=[]; mode='foot'; setTools(); drawPlan(); build3D(); renderElemList(); renderBom(); commit(); } };
 $('openType').onchange=()=>{ openType=$('openType').value; if(openType){ mode='open'; } else { mode='foot'; } setTools(); };
-$('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); }; $('wallH').onchange=commit;
-$('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); }; $('ridgeH').onchange=commit;
+$('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); if(planView!=='sus') drawPlan(); }; $('wallH').onchange=commit;
+$('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); if(planView!=='sus') drawPlan(); }; $('ridgeH').onchange=commit;
 $('eaveH').oninput=()=>{ eaveOverhang=(parseInt($('eaveH').value,10)||0)/100; drawPlan(); build3D(); }; $('eaveH').onchange=commit;
 $('roofLogic').onchange=()=>{ roofLogic=$('roofLogic').value; build3D(); commit(); };
 $('roofType').onchange=()=>{ roofType=$('roofType').value; build3D(); commit(); };
