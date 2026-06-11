@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R61 (fix PV mod+lista)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R62 (PV plasare pe laterala)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -319,6 +319,7 @@ function elevAddOpening(m){ const n=foot.length; let best=null;
   openings.push({wall:i,pos,w:d.w,sill,head,type:openType}); drawPlan(); build3D(); renderElemList(); commit(); }
 function elevAddVelux(m){ const b=roofBBox(); const facadeAxisX=(planView==='fata'||planView==='spate'); const depthC=facadeAxisX?(b.zmn+b.zmx)/2:(b.xmn+b.xmx)/2; const pt=hd2xz(m.h,depthC); if(pointInPolyG(foot,pt.x,pt.z)){ veluxes.push({x:snap(pt.x),z:snap(pt.z),w:0.78,l:1.18}); drawPlan(); build3D(); renderElemList(true); commit(); } }
 function elevPointerDown(ev){ if(foot.length<3||!footClosed) return;
+  if(pvPlace){ elevAddPv(elevModel(ev)); return; }   // plaseaza element PV pe peretele acestei fatade
   if(mode==='open' && openType && openType!=='horn' && openType!=='velux'){ elevAddOpening(elevModel(ev)); return; }   // adauga gol direct pe fatada
   if(mode==='open' && openType==='velux'){ elevAddVelux(elevModel(ev)); return; }                                     // adauga velux direct pe fatada
   const sp=elevScreen(ev); const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
@@ -354,6 +355,7 @@ function nearest(list,w,maxd){ let bi=-1,bd=maxd; list.forEach((p,i)=>{ const d=
 function nearestWall(w){ let bi=-1,bd=0.6,bt=0; const n=foot.length; for(let i=0;i<n;i++){ const A=foot[i],B=foot[(i+1)%n]; const dx=B.x-A.x,dz=B.z-A.z,L2=dx*dx+dz*dz||1; let t=((w.x-A.x)*dx+(w.z-A.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=A.x+t*dx,qz=A.z+t*dz; const d=Math.hypot(w.x-qx,w.z-qz); if(d<bd){bd=d;bi=i;bt=t*Math.sqrt(L2);} } return bi<0?null:{wall:bi,pos:bt}; }
 function screenPt(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
 pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev); return; } const w=world(ev);
+  if(pvPlace){ placePvAt(w.x,w.z); return; }   // plaseaza element PV in plan (Sus)
   // manere horn (active in orice mod): X = sterge, cerc albastru = redimensioneaza, corp = muta
   { const sp=screenPt(ev); for(let i=chimneys.length-1;i>=0;i--){ const c=chimneys[i], cx=SX(c.x), cy=SY(c.z), half=c.size*planMap.s/2;
       if(Math.hypot(sp.x-(cx+half),sp.y-(cy-half))<12){ chimneys.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
@@ -436,6 +438,7 @@ function switchCat(cat){ document.querySelectorAll('.cat').forEach(x=>x.classLis
   $('wallList').style.display  = cat==='casa'?'':'none';
   $('elemList').style.display  = cat==='casa'?'':'none';
   if(cat==='pv'){ if(mode==='open'){ mode='edit'; } openType=''; const sel=$('openType'); if(sel){ sel.value=''; } setTools(); }   // nu mai ramane "adauga usa/fereastra" activ in PV
+  if(cat==='casa'){ pvPlace=null; document.querySelectorAll('.pvbtn').forEach(b=>b.classList.remove('on')); }              // nu plasezi PV in categoria casa
 }
 document.querySelectorAll('.cat').forEach(b=> b.onclick=()=>switchCat(b.dataset.cat));
 document.querySelectorAll('.vbtn').forEach(b=> b.onclick=()=>setView(b.dataset.view));
@@ -455,10 +458,17 @@ function pvIcon(cat){ return cat==='invertor'?'🔌':cat==='baterii'?'🔋':cat=
 function pvPick(btnKey){ const cat=PV_CAT[btnKey]; const list=pvCatalog[cat]||[]; if(!list.length) return null;
   if(PV_MATCH[btnKey]){ const key=PV_MATCH[btnKey]; const m=list.find(p=>{ const N=(p.name||'').toUpperCase(); return N.includes(key) && (btnKey!=='bmp' || !N.includes('BMPT')); }); return m||list[0]; }
   return list[0]; }
+let pvPlace=null;   // elementul PV selectat pentru plasare prin click (pe Sus sau pe fatada)
 function addPv(btnKey){ const cat=PV_CAT[btnKey]; const p=pvPick(btnKey); if(!p){ alert('Catalogul nu are produse pentru aceasta categorie.'); return; }
-  const c=(foot.length?centroidXZ():{x:0,z:0});
-  pvItems.push({cat,name:p.name,h:(+p.h||40)/100,w:(+p.w||40)/100,d:(+p.d||20)/100,x:snap(c.x),z:snap(c.z),place: cat==='panouri'?'acoperis':(cat==='baterii'?'sol':'perete')});
-  switchCat('pv'); drawPlan(); build3D(); renderBom(); commit(); }
+  if(pvPlace && pvPlace.btn===btnKey){ pvPlace=null; document.querySelectorAll('.pvbtn').forEach(b=>b.classList.remove('on')); switchCat('pv'); return; }   // re-apasare = deselectare
+  pvPlace={btn:btnKey,cat,name:p.name,h:(+p.h||40)/100,w:(+p.w||40)/100,d:(+p.d||20)/100};
+  document.querySelectorAll('.pvbtn').forEach(b=>b.classList.toggle('on', b.dataset.pv===btnKey));
+  switchCat('pv'); if(typeof pvStatus==='function') pvStatus('Selectat: '+p.name+' ('+Math.round(pvPlace.h*100)+'×'+Math.round(pvPlace.w*100)+'×'+Math.round(pvPlace.d*100)+' cm). Click pe plan (Sus) sau pe peretele din fatada ca sa-l pui. Re-apasa butonul = renunti.'); }
+function placePvAt(x,z,place,y){ if(!pvPlace) return; const it={cat:pvPlace.cat,name:pvPlace.name,h:pvPlace.h,w:pvPlace.w,d:pvPlace.d,x:snap(x),z:snap(z),place:place||(pvPlace.cat==='panouri'?'acoperis':(pvPlace.cat==='baterii'?'sol':'perete'))}; if(y!=null) it.y=y; pvItems.push(it); renderBom(); drawPlan(); build3D(); commit(); }
+function elevAddPv(m){ if(!pvPlace) return; const n=foot.length; let best=null;
+  for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); if(m.h>=lo-0.15&&m.h<=hi+0.15){ const dd=Math.abs((lo+hi)/2-m.h); if(!best||dd<best.dd) best={A,B,hA,hB,dd}; } }
+  let x,z; if(best){ const {A,B,hA,hB}=best; const t=(Math.abs(hB-hA)>1e-3)?((m.h-hA)/(hB-hA)):0.5; x=A.x+(B.x-A.x)*Math.max(0,Math.min(1,t)); z=A.z+(B.z-A.z)*Math.max(0,Math.min(1,t)); } else { const c=centroidXZ(); x=c.x; z=c.z; }
+  placePvAt(x,z,'perete',Math.max(0.2,m.y)); }
 document.querySelectorAll('[data-pv]').forEach(b=> b.onclick=()=>addPv(b.dataset.pv));
 
 function renderBom(){ const host=$('bom'); if(!host) return; if(!pvItems.length){ host.innerHTML='<div style="font-size:11px;color:var(--muted)">Niciun element. Apasa un buton de mai sus ca sa-l adaugi; apoi muta-l in plan, X = sterge.</div>'; return; }
@@ -694,8 +704,8 @@ function build3D(){
   const PV_COL={ invertor:0x2b6cb0, baterii:0x2f855a, echipament:0x6b7280, panouri:0x1a3a6b };
   pvItems.forEach(it=>{ const mat=new THREE.MeshStandardMaterial({color:PV_COL[it.cat]||0x2b6cb0,roughness:.55,metalness:.2});
     let g,y;
-    if(it.cat==='panouri'){ g=new THREE.BoxGeometry(it.w,it.d,it.h); y=wallH+ridgeRaise*0.5+it.d/2; }
-    else { g=new THREE.BoxGeometry(it.w,it.h,it.d); y = it.place==='sol'? it.h/2 : it.place==='acoperis'? (wallH+ridgeRaise*0.5+it.h/2) : (0.9+it.h/2); }
+    if(it.cat==='panouri'){ g=new THREE.BoxGeometry(it.w,it.d,it.h); y=(it.y!=null&&it.place==='perete')? it.y : wallH+ridgeRaise*0.5+it.d/2; }
+    else { g=new THREE.BoxGeometry(it.w,it.h,it.d); y = (it.y!=null&&it.place==='perete')? it.y : it.place==='sol'? it.h/2 : it.place==='acoperis'? (wallH+ridgeRaise*0.5+it.h/2) : (0.9+it.h/2); }
     const m=new THREE.Mesh(g,mat); m.position.set(it.x,y,it.z); building.add(m); });
   // busola pe sol: cercuri punctate + linii radiale + puncte cardinale (fara con)
   const span=Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x)); const span2=Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)); const R=Math.max(span,span2,4)*0.62+2.5;
