@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R57 (coama reglabila)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R58 (acoperis fete plane)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -626,16 +626,20 @@ function roofY2(x,z){ if(ridgeRaise<=0.02) return wallH+0.05; const b=roofBBox()
   let fz; if(perp<=pr) fz=(pr>pMn)?(perp-pMn)/(pr-pMn):1; else fz=(pMx>pr)?(pMx-perp)/(pMx-pr):1;
   let gx; if(along>=a0&&along<=a1) gx=1; else if(along<a0) gx=(a0>aMn)?(along-aMn)/(a0-aMn):1; else gx=(aMx>a1)?(aMx-along)/(aMx-a1):1;
   return wallH + ridgeRaise*Math.max(0,Math.min(fz,gx)); }
-function buildHipRoof(rpos){ const b=roofBBox(), rf=b.rf, n=rf.length; if(n<3) return;
-  const mnx=b.xmn,mxx=b.xmx,mnz=b.zmn,mxz=b.zmx; const step=Math.max(0.22,Math.min(mxx-mnx,mxz-mnz)/28);
-  const pts=[],seen=new Set(),add=(x,z)=>{ const k=Math.round(x/0.07)+'_'+Math.round(z/0.07); if(seen.has(k))return; seen.add(k); pts.push({x,z}); };
-  for(let i=0;i<n;i++){ const a=rf[i],bb=rf[(i+1)%n]; const L=Math.hypot(bb.x-a.x,bb.z-a.z)||1,seg=Math.max(1,Math.round(L/step)); for(let k=0;k<seg;k++){ const t=k/seg; add(a.x+(bb.x-a.x)*t,a.z+(bb.z-a.z)*t); } }
-  const rs=ridgeSeg(); for(let k=0;k<=12;k++){ const t=k/12; add(rs.a.x+(rs.b.x-rs.a.x)*t, rs.a.z+(rs.b.z-rs.a.z)*t); }   // puncte pe coama
-  for(let x=mnx+step*0.5;x<mxx;x+=step) for(let z=mnz+step*0.5;z<mxz;z+=step){ if(pointInPolyG(rf,x,z)) add(x,z); }
-  if(pts.length<3) return;
-  const Y=pts.map(p=>roofY2(p.x,p.z));
-  let tris; try{ tris=Delaunator.from(pts,p=>p.x,p=>p.z).triangles; }catch(e){ return; }
-  for(let i=0;i<tris.length;i+=3){ const ia=tris[i],ib=tris[i+1],ic=tris[i+2],A=pts[ia],B=pts[ib],C=pts[ic]; const cx=(A.x+B.x+C.x)/3,cz=(A.z+B.z+C.z)/3; if(!pointInPolyG(rf,cx,cz)) continue; tri(rpos,V(A.x,Y[ia],A.z),V(B.x,Y[ib],B.z),V(C.x,Y[ic],C.z)); } }
+// acoperis din FETE PLANE explicite (2 ape mari + 2 capete) - curat, fara distorsiuni
+function buildHipRoof(rpos){ const b=roofBBox(); const xmn=b.xmn,xmx=b.xmx,zmn=b.zmn,zmx=b.zmx; if(!(xmx>xmn&&zmx>zmn)) return; const ry=wallH+ridgeRaise; const axX=ridgeAxisX(); const rs=ridgeSeg();
+  const R0=V(rs.a.x,ry,rs.a.z), R1=V(rs.b.x,ry,rs.b.z);
+  const C00=V(xmn,wallH,zmn), C10=V(xmx,wallH,zmn), C11=V(xmx,wallH,zmx), C01=V(xmn,wallH,zmx);
+  if(axX){ // coama pe x: ape mari spre fata/spate (z), capete teisite la x=xmn/xmx
+    tri(rpos,C00,C10,R1); tri(rpos,C00,R1,R0);   // apa fata (z=zmn)
+    tri(rpos,C11,C01,R0); tri(rpos,C11,R0,R1);   // apa spate (z=zmx)
+    tri(rpos,C00,R0,C01);                          // teisitura stanga (x=xmn) / fronton daca coama=plina
+    tri(rpos,C10,C11,R1); }                        // teisitura dreapta (x=xmx)
+  else { // coama pe z: ape mari spre stanga/dreapta (x), capete la z=zmn/zmx
+    tri(rpos,C00,C01,R1); tri(rpos,C00,R1,R0);   // apa stanga (x=xmn)
+    tri(rpos,C11,C10,R0); tri(rpos,C11,R0,R1);   // apa dreapta (x=xmx)
+    tri(rpos,C00,R0,C10);                          // teisitura fata (z=zmn)
+    tri(rpos,C01,C11,R1); } }                      // teisitura spate (z=zmx)
 function roofHeightAt(x,z){ return roofY2(x,z); }
 function makeText(t,color){ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle=color; x.font='bold 46px system-ui'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(t,32,34); const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); sp.scale.set(1.1,1.1,1.1); return sp; }
 
