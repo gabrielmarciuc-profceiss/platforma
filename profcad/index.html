@@ -109,7 +109,7 @@ function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map
 function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,wallH,ridgeRaise,orientationDeg,roofType}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
 function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; wallH=o.wallH; ridgeRaise=o.ridgeRaise; orientationDeg=o.orientationDeg; roofType=o.roofType;
-  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('orient').value=orientationDeg; $('roofType').value=roofType; drawPlan(); build3D(); }
+  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
 /* ===== canvas 2D ===== */
@@ -336,7 +336,7 @@ function animate(){ requestAnimationFrame(animate); controls.update(); renderer.
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
   getState(){ return {foot,footClosed,ridges,openings,chimneys,wallH,ridgeRaise,orientationDeg,roofType}; },
   setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
-    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('orient').value=orientationDeg; $('roofType').value=roofType; framed=false; drawPlan(); build3D(); }
+    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); }
 };
 
 /* ===== start ===== */
