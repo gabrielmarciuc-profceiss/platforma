@@ -252,12 +252,13 @@ function elevH(p){ if(planView==='spate') return -p.x; if(planView==='dreapta') 
 function wallFaces(i){ const n=foot.length, A=foot[i],B=foot[(i+1)%n]; let dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; const c=centroidXZ(); const mx=(A.x+B.x)/2,mz=(A.z+B.z)/2; let nx=dz,nz=-dx; if((mx-c.x)*nx+(mz-c.z)*nz<0){ nx=-nx; nz=-nz; } const dir=({fata:{x:0,z:1},spate:{x:0,z:-1},dreapta:{x:1,z:0},stanga:{x:-1,z:0}})[planView]||{x:0,z:1}; return (nx*dir.x+nz*dir.z)>0.25; }
 function hd2xz(h,depth){ if(planView==='spate') return {x:-h,z:depth}; if(planView==='dreapta') return {x:depth,z:-h}; if(planView==='stanga') return {x:depth,z:h}; return {x:h,z:depth}; }
 // silueta reala a acoperisului vazut din fatada: pt fiecare coloana h, inaltimea maxima peste adancime (acelasi algoritm ca 3D auto)
-function roofProfile(wMn,wMx){ const prof=[]; const P=autoRoofParams();
-  if(!P.edges.length){ prof.push({h:wMn,y:wallH}); prof.push({h:wMx,y:wallH}); return prof; }
+function roofProfile(){ const prof=[]; const P=autoRoofParams();
+  const hsr=P.rf.length?P.rf.map(elevH):[0,1]; const hMn=Math.min.apply(null,hsr), hMx=Math.max.apply(null,hsr);  // extinderea acoperisului cu streasina
+  if(!P.edges.length){ prof.push({h:hMn,y:wallH}); prof.push({h:hMx,y:wallH}); return prof; }
   let mnx=1e9,mxx=-1e9,mnz=1e9,mxz=-1e9; P.rf.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mnz=Math.min(mnz,p.z);mxz=Math.max(mxz,p.z);});
   const dMn=(planView==='fata'||planView==='spate')?mnz:mnx, dMx=(planView==='fata'||planView==='spate')?mxz:mxx;
   const cols=64, ds=26;
-  for(let c=0;c<=cols;c++){ const h=wMn+(wMx-wMn)*c/cols; let yTop=wallH;
+  for(let c=0;c<=cols;c++){ const h=hMn+(hMx-hMn)*c/cols; let yTop=wallH;
     for(let d=0;d<=ds;d++){ const depth=dMn+(dMx-dMn)*d/ds; const pt=hd2xz(h,depth); if(pointInPolyG(P.rf,pt.x,pt.z)){ const y=wallH+Math.max(0,P.inwardMin(pt.x,pt.z))*P.scale; if(y>yTop) yTop=y; } }
     prof.push({h,y:yTop}); }
   return prof; }
@@ -272,9 +273,8 @@ function drawElevation(){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect
   px.strokeStyle='#e2e9f2'; px.lineWidth=1; for(let gy=0;gy<=Math.ceil(heightM);gy++){ px.beginPath(); px.moveTo(0,EY(gy)); px.lineTo(W,EY(gy)); px.stroke(); }
   px.strokeStyle='#9aa7bb'; px.lineWidth=2; px.beginPath(); px.moveTo(0,EY(0)); px.lineTo(W,EY(0)); px.stroke();
   // acoperis: silueta reala proiectata pe fatada (frontoanele = varf; laturile streasinii = coama orizontala)
-  if(ridgeRaise>0.02){ const prof=roofProfile(wMn,wMx); px.fillStyle='rgba(176,83,58,.22)'; px.strokeStyle='#a64a32'; px.lineWidth=3;
-    px.beginPath(); px.moveTo(EX(mnH),EY(wallH)); px.lineTo(EX(wMn),EY(prof[0].y));
-    prof.forEach(p=>px.lineTo(EX(p.h),EY(p.y))); px.lineTo(EX(mxH),EY(wallH)); px.closePath(); px.fill(); px.stroke(); }
+  if(ridgeRaise>0.02){ const prof=roofProfile(); px.fillStyle='rgba(176,83,58,.22)'; px.strokeStyle='#a64a32'; px.lineWidth=3;
+    px.beginPath(); prof.forEach((p,i)=> i?px.lineTo(EX(p.h),EY(p.y)):px.moveTo(EX(p.h),EY(p.y))); px.closePath(); px.fill(); px.stroke(); }
   // perete
   px.fillStyle='#eef1f4'; px.strokeStyle='#1c7bd6'; px.lineWidth=3; px.beginPath(); px.rect(EX(wMn),EY(wallH),(wMx-wMn)*s,wallH*s); px.fill(); px.stroke();
   // goluri pe peretii spre fatada
