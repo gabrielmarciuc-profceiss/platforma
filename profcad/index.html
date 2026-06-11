@@ -488,9 +488,12 @@ function elevAddPv(m){ if(!pvPlace) return; const best=elevWallAtH(m.h); if(!bes
   const {A,B,hA,hB}=best; let t=(Math.abs(hB-hA)>1e-3)?((m.h-hA)/(hB-hA)):0.5; t=Math.max(0,Math.min(1,t)); placePvAt(A.x+(B.x-A.x)*t, A.z+(B.z-A.z)*t, 'perete', Math.max(0.2,m.y)); }
 document.querySelectorAll('[data-pv]').forEach(b=> b.onclick=()=>addPv(b.dataset.pv));
 
-function renderBom(){ const host=$('bom'); if(!host) return; if(!pvItems.length){ host.innerHTML='<div style="font-size:11px;color:var(--muted)">Niciun element. Apasa un buton de mai sus ca sa-l adaugi; apoi muta-l in plan, X = sterge.</div>'; return; }
-  let html='<div style="font-size:11px;font-weight:700;margin:2px 0">Lista de materiale</div>';
-  pvItems.forEach((it,idx)=>{ html+='<div style="display:flex;align-items:center;gap:5px;font-size:11px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:#fff">'+
+function renderBom(){ const host=$('bom'); if(!host) return;
+  let rows=pvItems.map((it,idx)=>({it,idx})); let ctx='toate lateralele';
+  if(planView!=='sus'){ ctx='latura '+planView.toUpperCase(); rows=rows.filter(({it})=>{ if(it.place!=='perete') return false; const wi=pvWallIndex(it); return wi>=0 && wallFaces(wi); }); }   // pe fatada: doar componentele instalate pe acea latura
+  if(!rows.length){ host.innerHTML='<div style="font-size:11px;color:var(--muted)">Niciun element pe '+ctx+'. Selecteaza un produs si pune-l cu click.</div>'; return; }
+  let html='<div style="font-size:11px;font-weight:700;margin:2px 0">Componente ('+ctx+')</div>';
+  rows.forEach(({it,idx})=>{ html+='<div style="display:flex;align-items:center;gap:5px;font-size:11px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:#fff">'+
     '<span style="flex:1">'+pvIcon(it.cat)+' '+it.name+' <span style="color:var(--muted)">'+Math.round(it.h*100)+'×'+Math.round(it.w*100)+'×'+Math.round(it.d*100)+' cm</span></span>'+
     '<select data-bi="'+idx+'" style="font-size:10.5px;padding:2px"><option value="perete"'+(it.place==='perete'?' selected':'')+'>perete</option><option value="sol"'+(it.place==='sol'?' selected':'')+'>sol</option><option value="acoperis"'+(it.place==='acoperis'?' selected':'')+'>acoperis</option></select>'+
     '<button data-del="'+idx+'" class="btn bad" style="padding:2px 7px">x</button></div>'; });
