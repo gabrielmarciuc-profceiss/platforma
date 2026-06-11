@@ -100,6 +100,7 @@
     <div class="dims" id="dimsCasa">
       <label>Inaltime pereti <input id="wallH" type="number" min="180" max="600" step="10" value="300"> cm</label>
       <label>Coama <input id="ridgeH" type="number" min="0" max="400" step="10" value="160"> cm</label>
+      <label>Streasina <input id="eaveH" type="number" min="0" max="300" step="5" value="40"> cm</label>
       <label>Acoperis <select id="roofType" style="width:auto"><option value="tigla">Tigla</option><option value="tabla">Tabla cutata</option><option value="tabla_tigla">Tabla tip tigla</option><option value="terasa">Terasa (membrana)</option></select></label>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
         <canvas id="compassDial" width="104" height="104" style="width:104px;height:104px;cursor:grab;touch-action:none"></canvas>
@@ -128,17 +129,17 @@ let ridges=[{a:{x:0,z:3},b:{x:8,z:3}}];   // coame = segmente {a,b}, ambele cape
 let pendingRidge=null, mouseW=null;        // primul capat plasat + pozitia mouse (linie elastica)
 let openings=[];               // {wall,pos,w,sill,head,type}
 let chimneys=[];               // {x,z,size,height}
-let wallH=3.0, ridgeRaise=1.6, orientationDeg=0, roofType='tigla';
+let wallH=3.0, ridgeRaise=1.6, orientationDeg=0, roofType='tigla', eaveOverhang=0.4;
 let chimSize=0.6, chimH=1.0, openType='fereastra';
 let pvItems=[];                // elemente sistem fotovoltaic plasate {cat,name,h,w,d (m),x,z,place}
 let mode='foot', drag=null, planMap={s:30,ox:0,oy:0};
 let planZoom=1, planPan={x:0,y:0}; const history=[];
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
 function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
-function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,wallH,ridgeRaise,orientationDeg,roofType}); }
+function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,wallH,ridgeRaise,eaveOverhang,orientationDeg,roofType}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
-function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; orientationDeg=o.orientationDeg; roofType=o.roofType;
-  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); }
+function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; orientationDeg=o.orientationDeg; roofType=o.roofType;
+  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
 /* ===== canvas 2D ===== */
@@ -156,6 +157,12 @@ const snap=v=>Math.round(v/0.05)*0.05;
 function projOnSeg(p,a,b){ const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1; let t=((p.x-a.x)*dx+(p.z-a.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); return {x:a.x+t*dx,z:a.z+t*dz}; }
 function pointInPoly(x,z){ let inside=false; const n=foot.length; for(let i=0,j=n-1;i<n;j=i++){ const xi=foot[i].x,zi=foot[i].z,xj=foot[j].x,zj=foot[j].z; if(((zi>z)!==(zj>z)) && (x<(xj-xi)*(z-zi)/((zj-zi)||1e-9)+xi)) inside=!inside; } return inside; }
 function distToFoot(p){ let d=1e9; const n=foot.length; for(let i=0;i<n;i++){ const q=projOnSeg(p,foot[i],foot[(i+1)%n]); d=Math.min(d,Math.hypot(p.x-q.x,p.z-q.z)); } return d; }
+// contur marit spre exterior cu "o" metri (streasina). pozitiv = mai mare ca amprenta
+function intersectLines(l1,l2){ const den=l1.dx*l2.dz-l1.dz*l2.dx; if(Math.abs(den)<1e-9) return {x:l2.px,z:l2.pz}; const t=((l2.px-l1.px)*l2.dz-(l2.pz-l1.pz)*l2.dx)/den; return {x:l1.px+l1.dx*t, z:l1.pz+l1.dz*t}; }
+function offsetFootprint(o){ const n=foot.length; if(n<3||Math.abs(o)<1e-4) return foot.map(p=>({x:p.x,z:p.z}));
+  let area=0; for(let i=0;i<n;i++){ const a=foot[i],b=foot[(i+1)%n]; area+=a.x*b.z-b.x*a.z; } const sign=area>0?1:-1;
+  const lines=[]; for(let i=0;i<n;i++){ const a=foot[i],b=foot[(i+1)%n]; let dx=b.x-a.x,dz=b.z-a.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; let nx=dz*sign, nz=-dx*sign; lines.push({px:a.x+nx*o, pz:a.z+nz*o, dx, dz}); }
+  const out=[]; for(let i=0;i<n;i++){ const p=intersectLines(lines[(i-1+n)%n],lines[i]); out.push(p); } return out; }
 // lipeste un punct de coama (capat/segment) sau colt existent, ca sa imbini coamele
 function snapRidgePoint(w){
   let best=null,bd=0.4; ridges.forEach(r=>['a','b'].forEach(k=>{ const d=Math.hypot(w.x-r[k].x,w.z-r[k].z); if(d<bd){bd=d;best={x:r[k].x,z:r[k].z};} }));
@@ -225,7 +232,15 @@ pc.addEventListener('pointerdown',ev=>{ const w=world(ev);
   if(mode==='horn'){ const i=nearest(chimneys,w,0.4); if(i>=0){ drag={kind:'horn',i}; return; } chimneys.push({x:snap(w.x),z:snap(w.z),size:chimSize,height:chimH}); drawPlan(); build3D(); return; }
   if(mode==='open'){ const hit=nearestWall(w); if(hit){ const d=OPEN_DEF[openType]; const L=wallLen(hit.wall); let pos=Math.max(0,Math.min(L-d.w,hit.pos-d.w/2)); openings.push({wall:hit.wall,pos,w:d.w,sill:d.sill,head:Math.min(d.head,wallH),type:openType}); drawPlan(); build3D(); } return; }
   if(mode==='ridge'){
-    // doar desen: click 1 = un capat, click 2 = celalalt capat. Se lipeste de coame/colturi existente (imbinare).
+    if(!pendingRidge){
+      // atingi un capat existent -> il muti
+      let best=null,bd=0.4; ridges.forEach((r,ri)=>['a','b'].forEach(k=>{ const d=Math.hypot(w.x-r[k].x,w.z-r[k].z); if(d<bd){bd=d;best={ri,k};} }));
+      if(best){ drag={kind:'ridge',ri:best.ri,k:best.k}; return; }
+      // atingi corpul coamei -> muti toata coama
+      let bs=-1,bsd=0.3; ridges.forEach((r,ri)=>{ const q=projOnSeg(w,r.a,r.b); const d=Math.hypot(w.x-q.x,w.z-q.z); if(d<bsd){bsd=d;bs=ri;} });
+      if(bs>=0){ drag={kind:'ridgemove',ri:bs,lx:w.x,lz:w.z}; return; }
+    }
+    // pe gol: click 1 = un capat, click 2 = celalalt capat (se lipeste de coame/colturi -> imbinare)
     const p=snapRidgePoint(w);
     if(!pendingRidge){ pendingRidge=p; }
     else { if(Math.hypot(p.x-pendingRidge.x,p.z-pendingRidge.z)>0.05){ ridges.push({a:pendingRidge,b:p}); } pendingRidge=null; commit(); }
@@ -238,6 +253,7 @@ pc.addEventListener('pointerdown',ev=>{ const w=world(ev);
 pc.addEventListener('pointermove',ev=>{ if(!drag) return; const w=world(ev);
   if(drag.kind==='foot') foot[drag.i]={x:snap(w.x),z:snap(w.z)};
   else if(drag.kind==='ridge'){ const r=ridges[drag.ri]; if(r) r[drag.k]={x:snap(w.x),z:snap(w.z)}; }
+  else if(drag.kind==='ridgemove'){ const r=ridges[drag.ri]; if(r){ const ddx=w.x-drag.lx, ddz=w.z-drag.lz; r.a.x=snap(r.a.x+ddx); r.a.z=snap(r.a.z+ddz); r.b.x=snap(r.b.x+ddx); r.b.z=snap(r.b.z+ddz); drag.lx=w.x; drag.lz=w.z; } }
   else if(drag.kind==='horn'){ chimneys[drag.i].x=snap(w.x); chimneys[drag.i].z=snap(w.z); }
   else if(drag.kind==='hornsize'){ const c=chimneys[drag.i]; if(c){ const d=Math.max(Math.abs(w.x-c.x),Math.abs(w.z-c.z))*2; c.size=Math.max(0.2,Math.min(3,snap(d))); } }
   else if(drag.kind==='pv'){ const it=pvItems[drag.i]; if(it){ it.x=snap(w.x); it.z=snap(w.z); } }
@@ -345,6 +361,7 @@ $('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=fa
 $('openType').onchange=()=>{ openType=$('openType').value; };
 $('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); }; $('wallH').onchange=commit;
 $('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); }; $('ridgeH').onchange=commit;
+$('eaveH').oninput=()=>{ eaveOverhang=(parseInt($('eaveH').value,10)||0)/100; drawPlan(); build3D(); }; $('eaveH').onchange=commit;
 $('roofType').onchange=()=>{ roofType=$('roofType').value; build3D(); commit(); };
 /* ===== busola rotativa 2D ===== */
 function drawCompassDial(){ const cv=$('compassDial'); if(!cv) return; const g=cv.getContext('2d'); const W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=W/2-12;
@@ -411,11 +428,11 @@ function build3D(){
   building.add(meshFromTris(wpos,matWall));
   // podea
   const fpos=[]; for(let i=1;i<n-1;i++) tri(fpos,V(foot[0].x,0,foot[0].z),V(foot[i].x,0,foot[i].z),V(foot[i+1].x,0,foot[i+1].z)); building.add(meshFromTris(fpos,matFloor));
-  // acoperis: pante PLANE (drepte) - fiecare muchie de streasina urca la coama (2 triunghiuri plane)
-  const rpos=[]; const ry=wallH+ridgeRaise;
-  if(ridges.length && ridgeRaise>0.02){ const apex=foot.map(p=> nearestOnRidges(p,ry)||V(p.x,ry,p.z));
-    for(let i=0;i<n;i++){ const a=V(foot[i].x,wallH,foot[i].z),b=V(foot[(i+1)%n].x,wallH,foot[(i+1)%n].z),aa=apex[i],ab=apex[(i+1)%n]; tri(rpos,a,b,ab); tri(rpos,a,ab,aa); } }
-  else { for(let i=1;i<n-1;i++) tri(rpos,V(foot[0].x,wallH+0.1,foot[0].z),V(foot[i].x,wallH+0.1,foot[i].z),V(foot[i+1].x,wallH+0.1,foot[i+1].z)); }
+  // acoperis: pante PLANE (drepte) pe conturul marit cu streasina (eaveOverhang)
+  const rf=offsetFootprint(eaveOverhang), rn=rf.length; const rpos=[]; const ry=wallH+ridgeRaise;
+  if(ridges.length && ridgeRaise>0.02){ const apex=rf.map(p=> nearestOnRidges(p,ry)||V(p.x,ry,p.z));
+    for(let i=0;i<rn;i++){ const a=V(rf[i].x,wallH,rf[i].z),b=V(rf[(i+1)%rn].x,wallH,rf[(i+1)%rn].z),aa=apex[i],ab=apex[(i+1)%rn]; tri(rpos,a,b,ab); tri(rpos,a,ab,aa); } }
+  else { for(let i=1;i<rn-1;i++) tri(rpos,V(rf[0].x,wallH+0.1,rf[0].z),V(rf[i].x,wallH+0.1,rf[i].z),V(rf[i+1].x,wallH+0.1,rf[i+1].z)); }
   building.add(meshFromTris(rpos,matRoof));
   // hornuri
   chimneys.forEach(ch=>{ const total=ridgeRaise+ch.height; const m=new THREE.Mesh(new THREE.BoxGeometry(ch.size,total,ch.size),matChim); m.position.set(ch.x, wallH+total/2, ch.z); building.add(m); });
@@ -442,9 +459,9 @@ function animate(){ requestAnimationFrame(animate); controls.update(); renderer.
 
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
-  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,wallH,ridgeRaise,orientationDeg,roofType}; },
-  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
-    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); }
+  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,wallH,ridgeRaise,eaveOverhang,orientationDeg,roofType}; },
+  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
+    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); }
 };
 
 /* ===== start ===== */
