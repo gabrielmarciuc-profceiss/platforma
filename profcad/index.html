@@ -159,6 +159,7 @@ let roofEdgesCache=[], roofScaleCache=1;   // pt inaltimea acoperisului intr-un 
 let mode='edit', drag=null, planMap={s:30,ox:0,oy:0};   // implicit = Muta colturi (sigur), nu Contur (care sterge la click)
 let planZoom=1, planPan={x:0,y:0}; const history=[];
 let planView='sus', elevMap={s:30,ox:0,oy:0};   // Sus = plan; fata/spate/stanga/dreapta = elevatie 2D
+let curCat='casa';   // categoria activa: 'casa' (editezi constructia) sau 'pv' (doar amplasezi sistem fotovoltaic)
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
 function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
 function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,orientationDeg,roofType}); }
@@ -319,7 +320,7 @@ function elevAddOpening(m){ const n=foot.length; let best=null;
   openings.push({wall:i,pos,w:d.w,sill,head,type:openType}); drawPlan(); build3D(); renderElemList(); commit(); }
 function elevAddVelux(m){ const b=roofBBox(); const facadeAxisX=(planView==='fata'||planView==='spate'); const depthC=facadeAxisX?(b.zmn+b.zmx)/2:(b.xmn+b.xmx)/2; const pt=hd2xz(m.h,depthC); if(pointInPolyG(foot,pt.x,pt.z)){ veluxes.push({x:snap(pt.x),z:snap(pt.z),w:0.78,l:1.18}); drawPlan(); build3D(); renderElemList(true); commit(); } }
 function elevPointerDown(ev){ if(foot.length<3||!footClosed) return;
-  if(pvPlace){ elevAddPv(elevModel(ev)); return; }   // plaseaza element PV pe peretele acestei fatade
+  if(curCat==='pv'){ if(pvPlace) elevAddPv(elevModel(ev)); return; }   // pe fatada, in PV doar amplasezi PV; nu editezi casa
   if(mode==='open' && openType && openType!=='horn' && openType!=='velux'){ elevAddOpening(elevModel(ev)); return; }   // adauga gol direct pe fatada
   if(mode==='open' && openType==='velux'){ elevAddVelux(elevModel(ev)); return; }                                     // adauga velux direct pe fatada
   const sp=elevScreen(ev); const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
@@ -355,22 +356,26 @@ function nearest(list,w,maxd){ let bi=-1,bd=maxd; list.forEach((p,i)=>{ const d=
 function nearestWall(w){ let bi=-1,bd=0.6,bt=0; const n=foot.length; for(let i=0;i<n;i++){ const A=foot[i],B=foot[(i+1)%n]; const dx=B.x-A.x,dz=B.z-A.z,L2=dx*dx+dz*dz||1; let t=((w.x-A.x)*dx+(w.z-A.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=A.x+t*dx,qz=A.z+t*dz; const d=Math.hypot(w.x-qx,w.z-qz); if(d<bd){bd=d;bi=i;bt=t*Math.sqrt(L2);} } return bi<0?null:{wall:bi,pos:bt}; }
 function screenPt(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
 pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev); return; } const w=world(ev);
-  if(pvPlace){ placePvAt(w.x,w.z); return; }   // plaseaza element PV in plan (Sus)
-  // manere horn (active in orice mod): X = sterge, cerc albastru = redimensioneaza, corp = muta
+  /* ===== SISTEM FOTOVOLTAIC: doar plasare/mutare/stergere PV. NU se editeaza casa ===== */
+  if(curCat==='pv'){
+    if(pvPlace){ placePvAt(w.x,w.z); return; }
+    const sp=screenPt(ev); for(let i=pvItems.length-1;i>=0;i--){ const it=pvItems[i], cx=SX(it.x), cy=SY(it.z), hw=Math.max(5,it.w*planMap.s/2), hd=Math.max(5,it.d*planMap.s/2);
+      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hd))<12){ pvItems.splice(i,1); renderBom(); drawPlan(); build3D(); commit(); return; }
+      if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hd+2){ drag={kind:'pv',i}; return; } }
+    return;
+  }
+  /* ===== ELEMENTE CASA: editare constructie ===== */
+  // manere horn: X = sterge, cerc albastru = redimensioneaza, corp = muta
   { const sp=screenPt(ev); for(let i=chimneys.length-1;i>=0;i--){ const c=chimneys[i], cx=SX(c.x), cy=SY(c.z), half=c.size*planMap.s/2;
-      if(Math.hypot(sp.x-(cx+half),sp.y-(cy-half))<12){ chimneys.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
+      if(Math.hypot(sp.x-(cx+half),sp.y-(cy-half))<12){ chimneys.splice(i,1); drawPlan(); build3D(); renderElemList(true); commit(); return; }
       if(Math.hypot(sp.x-(cx+half),sp.y-(cy+half))<12){ drag={kind:'hornsize',i}; return; }
       if(Math.abs(sp.x-cx)<=half+2 && Math.abs(sp.y-cy)<=half+2){ drag={kind:'horn',i}; return; } } }
-  // manere velux: X = sterge, cerc albastru = redimensioneaza, corp = muta
+  // manere velux
   { const sp=screenPt(ev); for(let i=veluxes.length-1;i>=0;i--){ const v=veluxes[i], cx=SX(v.x), cy=SY(v.z), hw=Math.max(5,v.w*planMap.s/2), hl=Math.max(5,v.l*planMap.s/2);
-      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hl))<12){ veluxes.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
+      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hl))<12){ veluxes.splice(i,1); drawPlan(); build3D(); renderElemList(true); commit(); return; }
       if(Math.hypot(sp.x-(cx+hw),sp.y-(cy+hl))<12){ drag={kind:'veluxsize',i}; return; }
       if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hl+2){ drag={kind:'velux',i}; return; } } }
-  // manere elemente PV: X = sterge, corp = muta
-  { const sp=screenPt(ev); for(let i=pvItems.length-1;i>=0;i--){ const it=pvItems[i], cx=SX(it.x), cy=SY(it.z), hw=Math.max(5,it.w*planMap.s/2), hd=Math.max(5,it.d*planMap.s/2);
-      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hd))<12){ pvItems.splice(i,1); renderBom(); drawPlan(); build3D(); commit(); return; }
-      if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hd+2){ drag={kind:'pv',i}; return; } } }
-  // manere goluri (usa/fereastra): X = sterge, corp = muta pe perete
+  // manere goluri (usa/fereastra)
   { const sp=screenPt(ev); for(let i=openings.length-1;i>=0;i--){ const o=openings[i],A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) continue; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2),cx=SX(mx),cy=SY(mz);
       if(Math.hypot(sp.x-(cx+10),sp.y-(cy-10))<12){ openings.splice(i,1); drawPlan(); build3D(); renderElemList(true); commit(); return; }
       if(Math.hypot(sp.x-cx,sp.y-cy)<11){ drag={kind:'opening',i}; return; } } }
@@ -431,7 +436,7 @@ pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingCli
   drawPlan();
 },{passive:false});
 /* ===== categorii post-it (Elemente casa / Sistem fotovoltaic) ===== */
-function switchCat(cat){ document.querySelectorAll('.cat').forEach(x=>x.classList.toggle('on',x.dataset.cat===cat));
+function switchCat(cat){ curCat=cat; document.querySelectorAll('.cat').forEach(x=>x.classList.toggle('on',x.dataset.cat===cat));
   $('toolsCasa').style.display = cat==='casa'?'flex':'none';
   $('toolsPv').style.display   = cat==='pv'?'flex':'none';
   $('dimsCasa').style.display  = cat==='casa'?'flex':'none';
