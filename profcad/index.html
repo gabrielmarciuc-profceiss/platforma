@@ -101,6 +101,7 @@
       <label>Inaltime pereti <input id="wallH" type="number" min="180" max="600" step="10" value="300"> cm</label>
       <label>Coama <input id="ridgeH" type="number" min="0" max="400" step="10" value="160"> cm</label>
       <label>Streasina <input id="eaveH" type="number" min="0" max="300" step="5" value="40"> cm</label>
+      <label>Apa <select id="roofLogic" style="width:auto"><option value="auto">Automat (apele se calculeaza)</option><option value="manual">Coame manuale</option></select></label>
       <label>Acoperis <select id="roofType" style="width:auto"><option value="tigla">Tigla</option><option value="tabla">Tabla cutata</option><option value="tabla_tigla">Tabla tip tigla</option><option value="terasa">Terasa (membrana)</option></select></label>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
         <canvas id="compassDial" width="104" height="104" style="width:104px;height:104px;cursor:grab;touch-action:none"></canvas>
@@ -120,6 +121,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import Delaunator from 'https://cdn.jsdelivr.net/npm/delaunator@5.0.1/+esm';
 const $=id=>document.getElementById(id);
 
 /* ===== stare (metri) ===== */
@@ -129,17 +131,17 @@ let ridges=[{a:{x:0,z:3},b:{x:8,z:3}}];   // coame = segmente {a,b}, ambele cape
 let pendingRidge=null, mouseW=null;        // primul capat plasat + pozitia mouse (linie elastica)
 let openings=[];               // {wall,pos,w,sill,head,type}
 let chimneys=[];               // {x,z,size,height}
-let wallH=3.0, ridgeRaise=1.6, orientationDeg=0, roofType='tigla', eaveOverhang=0.4;
+let wallH=3.0, ridgeRaise=1.6, orientationDeg=0, roofType='tigla', eaveOverhang=0.4, roofLogic='auto';
 let chimSize=0.6, chimH=1.0, openType='fereastra';
 let pvItems=[];                // elemente sistem fotovoltaic plasate {cat,name,h,w,d (m),x,z,place}
 let mode='foot', drag=null, planMap={s:30,ox:0,oy:0};
 let planZoom=1, planPan={x:0,y:0}; const history=[];
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
 function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
-function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,wallH,ridgeRaise,eaveOverhang,orientationDeg,roofType}); }
+function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,wallH,ridgeRaise,eaveOverhang,roofLogic,orientationDeg,roofType}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
-function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; orientationDeg=o.orientationDeg; roofType=o.roofType;
-  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); }
+function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; orientationDeg=o.orientationDeg; roofType=o.roofType;
+  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
 /* ===== canvas 2D ===== */
@@ -364,6 +366,7 @@ $('openType').onchange=()=>{ openType=$('openType').value; };
 $('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); }; $('wallH').onchange=commit;
 $('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); }; $('ridgeH').onchange=commit;
 $('eaveH').oninput=()=>{ eaveOverhang=(parseInt($('eaveH').value,10)||0)/100; drawPlan(); build3D(); }; $('eaveH').onchange=commit;
+$('roofLogic').onchange=()=>{ roofLogic=$('roofLogic').value; build3D(); commit(); };
 $('roofType').onchange=()=>{ roofType=$('roofType').value; build3D(); commit(); };
 /* ===== busola rotativa 2D ===== */
 function drawCompassDial(){ const cv=$('compassDial'); if(!cv) return; const g=cv.getContext('2d'); const W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=W/2-12;
@@ -404,6 +407,24 @@ function meshFromTris(arr,mat){ const g=new THREE.BufferGeometry(); g.setAttribu
 function V(x,y,z){ return {x,y,z}; }
 function centroidXZ(){ let x=0,z=0; foot.forEach(p=>{x+=p.x;z+=p.z;}); return {x:x/foot.length,z:z/foot.length}; }
 function nearestOnRidges(p,y){ let best=null,bd=1e9; ridges.forEach(r=>{ const a=r.a,b=r.b; const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1; let t=((p.x-a.x)*dx+(p.z-a.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=a.x+t*dx,qz=a.z+t*dz,d=(p.x-qx)**2+(p.z-qz)**2; if(d<bd){bd=d;best={x:qx,y,z:qz};} }); return best; }
+function pointInPolyG(poly,x,z){ let inside=false; const n=poly.length; for(let i=0,j=n-1;i<n;j=i++){ const xi=poly[i].x,zi=poly[i].z,xj=poly[j].x,zj=poly[j].z; if(((zi>z)!==(zj>z)) && (x<(xj-xi)*(z-zi)/((zj-zi)||1e-9)+xi)) inside=!inside; } return inside; }
+// ACOPERIS AUTOMAT: inaltime = min distanta interioara pana la pereti (minim de functii liniare => ape PLANE drepte, coame+vai corecte pt orice forma)
+function buildHipRoof(rpos){
+  const rf=offsetFootprint(eaveOverhang), n=rf.length; if(n<3) return;
+  let area=0; for(let i=0;i<n;i++){ const a=rf[i],b=rf[(i+1)%n]; area+=a.x*b.z-b.x*a.z; } const sign=area>0?1:-1;
+  const edges=[]; for(let i=0;i<n;i++){ const a=rf[i],b=rf[(i+1)%n]; let dx=b.x-a.x,dz=b.z-a.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; edges.push({ax:a.x,az:a.z,nx:-dz*sign,nz:dx*sign}); }
+  const inwardMin=p=>{ let m=1e9; for(const e of edges){ const d=(p.x-e.ax)*e.nx+(p.z-e.az)*e.nz; if(d<m) m=d; } return m; };
+  let mnx=1e9,mxx=-1e9,mnz=1e9,mxz=-1e9; rf.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mnz=Math.min(mnz,p.z);mxz=Math.max(mxz,p.z);});
+  const step=Math.max(0.25,Math.min(mxx-mnx,mxz-mnz)/26);
+  const pts=[],seen=new Set(),add=(x,z)=>{ const k=Math.round(x/0.08)+'_'+Math.round(z/0.08); if(seen.has(k))return; seen.add(k); pts.push({x,z}); };
+  for(let i=0;i<n;i++){ const a=rf[i],b=rf[(i+1)%n]; const L=Math.hypot(b.x-a.x,b.z-a.z)||1,seg=Math.max(1,Math.round(L/step)); for(let k=0;k<seg;k++){ const t=k/seg; add(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t); } }
+  for(let x=mnx+step*0.5;x<mxx;x+=step) for(let z=mnz+step*0.5;z<mxz;z+=step){ if(pointInPolyG(rf,x,z)) add(x,z); }
+  if(pts.length<3) return;
+  const Hm=pts.map(p=>Math.max(0,inwardMin(p))); let hmax=0; Hm.forEach(h=>{ if(h>hmax) hmax=h; }); if(hmax<1e-4) hmax=1;
+  const scale=ridgeRaise/hmax, Y=Hm.map(h=>wallH+h*scale);
+  let tris; try{ tris=Delaunator.from(pts,p=>p.x,p=>p.z).triangles; }catch(e){ return; }
+  for(let i=0;i<tris.length;i+=3){ const ia=tris[i],ib=tris[i+1],ic=tris[i+2],A=pts[ia],B=pts[ib],C=pts[ic]; const cx=(A.x+B.x+C.x)/3,cz=(A.z+B.z+C.z)/3; if(!pointInPolyG(rf,cx,cz)) continue; tri(rpos,V(A.x,Y[ia],A.z),V(B.x,Y[ib],B.z),V(C.x,Y[ic],C.z)); }
+}
 function makeText(t,color){ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle=color; x.font='bold 46px system-ui'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(t,32,34); const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); sp.scale.set(1.1,1.1,1.1); return sp; }
 
 function build3D(){
@@ -430,9 +451,10 @@ function build3D(){
   building.add(meshFromTris(wpos,matWall));
   // podea
   const fpos=[]; for(let i=1;i<n-1;i++) tri(fpos,V(foot[0].x,0,foot[0].z),V(foot[i].x,0,foot[i].z),V(foot[i+1].x,0,foot[i+1].z)); building.add(meshFromTris(fpos,matFloor));
-  // acoperis: pante PLANE (drepte) pe conturul marit cu streasina (eaveOverhang)
+  // acoperis (pe conturul marit cu streasina)
   const rf=offsetFootprint(eaveOverhang), rn=rf.length; const rpos=[]; const ry=wallH+ridgeRaise;
-  if(ridges.length && ridgeRaise>0.02){ const apex=rf.map(p=> nearestOnRidges(p,ry)||V(p.x,ry,p.z));
+  if(ridgeRaise>0.02 && roofLogic==='auto'){ buildHipRoof(rpos); }                              // automat: apele se calculeaza singure (drepte)
+  else if(ridgeRaise>0.02 && ridges.length){ const apex=rf.map(p=> nearestOnRidges(p,ry)||V(p.x,ry,p.z));  // coame manuale
     for(let i=0;i<rn;i++){ const a=V(rf[i].x,wallH,rf[i].z),b=V(rf[(i+1)%rn].x,wallH,rf[(i+1)%rn].z),aa=apex[i],ab=apex[(i+1)%rn]; tri(rpos,a,b,ab); tri(rpos,a,ab,aa); } }
   else { for(let i=1;i<rn-1;i++) tri(rpos,V(rf[0].x,wallH+0.1,rf[0].z),V(rf[i].x,wallH+0.1,rf[i].z),V(rf[i+1].x,wallH+0.1,rf[i+1].z)); }
   building.add(meshFromTris(rpos,matRoof));
@@ -461,9 +483,9 @@ function animate(){ requestAnimationFrame(animate); controls.update(); renderer.
 
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
-  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,wallH,ridgeRaise,eaveOverhang,orientationDeg,roofType}; },
-  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
-    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); }
+  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,wallH,ridgeRaise,eaveOverhang,roofLogic,orientationDeg,roofType}; },
+  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
+    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); }
 };
 
 /* ===== start ===== */
