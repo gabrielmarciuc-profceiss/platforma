@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R62 (PV plasare pe laterala)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R64 (PV pe fatada, vizibil)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -293,6 +293,13 @@ function drawElevation(){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect
       px.fillStyle='#1b2a44'; px.font='700 10.5px system-ui'; px.fillText(Math.round(o.w*100)+'×'+Math.round((o.head-o.sill)*100),(EX(h1)+EX(h2))/2,EY(o.head)-8); }); }
   // velux
   veluxes.forEach(v=>{ const h=elevH(v), y=roofHeightAt(v.x,v.z); const wpx=Math.max(8,v.w*s), hpx=Math.max(6,0.22*s); px.fillStyle='rgba(159,210,255,.65)'; px.strokeStyle='#2b8fd6'; px.lineWidth=2; px.beginPath(); px.rect(EX(h)-wpx/2,EY(y)-hpx/2,wpx,hpx); px.fill(); px.stroke(); px.fillStyle='#1b2a44'; px.font='700 10.5px system-ui'; px.fillText('Velux '+Math.round(v.l*100)+'×'+Math.round(v.w*100),EX(h),EY(y)-hpx-2); });
+  // elemente PV pe peretii spre aceasta fatada
+  const PVC={ invertor:'#2b6cb0', baterii:'#2f855a', echipament:'#6b7280', panouri:'#1a3a6b' };
+  pvItems.forEach(it=>{ const wi=pvWallIndex(it); if(wi<0||!wallFaces(wi)) return; const h=elevH({x:it.x,z:it.z}), yc=(it.y!=null)?it.y:1.2, col=PVC[it.cat]||'#2b6cb0', wpx=Math.max(10,it.w*s), hpx=Math.max(10,it.h*s);
+    px.fillStyle='rgba(43,108,176,.18)'; px.strokeStyle=col; px.lineWidth=2; px.beginPath(); px.rect(EX(h)-wpx/2,EY(yc)-hpx/2,wpx,hpx); px.fill(); px.stroke();
+    px.fillStyle=col; px.font='700 10px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText(pvIcon(it.cat),EX(h),EY(yc));
+    px.fillStyle='#1b2a44'; px.font='700 9.5px system-ui'; px.fillText(Math.round(it.h*100)+'×'+Math.round(it.w*100),EX(h),EY(yc)-hpx/2-7);
+    px.fillStyle='#c0392b'; px.beginPath(); px.arc(EX(h)+wpx/2,EY(yc)-hpx/2,6,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 10px system-ui'; px.fillText('x',EX(h)+wpx/2,EY(yc)-hpx/2); });
   // cote generale
   px.fillStyle='#1b2a44'; px.font='700 12px system-ui'; px.textAlign='center'; px.fillText('Latime '+Math.round((wMx-wMn)*100)+' cm',(EX(wMn)+EX(wMx))/2,EY(0)+18);
   px.save(); px.translate(EX(wMn)-16,EY(wallH/2)); px.rotate(-Math.PI/2); px.fillText('Pereti '+Math.round(wallH*100)+' cm',0,0); px.restore();
@@ -320,7 +327,11 @@ function elevAddOpening(m){ const n=foot.length; let best=null;
   openings.push({wall:i,pos,w:d.w,sill,head,type:openType}); drawPlan(); build3D(); renderElemList(); commit(); }
 function elevAddVelux(m){ const b=roofBBox(); const facadeAxisX=(planView==='fata'||planView==='spate'); const depthC=facadeAxisX?(b.zmn+b.zmx)/2:(b.xmn+b.xmx)/2; const pt=hd2xz(m.h,depthC); if(pointInPolyG(foot,pt.x,pt.z)){ veluxes.push({x:snap(pt.x),z:snap(pt.z),w:0.78,l:1.18}); drawPlan(); build3D(); renderElemList(true); commit(); } }
 function elevPointerDown(ev){ if(foot.length<3||!footClosed) return;
-  if(curCat==='pv'){ if(pvPlace) elevAddPv(elevModel(ev)); return; }   // pe fatada, in PV doar amplasezi PV; nu editezi casa
+  if(curCat==='pv'){ const sp=elevScreen(ev); const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
+    for(let i=pvItems.length-1;i>=0;i--){ const it=pvItems[i]; const wi=pvWallIndex(it); if(wi<0||!wallFaces(wi)) continue; const h=elevH({x:it.x,z:it.z}), yc=(it.y!=null)?it.y:1.2, wpx=Math.max(10,it.w*elevMap.s), hpx=Math.max(10,it.h*elevMap.s);
+      if(Math.hypot(sp.x-(EX(h)+wpx/2),sp.y-(EY(yc)-hpx/2))<12){ pvItems.splice(i,1); renderBom(); drawPlan(); build3D(); commit(); return; }
+      if(Math.abs(sp.x-EX(h))<=wpx/2+3 && Math.abs(sp.y-EY(yc))<=hpx/2+3){ drag={elev:1,kind:'pvmove',i}; return; } }
+    if(pvPlace) elevAddPv(elevModel(ev)); return; }   // in PV pe fatada: muta/sterge PV existent sau plaseaza unul nou; casa e blocata
   if(mode==='open' && openType && openType!=='horn' && openType!=='velux'){ elevAddOpening(elevModel(ev)); return; }   // adauga gol direct pe fatada
   if(mode==='open' && openType==='velux'){ elevAddVelux(elevModel(ev)); return; }                                     // adauga velux direct pe fatada
   const sp=elevScreen(ev); const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
@@ -348,6 +359,7 @@ function elevPointerMove(ev){ if(!drag||!drag.elev) return; const m=elevModel(ev
   else if(drag.kind==='wallH'){ wallH=Math.max(1.8,Math.min(8,snap(m.y))); const e=$('wallH'); if(e) e.value=Math.round(wallH*100); }
   else if(drag.kind==='eave'){ const hs=foot.map(elevH); const wMn=Math.min.apply(null,hs), wMx=Math.max.apply(null,hs); const ov=drag.side==='min'?(wMn-m.h):(m.h-wMx); eaveOverhang=Math.max(0,Math.min(2,snap(ov))); const e=$('eaveH'); if(e) e.value=Math.round(eaveOverhang*100); }
   else if(drag.kind==='side'){ const target=snap(m.h); drag.idxs.forEach(k=>{ const p=foot[k]; if(!p) return; if(drag.axis==='x') p.x=target*drag.sgn; else p.z=target*drag.sgn; }); }
+  else if(drag.kind==='pvmove'){ const it=pvItems[drag.i]; if(it){ const best=elevWallAtH(m.h); if(best){ const {A,B,hA,hB}=best; let t=(Math.abs(hB-hA)>1e-3)?((m.h-hA)/(hB-hA)):0.5; t=Math.max(0,Math.min(1,t)); it.x=snap(A.x+(B.x-A.x)*t); it.z=snap(A.z+(B.z-A.z)*t); } it.place='perete'; it.y=Math.max(0.2,snap(m.y)); } }
   else if(drag.kind==='open'){ const o=openings[drag.idx]; if(o){ const ht=o.head-o.sill; const sill=Math.max(0,Math.min(Math.max(0,wallH-ht),snap(m.y))); o.sill=sill; o.head=sill+ht;
     const A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(A&&B){ const hA=elevH(A),hB=elevH(B),Lw=Math.hypot(B.x-A.x,B.z-A.z)||1; if(Math.abs(hB-hA)>1e-3){ let pos=(m.h-hA)/(hB-hA)*Lw-o.w/2; o.pos=Math.max(0,Math.min(Lw-o.w,snap(pos))); } } } }
   drawPlan(); build3D(); }
@@ -470,10 +482,10 @@ function addPv(btnKey){ const cat=PV_CAT[btnKey]; const p=pvPick(btnKey); if(!p)
   document.querySelectorAll('.pvbtn').forEach(b=>b.classList.toggle('on', b.dataset.pv===btnKey));
   switchCat('pv'); if(typeof pvStatus==='function') pvStatus('Selectat: '+p.name+' ('+Math.round(pvPlace.h*100)+'×'+Math.round(pvPlace.w*100)+'×'+Math.round(pvPlace.d*100)+' cm). Click pe plan (Sus) sau pe peretele din fatada ca sa-l pui. Re-apasa butonul = renunti.'); }
 function placePvAt(x,z,place,y){ if(!pvPlace) return; const it={cat:pvPlace.cat,name:pvPlace.name,h:pvPlace.h,w:pvPlace.w,d:pvPlace.d,x:snap(x),z:snap(z),place:place||(pvPlace.cat==='panouri'?'acoperis':(pvPlace.cat==='baterii'?'sol':'perete'))}; if(y!=null) it.y=y; pvItems.push(it); renderBom(); drawPlan(); build3D(); commit(); }
-function elevAddPv(m){ if(!pvPlace) return; const n=foot.length; let best=null;
-  for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); if(m.h>=lo-0.15&&m.h<=hi+0.15){ const dd=Math.abs((lo+hi)/2-m.h); if(!best||dd<best.dd) best={A,B,hA,hB,dd}; } }
-  let x,z; if(best){ const {A,B,hA,hB}=best; const t=(Math.abs(hB-hA)>1e-3)?((m.h-hA)/(hB-hA)):0.5; x=A.x+(B.x-A.x)*Math.max(0,Math.min(1,t)); z=A.z+(B.z-A.z)*Math.max(0,Math.min(1,t)); } else { const c=centroidXZ(); x=c.x; z=c.z; }
-  placePvAt(x,z,'perete',Math.max(0.2,m.y)); }
+function elevWallAtH(h){ const n=foot.length; let best=null,bd=1e9; for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); const d=(h>=lo&&h<=hi)?0:Math.min(Math.abs(h-lo),Math.abs(h-hi)); if(d<bd){bd=d;best={A,B,hA,hB};} } return best; }
+function pvWallIndex(it){ let wi=-1,wd=0.9; for(let i=0;i<foot.length;i++){ const q=projOnSeg({x:it.x,z:it.z},foot[i],foot[(i+1)%foot.length]); const d=Math.hypot(it.x-q.x,it.z-q.z); if(d<wd){wd=d;wi=i;} } return wi; }
+function elevAddPv(m){ if(!pvPlace) return; const best=elevWallAtH(m.h); if(!best) return;   // doar pe un perete spre aceasta fatada; fara cadere in centru
+  const {A,B,hA,hB}=best; let t=(Math.abs(hB-hA)>1e-3)?((m.h-hA)/(hB-hA)):0.5; t=Math.max(0,Math.min(1,t)); placePvAt(A.x+(B.x-A.x)*t, A.z+(B.z-A.z)*t, 'perete', Math.max(0.2,m.y)); }
 document.querySelectorAll('[data-pv]').forEach(b=> b.onclick=()=>addPv(b.dataset.pv));
 
 function renderBom(){ const host=$('bom'); if(!host) return; if(!pvItems.length){ host.innerHTML='<div style="font-size:11px;color:var(--muted)">Niciun element. Apasa un buton de mai sus ca sa-l adaugi; apoi muta-l in plan, X = sterge.</div>'; return; }
@@ -708,10 +720,17 @@ function build3D(){
   // elemente sistem fotovoltaic (cutii la dimensiunile din Excel)
   const PV_COL={ invertor:0x2b6cb0, baterii:0x2f855a, echipament:0x6b7280, panouri:0x1a3a6b };
   pvItems.forEach(it=>{ const mat=new THREE.MeshStandardMaterial({color:PV_COL[it.cat]||0x2b6cb0,roughness:.55,metalness:.2});
-    let g,y;
-    if(it.cat==='panouri'){ g=new THREE.BoxGeometry(it.w,it.d,it.h); y=(it.y!=null&&it.place==='perete')? it.y : wallH+ridgeRaise*0.5+it.d/2; }
-    else { g=new THREE.BoxGeometry(it.w,it.h,it.d); y = (it.y!=null&&it.place==='perete')? it.y : it.place==='sol'? it.h/2 : it.place==='acoperis'? (wallH+ridgeRaise*0.5+it.h/2) : (0.9+it.h/2); }
-    const m=new THREE.Mesh(g,mat); m.position.set(it.x,y,it.z); building.add(m); });
+    if(it.place==='acoperis'){ // pe apa: culcat pe panta, inclinat ca acoperisul (urmeaza normala suprafetei)
+      const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.d,it.h),mat);
+      let nx=0,nz=0; if(ridgeRaise>0.02){ const e=0.15; nx=-(roofY2(it.x+e,it.z)-roofY2(it.x-e,it.z))/(2*e); nz=-(roofY2(it.x,it.z+e)-roofY2(it.x,it.z-e))/(2*e); }
+      const nrm=new THREE.Vector3(nx,1,nz).normalize(); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),nrm); m.position.set(it.x, roofHeightAt(it.x,it.z)+it.d/2+0.03, it.z); building.add(m);
+    } else if(it.place==='perete'){ // pe perete: lipit, orientat dupa peretele respectiv
+      const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat);
+      const wi=pvWallIndex(it); let ox=0,oz=1; if(wi>=0){ const A=foot[wi],B=foot[(wi+1)%foot.length]; let dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; const c=centroidXZ(); let nx=dz,nz=-dx; if((it.x-c.x)*nx+(it.z-c.z)*nz<0){nx=-nx;nz=-nz;} ox=nx;oz=nz; }
+      m.rotation.y=Math.atan2(ox,oz); const y=(it.y!=null)?it.y:1.2; m.position.set(it.x+ox*it.d/2, y, it.z+oz*it.d/2); building.add(m);
+    } else { // sol: drept
+      const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat); m.position.set(it.x, it.h/2, it.z); building.add(m);
+    } });
   // busola pe sol: cercuri punctate + linii radiale + puncte cardinale (fara con)
   const span=Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x)); const span2=Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)); const R=Math.max(span,span2,4)*0.62+2.5;
   compass.position.set(c.x,0.02,c.z); compass.rotation.y=-orientationDeg*Math.PI/180;
