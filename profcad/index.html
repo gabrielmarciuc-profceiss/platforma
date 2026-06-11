@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R58 (acoperis fete plane)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R59 (anti-stergere contur)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -155,7 +155,7 @@ let chimSize=0.6, chimH=1.0, openType='';
 let pvItems=[];                // elemente sistem fotovoltaic plasate {cat,name,h,w,d (m),x,z,place}
 let veluxes=[];                // ferestre de mansarda {x,z,w,l (m)} pe acoperis
 let roofEdgesCache=[], roofScaleCache=1;   // pt inaltimea acoperisului intr-un punct (velux)
-let mode='foot', drag=null, planMap={s:30,ox:0,oy:0};
+let mode='edit', drag=null, planMap={s:30,ox:0,oy:0};   // implicit = Muta colturi (sigur), nu Contur (care sterge la click)
 let planZoom=1, planPan={x:0,y:0}; const history=[];
 let planView='sus', elevMap={s:30,ox:0,oy:0};   // Sus = plan; fata/spate/stanga/dreapta = elevatie 2D
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
@@ -400,7 +400,7 @@ pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev
     else { if(Math.hypot(p.x-pendingRidge.x,p.z-pendingRidge.z)>0.05){ ridges.push({a:pendingRidge,b:p}); } pendingRidge=null; commit(); }
     drawPlan(); build3D(); return; }
   // contur
-  if(footClosed){ footClosed=false; foot=[]; openings=[]; }
+  if(footClosed){ if(foot.length>=3 && !confirm('Incepi un CONTUR NOU? Se sterge casa actuala.')){ return; } footClosed=false; foot=[]; openings=[]; chimneys=[]; veluxes=[]; }
   if(foot.length>=3){ const f=foot[0]; if(Math.hypot(w.x-f.x,w.z-f.z)<0.3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); return; } }
   foot.push({x:snap(w.x),z:snap(w.z)}); drawPlan(); build3D();
 });
