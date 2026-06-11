@@ -55,6 +55,8 @@
       <select id="openType" style="width:auto"><option value="usa">Usa</option><option value="gol_usa">Gol usa</option><option value="fereastra">Fereastra</option><option value="gol_fereastra">Gol fereastra</option></select>
       <button class="btn" id="tHorn">🏠 Horn</button>
       <button class="btn bad" id="tDel">🗑 Sterge element</button>
+      <button class="btn" id="tUndo">↶ Undo</button>
+      <button class="btn" id="tFit">⊡ Incadreaza</button>
       <button class="btn" id="tClose">⭙ Inchide</button>
       <button class="btn bad" id="tClearAll">Goleste tot</button>
     </div>
@@ -177,16 +179,19 @@ $('tRidge').onclick=()=>{ mode='ridge'; if(ridges.length) ridges[ridges.length-1
 $('tOpen').onclick=()=>{ mode='open'; setTools(); };
 $('tHorn').onclick=()=>{ mode='horn'; setTools(); };
 $('tDel').onclick=()=>{ mode='del'; setTools(); };
-$('tClose').onclick=()=>{ if(foot.length>=3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); } };
-$('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=false; ridges=[]; openings=[]; chimneys=[]; mode='foot'; setTools(); drawPlan(); build3D(); } };
+$('tUndo').onclick=undo;
+$('tFit').onclick=()=>{ planZoom=1; planPan={x:0,y:0}; drawPlan(); };
+window.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ const t=e.target.tagName; if(t==='INPUT'||t==='SELECT') return; e.preventDefault(); undo(); } });
+$('tClose').onclick=()=>{ if(foot.length>=3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); commit(); } };
+$('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=false; ridges=[]; openings=[]; chimneys=[]; mode='foot'; setTools(); drawPlan(); build3D(); commit(); } };
 $('openType').onchange=()=>{ openType=$('openType').value; };
-$('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); };
-$('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); };
-$('roofType').onchange=()=>{ roofType=$('roofType').value; build3D(); };
-$('orient').oninput=()=>{ orientationDeg=(parseInt($('orient').value,10)||0)%360; drawPlan(); build3D(); };
+$('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); }; $('wallH').onchange=commit;
+$('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); }; $('ridgeH').onchange=commit;
+$('roofType').onchange=()=>{ roofType=$('roofType').value; build3D(); commit(); };
+$('orient').oninput=()=>{ orientationDeg=(parseInt($('orient').value,10)||0)%360; drawPlan(); build3D(); }; $('orient').onchange=commit;
 $('chimSize').oninput=()=>{ chimSize=(parseInt($('chimSize').value,10)||60)/100; };
 $('chimH').oninput=()=>{ chimH=(parseInt($('chimH').value,10)||100)/100; };
-document.querySelectorAll('[data-az]').forEach(b=> b.onclick=()=>{ orientationDeg=+b.dataset.az; $('orient').value=orientationDeg; drawPlan(); build3D(); });
+document.querySelectorAll('[data-az]').forEach(b=> b.onclick=()=>{ orientationDeg=+b.dataset.az; $('orient').value=orientationDeg; drawPlan(); build3D(); commit(); });
 
 /* ===== 3D ===== */
 const view=$('view');
@@ -262,7 +267,7 @@ window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
 
 /* ===== start ===== */
 window.addEventListener('resize',()=>{ sizeView(); drawPlan(); });
-sizeView(); setTools(); drawPlan(); build3D(); animate();
+sizeView(); setTools(); drawPlan(); build3D(); commit(); animate();
 </script>
 <script src="../assets/profceiss-projects.js" defer></script>
 </body>
