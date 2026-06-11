@@ -394,7 +394,7 @@ function switchCat(cat){ document.querySelectorAll('.cat').forEach(x=>x.classLis
   $('elemList').style.display  = cat==='casa'?'':'none'; }
 document.querySelectorAll('.cat').forEach(b=> b.onclick=()=>switchCat(b.dataset.cat));
 document.querySelectorAll('.vbtn').forEach(b=> b.onclick=()=>setView(b.dataset.view));
-document.querySelectorAll('.pvb').forEach(b=> b.onclick=()=>{ planView=b.dataset.pview; document.querySelectorAll('.pvb').forEach(x=>x.classList.toggle('on',x===b)); planZoom=1; planPan={x:0,y:0}; drawPlan(); });
+document.querySelectorAll('.pvb').forEach(b=> b.onclick=()=>{ planView=b.dataset.pview; document.querySelectorAll('.pvb').forEach(x=>x.classList.toggle('on',x===b)); planZoom=1; planPan={x:0,y:0}; drawPlan(); orient3DToFacade(planView); });
 
 /* ===== catalog PV (implicit; suprascris de Excel) ===== dimensiuni in cm: h=inaltime, w=latime, d=grosime */
 const PV_DEFAULT={
@@ -543,6 +543,15 @@ const ROOF_MAT={ tigla:{color:0xb0533a,rough:.92,metal:0}, tabla:{color:0x8a93a0
 function sizeView(){ const r=view.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/Math.max(1,r.height); camera.updateProjectionMatrix(); if(viewMode!=='3d') applyOrthoFrustum(); }
 function buildSpan(){ if(foot.length<3) return {cx:0,cz:0,sx:8,sz:6}; let mnx=1e9,mxx=-1e9,mnz=1e9,mxz=-1e9; foot.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mnz=Math.min(mnz,p.z);mxz=Math.max(mxz,p.z);}); return {cx:(mnx+mxx)/2,cz:(mnz+mxz)/2,sx:mxx-mnx,sz:mxz-mnz}; }
 function applyOrthoFrustum(){ const r=view.getBoundingClientRect(),asp=r.width/Math.max(1,r.height); const s=buildSpan(); const totalH=wallH+ridgeRaise+eaveOverhang+1; const wide=Math.max(s.sx,s.sz)+2*eaveOverhang+1.5; let halfH=Math.max(totalH, wide/asp)/2*1.12; let halfW=halfH*asp; orthoCam.left=-halfW; orthoCam.right=halfW; orthoCam.top=halfH; orthoCam.bottom=-halfH; orthoCam.updateProjectionMatrix(); }
+// orienteaza camera 3D spre fatada aleasa pe schita (fata=+z, spate=-z, dreapta=+x, stanga=-x)
+function orient3DToFacade(v){ const s=buildSpan(), sp=Math.max(s.sx,s.sz,4), d=sp*1.7+6, ey=wallH*0.85;
+  let pos;
+  if(v==='fata') pos={x:s.cx,y:ey,z:s.cz+d};
+  else if(v==='spate') pos={x:s.cx,y:ey,z:s.cz-d};
+  else if(v==='dreapta') pos={x:s.cx+d,y:ey,z:s.cz};
+  else if(v==='stanga') pos={x:s.cx-d,y:ey,z:s.cz};
+  else pos={x:s.cx+sp*1.1,y:wallH+sp*0.95,z:s.cz+sp*1.35};   // sus/3d = perspectiva implicita
+  controls.target.set(s.cx,wallH*0.5,s.cz); camera.position.set(pos.x,pos.y,pos.z); controls.update(); }
 function setView(mode){ viewMode=mode; document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.view===mode));
   const s=buildSpan(), midH=(wallH+ridgeRaise)/2, D=Math.max(s.sx,s.sz)*4+20;
   if(mode==='3d'){ activeCam=camera; controls.object=camera; controls.enableRotate=true; controls.target.set(s.cx,wallH*0.5,s.cz); camera.position.set(s.cx+Math.max(s.sx,s.sz)*1.1,wallH+Math.max(s.sx,s.sz)*0.95,s.cz+Math.max(s.sx,s.sz)*1.35); controls.update(); return; }
