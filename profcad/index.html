@@ -181,6 +181,8 @@ function drawPlan(){ fitPC(); computeMap(); const W=pc.clientWidth,H=pc.clientHe
   // busola
   px.fillStyle='#c0392b'; px.font='700 13px system-ui'; px.textAlign='center'; const a=orientationDeg*Math.PI/180; const cxp=W-40,cyp=40,rr=20;
   const nx=cxp+Math.sin(a)*rr, ny=cyp-Math.cos(a)*rr; px.strokeStyle='#c0392b'; px.lineWidth=2; px.beginPath(); px.moveTo(cxp,cyp); px.lineTo(nx,ny); px.stroke(); px.fillText('N',nx,ny-4);
+  // streasina (conturul acoperisului, mai mare ca amprenta)
+  if(footClosed && foot.length>=3 && eaveOverhang>0.01){ const rf=offsetFootprint(eaveOverhang); px.strokeStyle='#b9a25a'; px.lineWidth=1.5; px.setLineDash([6,4]); px.beginPath(); rf.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); px.closePath(); px.stroke(); px.setLineDash([]); }
   // contur
   if(foot.length){ px.strokeStyle='#1c7bd6'; px.lineWidth=4; px.lineJoin='round'; px.beginPath(); foot.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); if(footClosed) px.closePath(); px.stroke();
     // goluri (usi/ferestre) pe pereti
