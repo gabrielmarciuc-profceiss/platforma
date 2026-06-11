@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R67 (panouri in limita + umplere auto)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R68 (panou vazut de sus + rotire)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -238,12 +238,15 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
     px.fillStyle='#1c7bd6'; px.beginPath(); px.arc(cx+h/2,cy+h/2,6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=1.5; px.stroke();
     // buton X stergere (dreapta-sus)
     px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+h/2,cy-h/2,8,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 12px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('x',cx+h/2,cy-h/2); });
-  // elemente PV (dreptunghi latime x grosime + eticheta + X)
+  // elemente PV vazute de sus (panou = latime x lungime; altele = latime x grosime) + rotire + X
   const PV_C2={ invertor:'#2b6cb0', baterii:'#2f855a', echipament:'#6b7280', panouri:'#1a3a6b' };
-  pvItems.forEach(it=>{ const w_=Math.max(10,it.w*planMap.s), d_=Math.max(10,it.d*planMap.s), cx=SX(it.x), cy=SY(it.z); const col=PV_C2[it.cat]||'#2b6cb0';
-    px.fillStyle='rgba(43,108,176,.16)'; px.strokeStyle=col; px.lineWidth=2; px.fillRect(cx-w_/2,cy-d_/2,w_,d_); px.strokeRect(cx-w_/2,cy-d_/2,w_,d_);
+  pvItems.forEach(it=>{ const cx=SX(it.x), cy=SY(it.z), col=PV_C2[it.cat]||'#2b6cb0', rot=it.rot||0;
+    const fpW=it.w, fpH=(it.place==='acoperis')?it.h:it.d; const wpx=Math.max(8,fpW*planMap.s), hpx=Math.max(8,fpH*planMap.s);
+    px.save(); px.translate(cx,cy); px.rotate(rot); px.fillStyle='rgba(43,108,176,.18)'; px.strokeStyle=col; px.lineWidth=2; px.fillRect(-wpx/2,-hpx/2,wpx,hpx); px.strokeRect(-wpx/2,-hpx/2,wpx,hpx); px.restore();
     px.fillStyle=col; px.font='700 10px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText(pvIcon(it.cat),cx,cy);
-    px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+w_/2,cy-d_/2,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.fillText('x',cx+w_/2,cy-d_/2); });
+    const ac=Math.abs(Math.cos(rot)),as=Math.abs(Math.sin(rot)), ahw=(wpx*ac+hpx*as)/2, ahh=(wpx*as+hpx*ac)/2;
+    px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+ahw,cy-ahh,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.fillText('x',cx+ahw,cy-ahh);
+    px.fillStyle='#1a8a4f'; px.beginPath(); px.arc(cx-ahw,cy-ahh,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 12px system-ui'; px.fillText('↻',cx-ahw,cy-ahh); });
   // velux (dreptunghi pe acoperis + maner resize + X)
   veluxes.forEach(v=>{ const w_=Math.max(10,v.w*planMap.s), l_=Math.max(10,v.l*planMap.s), cx=SX(v.x), cy=SY(v.z);
     px.fillStyle='rgba(159,210,255,.35)'; px.strokeStyle='#2b8fd6'; px.lineWidth=2; px.fillRect(cx-w_/2,cy-l_/2,w_,l_); px.strokeRect(cx-w_/2,cy-l_/2,w_,l_);
@@ -371,10 +374,12 @@ function screenPt(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-
 pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev); return; } const w=world(ev);
   /* ===== SISTEM FOTOVOLTAIC: doar plasare/mutare/stergere PV. NU se editeaza casa ===== */
   if(curCat==='pv'){
+    const sp=screenPt(ev);
+    for(let i=pvItems.length-1;i>=0;i--){ const it=pvItems[i], cx=SX(it.x), cy=SY(it.z), rot=it.rot||0; const fpW=it.w, fpH=(it.place==='acoperis')?it.h:it.d; const wpx=Math.max(8,fpW*planMap.s), hpx=Math.max(8,fpH*planMap.s); const ac=Math.abs(Math.cos(rot)),as=Math.abs(Math.sin(rot)), ahw=(wpx*ac+hpx*as)/2, ahh=(wpx*as+hpx*ac)/2;
+      if(Math.hypot(sp.x-(cx+ahw),sp.y-(cy-ahh))<12){ pvItems.splice(i,1); renderBom(); drawPlan(); build3D(); commit(); return; }                                   // X = sterge
+      if(Math.hypot(sp.x-(cx-ahw),sp.y-(cy-ahh))<12){ it.rot=(rot+Math.PI/2)%(Math.PI*2); if(it.place==='acoperis'){ const c=clampRoofXZ(it.x,it.z,it.w,it.h,it.rot); it.x=snap(c.x); it.z=snap(c.z); } drawPlan(); build3D(); commit(); return; }   // ↻ = roteste 90
+      if(Math.abs(sp.x-cx)<=ahw+2 && Math.abs(sp.y-cy)<=ahh+2){ drag={kind:'pv',i}; return; } }                                                                          // corp = muta
     if(pvPlace){ placePvAt(w.x,w.z); return; }
-    const sp=screenPt(ev); for(let i=pvItems.length-1;i>=0;i--){ const it=pvItems[i], cx=SX(it.x), cy=SY(it.z), hw=Math.max(5,it.w*planMap.s/2), hd=Math.max(5,it.d*planMap.s/2);
-      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hd))<12){ pvItems.splice(i,1); renderBom(); drawPlan(); build3D(); commit(); return; }
-      if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hd+2){ drag={kind:'pv',i}; return; } }
     return;
   }
   /* ===== ELEMENTE CASA: editare constructie ===== */
@@ -431,7 +436,7 @@ pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev
   else if(drag.kind==='ridgemove'){ const r=ridges[drag.ri]; if(r){ const ddx=w.x-drag.lx, ddz=w.z-drag.lz; r.a.x=snap(r.a.x+ddx); r.a.z=snap(r.a.z+ddz); r.b.x=snap(r.b.x+ddx); r.b.z=snap(r.b.z+ddz); drag.lx=w.x; drag.lz=w.z; } }
   else if(drag.kind==='horn'){ chimneys[drag.i].x=snap(w.x); chimneys[drag.i].z=snap(w.z); }
   else if(drag.kind==='hornsize'){ const c=chimneys[drag.i]; if(c){ const d=Math.max(Math.abs(w.x-c.x),Math.abs(w.z-c.z))*2; c.size=Math.max(0.2,Math.min(3,snap(d))); } }
-  else if(drag.kind==='pv'){ const it=pvItems[drag.i]; if(it){ if(it.place==='acoperis'){ const c=clampRoofXZ(w.x,w.z,it.w,it.h); it.x=snap(c.x); it.z=snap(c.z); } else { it.x=snap(w.x); it.z=snap(w.z); } } }
+  else if(drag.kind==='pv'){ const it=pvItems[drag.i]; if(it){ if(it.place==='acoperis'){ const c=clampRoofXZ(w.x,w.z,it.w,it.h,it.rot); it.x=snap(c.x); it.z=snap(c.z); } else { it.x=snap(w.x); it.z=snap(w.z); } } }
   else if(drag.kind==='velux'){ const v=veluxes[drag.i]; if(v){ v.x=snap(w.x); v.z=snap(w.z); } }
   else if(drag.kind==='veluxsize'){ const v=veluxes[drag.i]; if(v){ v.w=Math.max(0.4,Math.min(3,snap(Math.abs(w.x-v.x)*2))); v.l=Math.max(0.4,Math.min(4,snap(Math.abs(w.z-v.z)*2))); } }
   else if(drag.kind==='opening'){ const o=openings[drag.i]; const hit=nearestWall(w); if(o&&hit){ o.wall=hit.wall; const L=wallLen(hit.wall); o.pos=Math.max(0,Math.min(L-o.w,hit.pos-o.w/2)); } }
@@ -482,7 +487,7 @@ function addPv(btnKey){ const cat=PV_CAT[btnKey]; const p=pvPick(btnKey); if(!p)
   pvPlace={btn:btnKey,cat,name:p.name,h:(+p.h||40)/100,w:(+p.w||40)/100,d:(+p.d||20)/100};
   document.querySelectorAll('.pvbtn').forEach(b=>b.classList.toggle('on', b.dataset.pv===btnKey));
   switchCat('pv'); if(typeof pvStatus==='function') pvStatus('Selectat: '+p.name+' ('+Math.round(pvPlace.h*100)+'×'+Math.round(pvPlace.w*100)+'×'+Math.round(pvPlace.d*100)+' cm). Click pe plan (Sus) sau pe peretele din fatada ca sa-l pui. Re-apasa butonul = renunti.'); }
-function clampRoofXZ(x,z,w,l){ const b=roofBBox(); const hw=Math.min(w,(b.xmx-b.xmn))/2, hl=Math.min(l,(b.zmx-b.zmn))/2; return { x:Math.max(b.xmn+hw,Math.min(b.xmx-hw,x)), z:Math.max(b.zmn+hl,Math.min(b.zmx-hl,z)) }; }   // panoul nu iese din conturul acoperisului
+function clampRoofXZ(x,z,w,l,rot){ rot=rot||0; const ac=Math.abs(Math.cos(rot)),as=Math.abs(Math.sin(rot)); const ew=w*ac+l*as, el=w*as+l*ac; const b=roofBBox(); const hw=Math.min(ew,(b.xmx-b.xmn))/2, hl=Math.min(el,(b.zmx-b.zmn))/2; return { x:Math.max(b.xmn+hw,Math.min(b.xmx-hw,x)), z:Math.max(b.zmn+hl,Math.min(b.zmx-hl,z)) }; }   // panoul (rotit) nu iese din conturul acoperisului
 function placePvAt(x,z,place,y){ if(!pvPlace) return; place=place||(pvPlace.cat==='panouri'?'acoperis':(pvPlace.cat==='baterii'?'sol':'perete'));
   if(place==='acoperis'){ const c=clampRoofXZ(x,z,pvPlace.w,pvPlace.h); x=c.x; z=c.z; }
   const it={cat:pvPlace.cat,name:pvPlace.name,h:pvPlace.h,w:pvPlace.w,d:pvPlace.d,x:snap(x),z:snap(z),place}; if(y!=null) it.y=y; pvItems.push(it); renderBom(); drawPlan(); build3D(); commit(); }
@@ -737,13 +742,13 @@ function build3D(){
     if(it.place==='acoperis'){ // pe apa: culcat pe panta, inclinat ca acoperisul (urmeaza normala suprafetei)
       const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.d,it.h),mat);
       let nx=0,nz=0; if(ridgeRaise>0.02){ const e=0.15; nx=-(roofY2(it.x+e,it.z)-roofY2(it.x-e,it.z))/(2*e); nz=-(roofY2(it.x,it.z+e)-roofY2(it.x,it.z-e))/(2*e); }
-      const nrm=new THREE.Vector3(nx,1,nz).normalize(); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),nrm); m.position.set(it.x, roofHeightAt(it.x,it.z)+it.d/2+0.03, it.z); building.add(m);
+      const nrm=new THREE.Vector3(nx,1,nz).normalize(); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),nrm); m.rotateY(it.rot||0); m.position.set(it.x, roofHeightAt(it.x,it.z)+it.d/2+0.03, it.z); building.add(m);
     } else if(it.place==='perete'){ // pe perete: lipit, orientat dupa peretele respectiv
       const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat);
       const wi=pvWallIndex(it); let ox=0,oz=1; if(wi>=0){ const A=foot[wi],B=foot[(wi+1)%foot.length]; let dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; const c=centroidXZ(); let nx=dz,nz=-dx; if((it.x-c.x)*nx+(it.z-c.z)*nz<0){nx=-nx;nz=-nz;} ox=nx;oz=nz; }
-      m.rotation.y=Math.atan2(ox,oz); const y=(it.y!=null)?it.y:1.2; m.position.set(it.x+ox*it.d/2, y, it.z+oz*it.d/2); building.add(m);
+      m.rotation.y=Math.atan2(ox,oz)+(it.rot||0); const y=(it.y!=null)?it.y:1.2; m.position.set(it.x+ox*it.d/2, y, it.z+oz*it.d/2); building.add(m);
     } else { // sol: drept
-      const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat); m.position.set(it.x, it.h/2, it.z); building.add(m);
+      const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat); m.rotation.y=it.rot||0; m.position.set(it.x, it.h/2, it.z); building.add(m);
     } });
   // busola pe sol: cercuri punctate + linii radiale + puncte cardinale (fara con)
   const span=Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x)); const span2=Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)); const R=Math.max(span,span2,4)*0.62+2.5;
