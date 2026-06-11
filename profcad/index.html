@@ -119,7 +119,7 @@
       <label>Inaltime pereti <input id="wallH" type="number" min="180" max="600" step="10" value="300"> cm</label>
       <label>Coama <input id="ridgeH" type="number" min="0" max="400" step="10" value="160"> cm</label>
       <label>Streasina <input id="eaveH" type="number" min="0" max="300" step="5" value="40"> cm</label>
-      <label>Apa <select id="roofLogic" style="width:auto"><option value="auto">Automat (apele se calculeaza)</option><option value="manual">Coame manuale</option></select></label>
+      <label>Apa <select id="roofLogic" style="width:auto"><option value="auto">Coama reglabila (buline)</option><option value="manual">Coame manuale (desen)</option></select></label>
       <label>Acoperis <select id="roofType" style="width:auto"><option value="tigla">Tigla</option><option value="tabla">Tabla cutata</option><option value="tabla_tigla">Tabla tip tigla</option><option value="terasa">Terasa (membrana)</option></select></label>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
         <canvas id="compassDial" width="104" height="104" style="width:104px;height:104px;cursor:grab;touch-action:none"></canvas>
@@ -222,8 +222,8 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
     px.fillStyle='#1b2a44'; px.font='700 12px system-ui'; const n=footClosed?foot.length:foot.length-1;
     for(let i=0;i<n;i++){ const a2=foot[i],b=foot[(i+1)%foot.length]; const len=Math.round(Math.hypot(b.x-a2.x,b.z-a2.z)*100); const mx2=(SX(a2.x)+SX(b.x))/2,my2=(SY(a2.z)+SY(b.z))/2; px.fillStyle='#1b2a44'; px.fillText(len+' cm',mx2,my2-6); px.fillStyle='#1c7bd6'; px.font='800 12px system-ui'; px.fillText('P'+(i+1),mx2,my2+9); px.font='700 12px system-ui'; }
     foot.forEach((p,i)=>{ px.fillStyle=(i===0&&mode==='foot')?'#34d399':'#ffb020'; px.beginPath(); px.arc(SX(p.x),SY(p.z),6,0,7); px.fill(); }); }
-  // coame (segmente)
-  ridges.forEach(r=>{ px.strokeStyle='#d98200'; px.lineWidth=3; px.setLineDash([7,5]); px.beginPath(); px.moveTo(SX(r.a.x),SY(r.a.z)); px.lineTo(SX(r.b.x),SY(r.b.z)); px.stroke(); px.setLineDash([]);
+  // coame manuale (segmente) - doar in mod "Coame manuale"
+  if(roofLogic!=='auto') ridges.forEach(r=>{ px.strokeStyle='#d98200'; px.lineWidth=3; px.setLineDash([7,5]); px.beginPath(); px.moveTo(SX(r.a.x),SY(r.a.z)); px.lineTo(SX(r.b.x),SY(r.b.z)); px.stroke(); px.setLineDash([]);
     [r.a,r.b].forEach(p=>{ px.fillStyle='#d98200'; px.beginPath(); px.arc(SX(p.x),SY(p.z),5,0,7); px.fill(); }); });
   // capat coama in asteptare + linie elastica spre cursor
   if(mode==='ridge'&&pendingRidge){ if(mouseW){ px.strokeStyle='#f0a020'; px.lineWidth=2; px.setLineDash([4,4]); px.beginPath(); px.moveTo(SX(pendingRidge.x),SY(pendingRidge.z)); px.lineTo(SX(mouseW.x),SY(mouseW.z)); px.stroke(); px.setLineDash([]); }
@@ -669,8 +669,8 @@ function build3D(){
   // velux (fereastra de mansarda) - se aseaza pe panta, inclinata dupa apa acoperisului
   const matVlx=new THREE.MeshStandardMaterial({color:0x9fd2ff,roughness:.25,metalness:.1,transparent:true,opacity:.8,side:THREE.DoubleSide});
   veluxes.forEach(v=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(v.w,0.07,v.l),matVlx);
-    let nx=0,nz=0;   // normala pantei: surface y = wallH + scale*distInterioara, deci gradient = scale*normalaInterioara
-    if(roofLogic==='auto' && roofEdgesCache.length){ let bd=1e9,best=null; for(const e of roofEdgesCache){ const d=(v.x-e.ax)*e.nx+(v.z-e.az)*e.nz; if(d<bd){bd=d;best=e;} } if(best){ nx=-roofScaleCache*best.nx; nz=-roofScaleCache*best.nz; } }
+    let nx=0,nz=0;   // normala pantei din gradientul suprafetei roofY2 (diferenta finita)
+    if(ridgeRaise>0.02){ const e=0.15; nx=-(roofY2(v.x+e,v.z)-roofY2(v.x-e,v.z))/(2*e); nz=-(roofY2(v.x,v.z+e)-roofY2(v.x,v.z-e))/(2*e); }
     const nrm=new THREE.Vector3(nx,1,nz).normalize(); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),nrm);
     m.position.set(v.x, roofHeightAt(v.x,v.z)+0.04, v.z); building.add(m); });
   // elemente sistem fotovoltaic (cutii la dimensiunile din Excel)
