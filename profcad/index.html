@@ -407,9 +407,9 @@ pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev
     if(!pendingRidge){ pendingRidge=p; }
     else { if(Math.hypot(p.x-pendingRidge.x,p.z-pendingRidge.z)>0.05){ ridges.push({a:pendingRidge,b:p}); } pendingRidge=null; commit(); }
     drawPlan(); build3D(); return; }
-  // contur
-  if(footClosed){ if(foot.length>=3 && !confirm('Incepi un CONTUR NOU? Se sterge casa actuala.')){ return; } footClosed=false; foot=[]; openings=[]; chimneys=[]; veluxes=[]; }
-  if(foot.length>=3){ const f=foot[0]; if(Math.hypot(w.x-f.x,w.z-f.z)<0.3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); return; } }
+  // contur (pornirea unui contur nou se face DOAR din butonul Contur, cu confirmare; click pe plan nu sterge)
+  if(footClosed) return;
+  if(foot.length>=3){ const f=foot[0]; if(Math.hypot(w.x-f.x,w.z-f.z)<0.3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); commit(); return; } }
   foot.push({x:snap(w.x),z:snap(w.z)}); drawPlan(); build3D();
 });
 pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev) elevPointerMove(ev); return; } if(!drag) return; const w=world(ev);
@@ -549,7 +549,7 @@ function delElement(w){
   let ci=nearest(foot,w,0.4); if(ci>=0){ if(foot.length>3){ foot.splice(ci,1); openings=openings.filter(o=>o.wall<foot.length); drawPlan(); build3D(); } else alert('Conturul are nevoie de minim 3 colturi.'); return; }
 }
 function setTools(){ if(mode!=='ridge') pendingRidge=null; [['tFoot','foot'],['tEdit','edit'],['tAddWall','addwall'],['tRidge','ridge'],['tDel','del']].forEach(([id,m])=>$(id).classList.toggle('on',mode===m)); const sel=$('openType'); if(sel) sel.classList.toggle('on',mode==='open'); }
-$('tFoot').onclick=()=>{ mode='foot'; setTools(); };
+$('tFoot').onclick=()=>{ if(footClosed && foot.length>=3){ if(!confirm('Incepi un CONTUR NOU? Se sterge casa actuala.')) return; foot=[]; footClosed=false; openings=[]; chimneys=[]; veluxes=[]; drawPlan(); build3D(); renderElemList(true); commit(); } mode='foot'; setTools(); };
 $('tEdit').onclick=()=>{ mode='edit'; setTools(); };
 $('tAddWall').onclick=()=>{ mode='addwall'; setTools(); };
 $('tRidge').onclick=()=>{ mode='ridge'; pendingRidge=null; mouseW=null; setTools(); };
