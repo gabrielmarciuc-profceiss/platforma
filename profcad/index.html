@@ -130,14 +130,6 @@
   </div>
   <div class="right">
     <canvas id="view"></canvas>
-    <div class="views" id="views">
-      <button class="vbtn on" data-view="3d">3D</button>
-      <button class="vbtn" data-view="fata">Fata</button>
-      <button class="vbtn" data-view="spate">Spate</button>
-      <button class="vbtn" data-view="stanga">Stanga</button>
-      <button class="vbtn" data-view="dreapta">Dreapta</button>
-      <button class="vbtn" data-view="sus">Sus</button>
-    </div>
     <div class="vhint">Drag = roteste · scroll = zoom · drag-dreapta = pan</div>
   </div>
 </div>
@@ -262,9 +254,10 @@ function drawElevation(){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect
   if(foot.length<3||!footClosed){ px.fillStyle='#5d6b82'; px.font='600 13px system-ui'; px.textAlign='center'; px.fillText('Inchide conturul casei (tab Sus) ca sa vezi elevatia.',W/2,H/2); return; }
   const hs=foot.map(elevH); const wMn=Math.min.apply(null,hs), wMx=Math.max.apply(null,hs); const mnH=wMn-eaveOverhang, mxH=wMx+eaveOverhang;
   const topY=wallH+ridgeRaise+0.3, widthM=Math.max(1,mxH-mnH), heightM=topY+0.6, pad=48;
-  const s=Math.max(6,Math.min((W-2*pad)/widthM,(H-2*pad)/heightM)*planZoom);
-  const ox=W/2-((mnH+mxH)/2)*s+planPan.x, oy=H-pad+planPan.y; elevMap={s,ox,oy};
-  const EX=h=>ox+h*s, EY=y=>oy-y*s;
+  const fs=Math.max(6,Math.min((W-2*pad)/widthM,(H-2*pad)/heightM)*planZoom);
+  const fox=W/2-((mnH+mxH)/2)*fs+planPan.x, foy=H-pad+planPan.y;
+  if(!(drag&&drag.elev)) elevMap={s:fs,ox:fox,oy:foy};   // ingheata transformarea cat editezi (sa nu sara scara)
+  const s=elevMap.s; const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
   px.strokeStyle='#e2e9f2'; px.lineWidth=1; for(let gy=0;gy<=Math.ceil(heightM);gy++){ px.beginPath(); px.moveTo(0,EY(gy)); px.lineTo(W,EY(gy)); px.stroke(); }
   px.strokeStyle='#9aa7bb'; px.lineWidth=2; px.beginPath(); px.moveTo(0,EY(0)); px.lineTo(W,EY(0)); px.stroke();
   // acoperis (profil aproximativ: de la streasina la coama, varf central)
@@ -285,13 +278,40 @@ function drawElevation(){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect
   px.fillStyle='#1b2a44'; px.font='700 12px system-ui'; px.textAlign='center'; px.fillText('Latime '+Math.round((wMx-wMn)*100)+' cm',(EX(wMn)+EX(wMx))/2,EY(0)+18);
   px.save(); px.translate(EX(wMn)-16,EY(wallH/2)); px.rotate(-Math.PI/2); px.fillText('Pereti '+Math.round(wallH*100)+' cm',0,0); px.restore();
   if(ridgeRaise>0.02){ px.fillStyle='#a64a32'; px.fillText('Coama +'+Math.round(ridgeRaise*100)+' cm',EX((wMn+wMx)/2),EY(wallH+ridgeRaise)-10); }
-  px.fillStyle='#5d6b82'; px.font='700 12px system-ui'; px.textAlign='left'; px.fillText('Elevatie: '+planView.toUpperCase(),12,18);
+  // manere editabile
+  const dot=(x,y,col)=>{ px.fillStyle=col; px.beginPath(); px.arc(x,y,6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); };
+  if(ridgeRaise>0.02) dot(EX((wMn+wMx)/2),EY(wallH+ridgeRaise),'#a64a32');   // coama (sus/jos)
+  dot(EX(wMn),EY(wallH),'#1c7bd6'); dot(EX(wMx),EY(wallH),'#1c7bd6');         // varf perete (inaltime)
+  dot(EX(wMn),EY(0),'#1a8a4f'); dot(EX(wMx),EY(0),'#1a8a4f');                 // laterale (latime)
+  px.fillStyle='#5d6b82'; px.font='700 12px system-ui'; px.textAlign='left'; px.fillText('Elevatie: '+planView.toUpperCase()+' · trage manerele (coama/varf/laterale) si golurile',12,18);
 }
+/* ===== interactiune pe elevatie (fatade) ===== */
+function elevScreen(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
+function elevModel(ev){ const sp=elevScreen(ev); return {h:(sp.x-elevMap.ox)/elevMap.s, y:(elevMap.oy-sp.y)/elevMap.s}; }
+function elevPointerDown(ev){ if(foot.length<3||!footClosed) return; const sp=elevScreen(ev); const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
+  const hs=foot.map(elevH); const wMn=Math.min.apply(null,hs), wMx=Math.max.apply(null,hs), cxh=(wMn+wMx)/2;
+  if(ridgeRaise>0.02 && Math.hypot(sp.x-EX(cxh),sp.y-EY(wallH+ridgeRaise))<14){ drag={elev:1,kind:'ridge'}; return; }
+  if(Math.hypot(sp.x-EX(wMn),sp.y-EY(wallH))<14 || Math.hypot(sp.x-EX(wMx),sp.y-EY(wallH))<14){ drag={elev:1,kind:'wallH'}; return; }
+  const axis=(planView==='fata'||planView==='spate')?'x':'z', sgn=(planView==='spate'||planView==='stanga')?-1:1;
+  if(Math.hypot(sp.x-EX(wMn),sp.y-EY(0))<16){ const idxs=[]; foot.forEach((p,k)=>{ if(Math.abs(elevH(p)-wMn)<0.06) idxs.push(k); }); drag={elev:1,kind:'side',idxs,axis,sgn}; return; }
+  if(Math.hypot(sp.x-EX(wMx),sp.y-EY(0))<16){ const idxs=[]; foot.forEach((p,k)=>{ if(Math.abs(elevH(p)-wMx)<0.06) idxs.push(k); }); drag={elev:1,kind:'side',idxs,axis,sgn}; return; }
+  const n=foot.length;
+  for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1,ux=dx/L,uz=dz/L;
+    for(let idx=0;idx<openings.length;idx++){ const o=openings[idx]; if(o.wall!==i) continue; let h1=elevH({x:A.x+ux*o.pos,z:A.z+uz*o.pos}), h2=elevH({x:A.x+ux*(o.pos+o.w),z:A.z+uz*(o.pos+o.w)}); if(h1>h2){const t=h1;h1=h2;h2=t;}
+      if(sp.x>=EX(h1)-4&&sp.x<=EX(h2)+4&&sp.y<=EY(o.sill)+4&&sp.y>=EY(o.head)-4){ drag={elev:1,kind:'open',idx}; return; } } }
+}
+function elevPointerMove(ev){ if(!drag||!drag.elev) return; const m=elevModel(ev);
+  if(drag.kind==='ridge'){ ridgeRaise=Math.max(0,Math.min(6,snap(m.y-wallH))); const e=$('ridgeH'); if(e) e.value=Math.round(ridgeRaise*100); }
+  else if(drag.kind==='wallH'){ wallH=Math.max(1.8,Math.min(8,snap(m.y))); const e=$('wallH'); if(e) e.value=Math.round(wallH*100); }
+  else if(drag.kind==='side'){ const target=snap(m.h); drag.idxs.forEach(k=>{ const p=foot[k]; if(!p) return; if(drag.axis==='x') p.x=target*drag.sgn; else p.z=target*drag.sgn; }); }
+  else if(drag.kind==='open'){ const o=openings[drag.idx]; if(o){ const ht=o.head-o.sill; const sill=Math.max(0,Math.min(Math.max(0,wallH-ht),snap(m.y))); o.sill=sill; o.head=sill+ht;
+    const A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(A&&B){ const hA=elevH(A),hB=elevH(B),Lw=Math.hypot(B.x-A.x,B.z-A.z)||1; if(Math.abs(hB-hA)>1e-3){ let pos=(m.h-hA)/(hB-hA)*Lw-o.w/2; o.pos=Math.max(0,Math.min(Lw-o.w,snap(pos))); } } } }
+  drawPlan(); build3D(); }
 /* ===== interactiune 2D ===== */
 function nearest(list,w,maxd){ let bi=-1,bd=maxd; list.forEach((p,i)=>{ const d=Math.hypot(w.x-p.x,w.z-p.z); if(d<bd){bd=d;bi=i;} }); return bi; }
 function nearestWall(w){ let bi=-1,bd=0.6,bt=0; const n=foot.length; for(let i=0;i<n;i++){ const A=foot[i],B=foot[(i+1)%n]; const dx=B.x-A.x,dz=B.z-A.z,L2=dx*dx+dz*dz||1; let t=((w.x-A.x)*dx+(w.z-A.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=A.x+t*dx,qz=A.z+t*dz; const d=Math.hypot(w.x-qx,w.z-qz); if(d<bd){bd=d;bi=i;bt=t*Math.sqrt(L2);} } return bi<0?null:{wall:bi,pos:bt}; }
 function screenPt(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
-pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus') return; const w=world(ev);
+pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev); return; } const w=world(ev);
   // manere horn (active in orice mod): X = sterge, cerc albastru = redimensioneaza, corp = muta
   { const sp=screenPt(ev); for(let i=chimneys.length-1;i>=0;i--){ const c=chimneys[i], cx=SX(c.x), cy=SY(c.z), half=c.size*planMap.s/2;
       if(Math.hypot(sp.x-(cx+half),sp.y-(cy-half))<12){ chimneys.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
@@ -338,7 +358,7 @@ pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus') return; const w=wor
   if(foot.length>=3){ const f=foot[0]; if(Math.hypot(w.x-f.x,w.z-f.z)<0.3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); return; } }
   foot.push({x:snap(w.x),z:snap(w.z)}); drawPlan(); build3D();
 });
-pc.addEventListener('pointermove',ev=>{ if(!drag) return; const w=world(ev);
+pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev) elevPointerMove(ev); return; } if(!drag) return; const w=world(ev);
   if(drag.kind==='foot') foot[drag.i]={x:snap(w.x),z:snap(w.z)};
   else if(drag.kind==='ridge'){ const r=ridges[drag.ri]; if(r) r[drag.k]={x:snap(w.x),z:snap(w.z)}; }
   else if(drag.kind==='ridgemove'){ const r=ridges[drag.ri]; if(r){ const ddx=w.x-drag.lx, ddz=w.z-drag.lz; r.a.x=snap(r.a.x+ddx); r.a.z=snap(r.a.z+ddz); r.b.x=snap(r.b.x+ddx); r.b.z=snap(r.b.z+ddz); drag.lx=w.x; drag.lz=w.z; } }
