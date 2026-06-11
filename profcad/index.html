@@ -71,8 +71,7 @@
       <button class="btn" id="tEdit">🖐 Muta colturi</button>
       <button class="btn" id="tAddWall">＋ Perete</button>
       <button class="btn" id="tRidge">＋ Coama</button>
-      <button class="btn" id="tOpen">＋ Element</button>
-      <select id="openType" style="width:auto"><option value="usa">Usa</option><option value="gol_usa">Gol usa</option><option value="fereastra">Fereastra</option><option value="gol_fereastra">Gol fereastra</option><option value="horn">Horn</option><option value="velux">Velux</option></select>
+      <select id="openType" class="btn" style="width:auto"><option value="">＋ Adauga element…</option><option value="usa">Usa</option><option value="gol_usa">Gol usa</option><option value="fereastra">Fereastra</option><option value="gol_fereastra">Gol fereastra</option><option value="horn">Horn</option><option value="velux">Velux</option></select>
       <button class="btn bad" id="tDel">🗑 Sterge element</button>
       <button class="btn" id="tUndo">↶ Undo</button>
       <button class="btn" id="tFit">⊡ Incadreaza</button>
@@ -232,14 +231,24 @@ function nearest(list,w,maxd){ let bi=-1,bd=maxd; list.forEach((p,i)=>{ const d=
 function nearestWall(w){ let bi=-1,bd=0.6,bt=0; const n=foot.length; for(let i=0;i<n;i++){ const A=foot[i],B=foot[(i+1)%n]; const dx=B.x-A.x,dz=B.z-A.z,L2=dx*dx+dz*dz||1; let t=((w.x-A.x)*dx+(w.z-A.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=A.x+t*dx,qz=A.z+t*dz; const d=Math.hypot(w.x-qx,w.z-qz); if(d<bd){bd=d;bi=i;bt=t*Math.sqrt(L2);} } return bi<0?null:{wall:bi,pos:bt}; }
 function screenPt(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
 pc.addEventListener('pointerdown',ev=>{ const w=world(ev);
-  // manere horn (active in orice mod): X = sterge, cerc albastru = redimensioneaza
+  // manere horn (active in orice mod): X = sterge, cerc albastru = redimensioneaza, corp = muta
   { const sp=screenPt(ev); for(let i=chimneys.length-1;i>=0;i--){ const c=chimneys[i], cx=SX(c.x), cy=SY(c.z), half=c.size*planMap.s/2;
-      if(Math.hypot(sp.x-(cx+half),sp.y-(cy-half))<12){ chimneys.splice(i,1); drawPlan(); build3D(); commit(); return; }
-      if(Math.hypot(sp.x-(cx+half),sp.y-(cy+half))<12){ drag={kind:'hornsize',i}; return; } } }
+      if(Math.hypot(sp.x-(cx+half),sp.y-(cy-half))<12){ chimneys.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
+      if(Math.hypot(sp.x-(cx+half),sp.y-(cy+half))<12){ drag={kind:'hornsize',i}; return; }
+      if(Math.abs(sp.x-cx)<=half+2 && Math.abs(sp.y-cy)<=half+2){ drag={kind:'horn',i}; return; } } }
+  // manere velux: X = sterge, cerc albastru = redimensioneaza, corp = muta
+  { const sp=screenPt(ev); for(let i=veluxes.length-1;i>=0;i--){ const v=veluxes[i], cx=SX(v.x), cy=SY(v.z), hw=Math.max(5,v.w*planMap.s/2), hl=Math.max(5,v.l*planMap.s/2);
+      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hl))<12){ veluxes.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
+      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy+hl))<12){ drag={kind:'veluxsize',i}; return; }
+      if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hl+2){ drag={kind:'velux',i}; return; } } }
   // manere elemente PV: X = sterge, corp = muta
   { const sp=screenPt(ev); for(let i=pvItems.length-1;i>=0;i--){ const it=pvItems[i], cx=SX(it.x), cy=SY(it.z), hw=Math.max(5,it.w*planMap.s/2), hd=Math.max(5,it.d*planMap.s/2);
       if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hd))<12){ pvItems.splice(i,1); drawPlan(); build3D(); renderBom(); commit(); return; }
       if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hd+2){ drag={kind:'pv',i}; return; } } }
+  // manere goluri (usa/fereastra): X = sterge, corp = muta pe perete
+  { const sp=screenPt(ev); for(let i=openings.length-1;i>=0;i--){ const o=openings[i],A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) continue; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2),cx=SX(mx),cy=SY(mz);
+      if(Math.hypot(sp.x-(cx+10),sp.y-(cy-10))<12){ openings.splice(i,1); drawPlan(); build3D(); renderElemList(); commit(); return; }
+      if(Math.hypot(sp.x-cx,sp.y-cy)<11){ drag={kind:'opening',i}; return; } } }
   if(mode==='addwall'){ const hit=nearestWall(w); if(hit){ const A=foot[hit.wall],B=foot[(hit.wall+1)%foot.length]; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; foot.splice(hit.wall+1,0,{x:snap(A.x+ux/L*hit.pos),z:snap(A.z+uz/L*hit.pos)}); openings=openings.filter(o=>o.wall!==hit.wall); openings.forEach(o=>{ if(o.wall>hit.wall) o.wall++; }); mode='edit'; setTools(); drawPlan(); build3D(); } return; }
   if(mode==='del'){ delElement(w); return; }
   if(mode==='edit'){ const i=nearest(foot,w,0.35); if(i>=0){ drag={kind:'foot',i}; return; }
