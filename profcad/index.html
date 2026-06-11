@@ -92,15 +92,22 @@ let chimneys=[];               // {x,z,size,height}
 let wallH=3.0, ridgeRaise=1.6, orientationDeg=0, roofType='tigla';
 let chimSize=0.6, chimH=1.0, openType='fereastra';
 let mode='foot', drag=null, planMap={s:30,ox:0,oy:0};
+let planZoom=1, planPan={x:0,y:0}; const history=[];
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
+function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,wallH,ridgeRaise,orientationDeg,roofType}); }
+function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
+function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=o.ridges; openings=o.openings; chimneys=o.chimneys; wallH=o.wallH; ridgeRaise=o.ridgeRaise; orientationDeg=o.orientationDeg; roofType=o.roofType;
+  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('orient').value=orientationDeg; $('roofType').value=roofType; drawPlan(); build3D(); }
+function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
 /* ===== canvas 2D ===== */
 const pc=$('plan'), px=pc.getContext('2d');
 function fitPC(){ const r=pc.getBoundingClientRect(),dpr=devicePixelRatio||1; pc.width=r.width*dpr; pc.height=r.height*dpr; px.setTransform(dpr,0,0,dpr,0,0); }
 function allPts(){ const a=foot.slice(); ridges.forEach(r=>a.push(...r)); chimneys.forEach(c=>a.push(c)); return a.length?a:[{x:0,z:0},{x:6,z:4}]; }
 function computeMap(){ const W=pc.clientWidth,H=pc.clientHeight,pts=allPts(); let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; pts.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
-  const pad=46,s=Math.min((W-2*pad)/Math.max(1,mxx-mnx),(H-2*pad)/Math.max(1,mxz-mnz)),ss=Math.min(80,Math.max(12,s));
-  planMap={s:ss,ox:W/2-((mnx+mxx)/2)*ss,oy:H/2+((mnz+mxz)/2)*ss}; }
+  const pad=46,baseS=Math.min((W-2*pad)/Math.max(1,mxx-mnx),(H-2*pad)/Math.max(1,mxz-mnz)),bS=Math.min(80,Math.max(8,baseS));
+  const s=bS*planZoom,cx=(mnx+mxx)/2,cz=(mnz+mxz)/2;
+  planMap={s, ox:W/2-cx*s+planPan.x, oy:H/2+cz*s+planPan.y}; }
 const SX=x=>planMap.ox+x*planMap.s, SY=z=>planMap.oy-z*planMap.s;
 function world(ev){ const r=pc.getBoundingClientRect(); return {x:(ev.clientX-r.left-planMap.ox)/planMap.s, z:(planMap.oy-(ev.clientY-r.top))/planMap.s}; }
 const snap=v=>Math.round(v/0.05)*0.05;
@@ -147,8 +154,14 @@ pc.addEventListener('pointermove',ev=>{ if(!drag) return; const w=world(ev);
   else if(drag.kind==='ridge') ridges[drag.ri][drag.i]={x:snap(w.x),z:snap(w.z)};
   else if(drag.kind==='horn'){ chimneys[drag.i].x=snap(w.x); chimneys[drag.i].z=snap(w.z); }
   drawPlan(); build3D(); });
-window.addEventListener('pointerup',()=>{ if(drag&&drag.kind==='ridge'){ const r=ridges[drag.ri]; if(r) r._done=true; } drag=null; });
+window.addEventListener('pointerup',()=>{ if(drag&&drag.kind==='ridge'){ const r=ridges[drag.ri]; if(r) r._done=true; } drag=null; commit(); });
 pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&ridges.length) ridges[ridges.length-1]._done=true; });
+pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
+  const wx=(mx-planMap.ox)/planMap.s, wz=(planMap.oy-my)/planMap.s;
+  planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89)));
+  computeMap(); planPan.x += mx-(planMap.ox+wx*planMap.s); planPan.y += my-(planMap.oy-wz*planMap.s);
+  drawPlan();
+},{passive:false});
 function wallLen(i){ const A=foot[i],B=foot[(i+1)%foot.length]; return Math.hypot(B.x-A.x,B.z-A.z); }
 function delElement(w){
   let i=nearest(chimneys,w,0.5); if(i>=0){ chimneys.splice(i,1); drawPlan(); build3D(); return; }
