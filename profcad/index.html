@@ -540,7 +540,7 @@ const view=$('view');
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0xdfe8f2);
 const camera=new THREE.PerspectiveCamera(50,1,0.1,500);
 const orthoCam=new THREE.OrthographicCamera(-10,10,10,-10,-100,500);
-let activeCam=camera, viewMode='3d';
+let activeCam=camera, viewMode='3d', camTween=null;
 const renderer=new THREE.WebGLRenderer({canvas:view,antialias:true}); renderer.setPixelRatio(devicePixelRatio);
 const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true;
 scene.add(new THREE.HemisphereLight(0xffffff,0xb9c7d8,1.1));
@@ -562,7 +562,9 @@ function orient3DToFacade(v){ const s=buildSpan(), sp=Math.max(s.sx,s.sz,4), d=s
   else if(v==='dreapta') pos={x:s.cx+d,y:ey,z:s.cz};
   else if(v==='stanga') pos={x:s.cx-d,y:ey,z:s.cz};
   else pos={x:s.cx+sp*1.1,y:wallH+sp*0.95,z:s.cz+sp*1.35};   // sus/3d = perspectiva implicita
-  controls.target.set(s.cx,wallH*0.5,s.cz); camera.position.set(pos.x,pos.y,pos.z); controls.update(); }
+  const tp=new THREE.Vector3(pos.x,pos.y,pos.z), tt=new THREE.Vector3(s.cx,wallH*0.5,s.cz);
+  camTween={ fp:camera.position.clone(), tp, ft:controls.target.clone(), tt, t:0, dur:1000, last:performance.now(), lift:Math.max(2, camera.position.distanceTo(tp)*0.16) };
+  controls.enabled=false; }
 function setView(mode){ viewMode=mode; document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.view===mode));
   const s=buildSpan(), midH=(wallH+ridgeRaise)/2, D=Math.max(s.sx,s.sz)*4+20;
   if(mode==='3d'){ activeCam=camera; controls.object=camera; controls.enableRotate=true; controls.target.set(s.cx,wallH*0.5,s.cz); camera.position.set(s.cx+Math.max(s.sx,s.sz)*1.1,wallH+Math.max(s.sx,s.sz)*0.95,s.cz+Math.max(s.sx,s.sz)*1.35); controls.update(); return; }
@@ -664,7 +666,11 @@ function build3D(){
 }
 let framed=false;
 function frameCamera(c,span){ if(framed) return; framed=true; controls.target.set(c.x,wallH*0.5,c.z); camera.position.set(c.x+span*1.1,wallH+span*0.95,c.z+span*1.35); controls.update(); }
-function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,activeCam); }
+function animate(){ requestAnimationFrame(animate);
+  if(camTween){ const now=performance.now(); camTween.t+=now-camTween.last; camTween.last=now; const k=Math.min(1,camTween.t/camTween.dur); const e=k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+    camera.position.lerpVectors(camTween.fp,camTween.tp,e); camera.position.y+=Math.sin(Math.PI*k)*camTween.lift; controls.target.lerpVectors(camTween.ft,camTween.tt,e);
+    if(k>=1){ camTween=null; controls.enabled=true; } }
+  controls.update(); renderer.render(scene,activeCam); }
 
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
