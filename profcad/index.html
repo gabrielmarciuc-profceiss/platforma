@@ -46,6 +46,9 @@
   .dims input{width:64px}
   .hint{position:absolute;top:10px;left:10px;right:10px;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:11.5px;color:var(--muted);line-height:1.45;pointer-events:none}
   .vhint{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--muted)}
+  .views{position:absolute;top:10px;left:10px;display:flex;gap:4px;flex-wrap:wrap;z-index:5}
+  .vbtn{border:1px solid var(--line);background:rgba(255,255,255,.92);border-radius:7px;padding:5px 9px;font-size:11.5px;font-weight:600;font-family:inherit;color:var(--ink);cursor:pointer}
+  .vbtn.on{border-color:var(--pv);background:#e7f1fb;color:var(--pv)}
   @media (max-width:820px){ .main{flex-direction:column} .left{width:100%;max-width:none;height:52%;border-left:0;border-bottom:1px solid var(--line)} .right{height:48%} }
 </style>
 </head>
@@ -94,7 +97,6 @@
     </div>
     <div class="planwrap">
       <canvas id="plan"></canvas>
-      <div class="hint" id="hint"><b>Contur</b>: pune colturile, click pe primul (verde) = inchizi. <b>＋ Perete</b>: click pe o muchie ca sa inserezi un colt/perete. <b>＋ Coama</b>: click = un capat, al doilea click = celalalt capat (linia de varf). Ambele capete stau sus la inaltimea coamei; pantele coboara singure spre pereti. Poti pune oricate coame. <b>Usa/Fereastra</b>: click pe perete. <b>Horn</b>: click pe acoperis ca sa-l pui; apoi cercul albastru = redimensionezi, butonul rosu x = stergi, corpul = muti. <b>🖐 Muta colturi</b> muta si capetele coamelor. <b>🗑 Sterge element</b>: click pe orice ca sa-l stergi individual. <b>Orientare</b> roteste Nordul.</div>
     </div>
     <div class="walls" id="wallList"></div>
     <div class="dims" id="dimsCasa">
@@ -112,6 +114,14 @@
   </div>
   <div class="right">
     <canvas id="view"></canvas>
+    <div class="views" id="views">
+      <button class="vbtn on" data-view="3d">3D</button>
+      <button class="vbtn" data-view="fata">Fata</button>
+      <button class="vbtn" data-view="spate">Spate</button>
+      <button class="vbtn" data-view="stanga">Stanga</button>
+      <button class="vbtn" data-view="dreapta">Dreapta</button>
+      <button class="vbtn" data-view="sus">Sus</button>
+    </div>
     <div class="vhint">Drag = roteste · scroll = zoom · drag-dreapta = pan</div>
   </div>
 </div>
@@ -278,6 +288,7 @@ function switchCat(cat){ document.querySelectorAll('.cat').forEach(x=>x.classLis
   $('dimsCasa').style.display  = cat==='casa'?'flex':'none';
   $('wallList').style.display  = cat==='casa'?'':'none'; }
 document.querySelectorAll('.cat').forEach(b=> b.onclick=()=>switchCat(b.dataset.cat));
+document.querySelectorAll('.vbtn').forEach(b=> b.onclick=()=>setView(b.dataset.view));
 
 /* ===== catalog PV (implicit; suprascris de Excel) ===== dimensiuni in cm: h=inaltime, w=latime, d=grosime */
 const PV_DEFAULT={
@@ -391,6 +402,8 @@ $('chimH').oninput=()=>{ chimH=(parseInt($('chimH').value,10)||100)/100; };
 const view=$('view');
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0xdfe8f2);
 const camera=new THREE.PerspectiveCamera(50,1,0.1,500);
+const orthoCam=new THREE.OrthographicCamera(-10,10,10,-10,-100,500);
+let activeCam=camera, viewMode='3d';
 const renderer=new THREE.WebGLRenderer({canvas:view,antialias:true}); renderer.setPixelRatio(devicePixelRatio);
 const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true;
 scene.add(new THREE.HemisphereLight(0xffffff,0xb9c7d8,1.1));
@@ -401,7 +414,20 @@ const building=new THREE.Group(); scene.add(building);
 const compass=new THREE.Group(); scene.add(compass);
 const ROOF_MAT={ tigla:{color:0xb0533a,rough:.92,metal:0}, tabla:{color:0x8a93a0,rough:.5,metal:.45}, tabla_tigla:{color:0x8a5a40,rough:.7,metal:.25}, terasa:{color:0x474c54,rough:1,metal:0} };
 
-function sizeView(){ const r=view.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/Math.max(1,r.height); camera.updateProjectionMatrix(); }
+function sizeView(){ const r=view.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/Math.max(1,r.height); camera.updateProjectionMatrix(); if(viewMode!=='3d') applyOrthoFrustum(); }
+function buildSpan(){ if(foot.length<3) return {cx:0,cz:0,sx:8,sz:6}; let mnx=1e9,mxx=-1e9,mnz=1e9,mxz=-1e9; foot.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mnz=Math.min(mnz,p.z);mxz=Math.max(mxz,p.z);}); return {cx:(mnx+mxx)/2,cz:(mnz+mxz)/2,sx:mxx-mnx,sz:mxz-mnz}; }
+function applyOrthoFrustum(){ const r=view.getBoundingClientRect(),asp=r.width/Math.max(1,r.height); const s=buildSpan(); const totalH=wallH+ridgeRaise+eaveOverhang+1; const wide=Math.max(s.sx,s.sz)+2*eaveOverhang+1.5; let halfH=Math.max(totalH, wide/asp)/2*1.12; let halfW=halfH*asp; orthoCam.left=-halfW; orthoCam.right=halfW; orthoCam.top=halfH; orthoCam.bottom=-halfH; orthoCam.updateProjectionMatrix(); }
+function setView(mode){ viewMode=mode; document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.view===mode));
+  const s=buildSpan(), midH=(wallH+ridgeRaise)/2, D=Math.max(s.sx,s.sz)*4+20;
+  if(mode==='3d'){ activeCam=camera; controls.object=camera; controls.enableRotate=true; controls.target.set(s.cx,wallH*0.5,s.cz); camera.position.set(s.cx+Math.max(s.sx,s.sz)*1.1,wallH+Math.max(s.sx,s.sz)*0.95,s.cz+Math.max(s.sx,s.sz)*1.35); controls.update(); return; }
+  activeCam=orthoCam; controls.object=orthoCam; controls.enableRotate=false; applyOrthoFrustum();
+  const tgt={x:s.cx,y:midH,z:s.cz}; let pos;
+  if(mode==='fata') pos={x:s.cx,y:midH,z:s.cz+D};
+  else if(mode==='spate') pos={x:s.cx,y:midH,z:s.cz-D};
+  else if(mode==='dreapta') pos={x:s.cx+D,y:midH,z:s.cz};
+  else if(mode==='stanga') pos={x:s.cx-D,y:midH,z:s.cz};
+  else pos={x:s.cx,y:D,z:s.cz}; // sus
+  orthoCam.position.set(pos.x,pos.y,pos.z); orthoCam.up.set(0, mode==='sus'?0:1, mode==='sus'?-1:0); controls.target.set(tgt.x,tgt.y,tgt.z); orthoCam.lookAt(tgt.x,tgt.y,tgt.z); controls.update(); }
 function tri(arr,a,b,c){ arr.push(a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z); }
 function meshFromTris(arr,mat){ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3)); g.computeVertexNormals(); return new THREE.Mesh(g,mat); }
 function V(x,y,z){ return {x,y,z}; }
@@ -479,7 +505,7 @@ function build3D(){
 }
 let framed=false;
 function frameCamera(c,span){ if(framed) return; framed=true; controls.target.set(c.x,wallH*0.5,c.z); camera.position.set(c.x+span*1.1,wallH+span*0.95,c.z+span*1.35); controls.update(); }
-function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
+function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,activeCam); }
 
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
