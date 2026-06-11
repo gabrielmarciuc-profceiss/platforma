@@ -302,7 +302,15 @@ function drawElevation(){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect
 /* ===== interactiune pe elevatie (fatade) ===== */
 function elevScreen(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
 function elevModel(ev){ const sp=elevScreen(ev); return {h:(sp.x-elevMap.ox)/elevMap.s, y:(elevMap.oy-sp.y)/elevMap.s}; }
-function elevPointerDown(ev){ if(foot.length<3||!footClosed) return; const sp=elevScreen(ev); const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
+function elevAddOpening(m){ const n=foot.length; let best=null;
+  for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); if(m.h>=lo-0.05&&m.h<=hi+0.05){ const dd=Math.abs((lo+hi)/2-m.h); if(!best||dd<best.dd) best={i,A,B,hA,hB,dd}; } }
+  if(!best){ return; } const {i,A,B,hA,hB}=best; const Lw=Math.hypot(B.x-A.x,B.z-A.z)||1; const d=OPEN_DEF[openType]||OPEN_DEF.fereastra;
+  let pos=(Math.abs(hB-hA)>1e-3)?((m.h-hA)/(hB-hA)*Lw-d.w/2):(Lw/2-d.w/2); pos=Math.max(0,Math.min(Lw-d.w,snap(pos)));
+  const isUsa=openType.indexOf('usa')>=0; const oh=Math.min(d.head,wallH)-d.sill; let sill=isUsa?0:Math.max(0,Math.min(Math.max(0,wallH-oh),snap(m.y-oh/2))); let head=Math.min(wallH,sill+oh);
+  openings.push({wall:i,pos,w:d.w,sill,head,type:openType}); drawPlan(); build3D(); renderElemList(); commit(); }
+function elevPointerDown(ev){ if(foot.length<3||!footClosed) return;
+  if(mode==='open' && openType && openType!=='horn' && openType!=='velux'){ elevAddOpening(elevModel(ev)); return; }   // adauga gol direct pe fatada
+  const sp=elevScreen(ev); const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
   const hs=foot.map(elevH); const wMn=Math.min.apply(null,hs), wMx=Math.max.apply(null,hs), cxh=(wMn+wMx)/2, mnH=wMn-eaveOverhang, mxH=wMx+eaveOverhang;
   if(ridgeRaise>0.02 && Math.hypot(sp.x-EX(cxh),sp.y-EY(wallH+ridgeRaise))<14){ drag={elev:1,kind:'ridge'}; return; }
   if(ridgeRaise>0.02 && Math.hypot(sp.x-EX(mnH),sp.y-EY(wallH))<13){ drag={elev:1,kind:'eave',side:'min'}; return; }
