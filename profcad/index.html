@@ -280,7 +280,10 @@ function drawElevation(){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect
   if(ridgeRaise>0.02){ px.fillStyle='#a64a32'; px.fillText('Coama +'+Math.round(ridgeRaise*100)+' cm',EX((wMn+wMx)/2),EY(wallH+ridgeRaise)-10); }
   // manere editabile
   const dot=(x,y,col)=>{ px.fillStyle=col; px.beginPath(); px.arc(x,y,6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); };
-  if(ridgeRaise>0.02) dot(EX((wMn+wMx)/2),EY(wallH+ridgeRaise),'#a64a32');   // coama (sus/jos)
+  if(ridgeRaise>0.02){ dot(EX((wMn+wMx)/2),EY(wallH+ridgeRaise),'#a64a32');   // coama (sus/jos)
+    dot(EX(mnH),EY(wallH),'#b9a25a'); dot(EX(mxH),EY(wallH),'#b9a25a');       // streasina/sageac (orizontal)
+    px.fillStyle='#8a7a3a'; px.font='700 10.5px system-ui'; px.textAlign='center'; px.textBaseline='middle';
+    px.fillText('streasina '+Math.round(eaveOverhang*100)+' cm',(EX(mnH)+EX(wMn))/2,EY(wallH)+13); }
   dot(EX(wMn),EY(wallH),'#1c7bd6'); dot(EX(wMx),EY(wallH),'#1c7bd6');         // varf perete (inaltime)
   dot(EX(wMn),EY(0),'#1a8a4f'); dot(EX(wMx),EY(0),'#1a8a4f');                 // laterale (latime)
   px.fillStyle='#5d6b82'; px.font='700 12px system-ui'; px.textAlign='left'; px.fillText('Elevatie: '+planView.toUpperCase()+' · trage manerele (coama/varf/laterale) si golurile',12,18);
@@ -289,8 +292,10 @@ function drawElevation(){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect
 function elevScreen(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
 function elevModel(ev){ const sp=elevScreen(ev); return {h:(sp.x-elevMap.ox)/elevMap.s, y:(elevMap.oy-sp.y)/elevMap.s}; }
 function elevPointerDown(ev){ if(foot.length<3||!footClosed) return; const sp=elevScreen(ev); const EX=h=>elevMap.ox+h*elevMap.s, EY=y=>elevMap.oy-y*elevMap.s;
-  const hs=foot.map(elevH); const wMn=Math.min.apply(null,hs), wMx=Math.max.apply(null,hs), cxh=(wMn+wMx)/2;
+  const hs=foot.map(elevH); const wMn=Math.min.apply(null,hs), wMx=Math.max.apply(null,hs), cxh=(wMn+wMx)/2, mnH=wMn-eaveOverhang, mxH=wMx+eaveOverhang;
   if(ridgeRaise>0.02 && Math.hypot(sp.x-EX(cxh),sp.y-EY(wallH+ridgeRaise))<14){ drag={elev:1,kind:'ridge'}; return; }
+  if(ridgeRaise>0.02 && Math.hypot(sp.x-EX(mnH),sp.y-EY(wallH))<13){ drag={elev:1,kind:'eave',side:'min'}; return; }
+  if(ridgeRaise>0.02 && Math.hypot(sp.x-EX(mxH),sp.y-EY(wallH))<13){ drag={elev:1,kind:'eave',side:'max'}; return; }
   if(Math.hypot(sp.x-EX(wMn),sp.y-EY(wallH))<14 || Math.hypot(sp.x-EX(wMx),sp.y-EY(wallH))<14){ drag={elev:1,kind:'wallH'}; return; }
   const axis=(planView==='fata'||planView==='spate')?'x':'z', sgn=(planView==='spate'||planView==='stanga')?-1:1;
   if(Math.hypot(sp.x-EX(wMn),sp.y-EY(0))<16){ const idxs=[]; foot.forEach((p,k)=>{ if(Math.abs(elevH(p)-wMn)<0.06) idxs.push(k); }); drag={elev:1,kind:'side',idxs,axis,sgn}; return; }
@@ -303,6 +308,7 @@ function elevPointerDown(ev){ if(foot.length<3||!footClosed) return; const sp=el
 function elevPointerMove(ev){ if(!drag||!drag.elev) return; const m=elevModel(ev);
   if(drag.kind==='ridge'){ ridgeRaise=Math.max(0,Math.min(6,snap(m.y-wallH))); const e=$('ridgeH'); if(e) e.value=Math.round(ridgeRaise*100); }
   else if(drag.kind==='wallH'){ wallH=Math.max(1.8,Math.min(8,snap(m.y))); const e=$('wallH'); if(e) e.value=Math.round(wallH*100); }
+  else if(drag.kind==='eave'){ const hs=foot.map(elevH); const wMn=Math.min.apply(null,hs), wMx=Math.max.apply(null,hs); const ov=drag.side==='min'?(wMn-m.h):(m.h-wMx); eaveOverhang=Math.max(0,Math.min(2,snap(ov))); const e=$('eaveH'); if(e) e.value=Math.round(eaveOverhang*100); }
   else if(drag.kind==='side'){ const target=snap(m.h); drag.idxs.forEach(k=>{ const p=foot[k]; if(!p) return; if(drag.axis==='x') p.x=target*drag.sgn; else p.z=target*drag.sgn; }); }
   else if(drag.kind==='open'){ const o=openings[drag.idx]; if(o){ const ht=o.head-o.sill; const sill=Math.max(0,Math.min(Math.max(0,wallH-ht),snap(m.y))); o.sill=sill; o.head=sill+ht;
     const A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(A&&B){ const hA=elevH(A),hB=elevH(B),Lw=Math.hypot(B.x-A.x,B.z-A.z)||1; if(Math.abs(hB-hA)>1e-3){ let pos=(m.h-hA)/(hB-hA)*Lw-o.w/2; o.pos=Math.max(0,Math.min(Lw-o.w,snap(pos))); } } } }
