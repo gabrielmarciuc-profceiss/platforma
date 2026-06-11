@@ -448,8 +448,8 @@ function renderBom(){ const host=$('bom'); if(!host) return; if(!pvItems.length)
 
 /* ===== lista unificata de elemente (usa/fereastra/horn/velux) cu cote in cm + delete ===== */
 function elemLabel(t){ return ({usa:'Usa',gol_usa:'Gol usa',fereastra:'Fereastra',gol_fereastra:'Gol fereastra'})[t]||t; }
-function renderElemList(){ const host=$('elemList'); if(!host) return;
-  if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#elemList')) return;
+function renderElemList(force){ const host=$('elemList'); if(!host) return;
+  if(!force && document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#elemList')) return;
   const total=openings.length+chimneys.length+veluxes.length; if(!total){ host.innerHTML=''; return; }
   let h='<div class="ehead">Elemente ('+total+') · cote in cm</div>';
   openings.forEach((o,i)=>{ h+='<div class="erow"><span class="enm">🚪 '+elemLabel(o.type)+'</span>L<input type="number" data-ow="'+i+'" min="30" step="5" value="'+Math.round(o.w*100)+'">H<input type="number" data-oh="'+i+'" min="30" step="5" value="'+Math.round((o.head-o.sill)*100)+'"><button class="xb" data-od="'+i+'">x</button></div>'; });
@@ -459,13 +459,13 @@ function renderElemList(){ const host=$('elemList'); if(!host) return;
   const upd=()=>{ drawPlan(); build3D(); commit(); };
   host.querySelectorAll('[data-ow]').forEach(el=>el.onchange=()=>{ const o=openings[+el.dataset.ow]; if(o) o.w=Math.max(0.3,(parseInt(el.value,10)||90)/100); upd(); });
   host.querySelectorAll('[data-oh]').forEach(el=>el.onchange=()=>{ const o=openings[+el.dataset.oh]; if(o) o.head=Math.min(wallH,o.sill+(parseInt(el.value,10)||100)/100); upd(); });
-  host.querySelectorAll('[data-od]').forEach(el=>el.onclick=()=>{ openings.splice(+el.dataset.od,1); upd(); renderElemList(); });
+  host.querySelectorAll('[data-od]').forEach(el=>el.onclick=()=>{ openings.splice(+el.dataset.od,1); upd(); renderElemList(true); });
   host.querySelectorAll('[data-cw]').forEach(el=>el.onchange=()=>{ const c=chimneys[+el.dataset.cw]; if(c) c.size=Math.max(0.2,(parseInt(el.value,10)||60)/100); upd(); });
   host.querySelectorAll('[data-cc]').forEach(el=>el.onchange=()=>{ const c=chimneys[+el.dataset.cc]; if(c) c.height=Math.max(0.2,(parseInt(el.value,10)||100)/100); upd(); });
-  host.querySelectorAll('[data-cd]').forEach(el=>el.onclick=()=>{ chimneys.splice(+el.dataset.cd,1); upd(); renderElemList(); });
+  host.querySelectorAll('[data-cd]').forEach(el=>el.onclick=()=>{ chimneys.splice(+el.dataset.cd,1); upd(); renderElemList(true); });
   host.querySelectorAll('[data-vl]').forEach(el=>el.onchange=()=>{ const v=veluxes[+el.dataset.vl]; if(v) v.l=Math.max(0.4,(parseInt(el.value,10)||118)/100); upd(); });
   host.querySelectorAll('[data-vw]').forEach(el=>el.onchange=()=>{ const v=veluxes[+el.dataset.vw]; if(v) v.w=Math.max(0.4,(parseInt(el.value,10)||78)/100); upd(); });
-  host.querySelectorAll('[data-vd]').forEach(el=>el.onclick=()=>{ veluxes.splice(+el.dataset.vd,1); upd(); renderElemList(); }); }
+  host.querySelectorAll('[data-vd]').forEach(el=>el.onclick=()=>{ veluxes.splice(+el.dataset.vd,1); upd(); renderElemList(true); }); }
 
 /* ===== catalog din Excel (sheet-uri: Invertor, Panouri, Echipament electric, Baterii) ===== */
 function pvStatus(t){ const s=$('pvStatus'); if(s) s.textContent=t; }
