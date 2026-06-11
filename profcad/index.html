@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R59 (anti-stergere contur)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R60 (buton panou + catalog)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -89,6 +89,7 @@
       <button class="btn bad" id="tClearAll">Goleste tot</button>
     </div>
     <div class="tools" id="toolsPv" style="display:none">
+      <button class="pvbtn" data-pv="panou">🟦 <b>Panou fotovoltaic</b> <span>pe acoperis / sol / perete</span></button>
       <button class="pvbtn" data-pv="invertor">🔌 <b>Invertor</b> <span>on-grid / hibrid</span></button>
       <button class="pvbtn" data-pv="baterie">🔋 <b>Baterie</b> <span>stocare</span></button>
       <button class="pvbtn" data-pv="tablou">🟩 <b>Tablou electric de protectie</b></button>
@@ -446,7 +447,7 @@ const PV_DEFAULT={
   ,baterii:[{name:'Baterie 5 kWh',h:55,w:45,d:18},{name:'Baterie 10 kWh',h:110,w:60,d:20}]
 };
 let pvCatalog=JSON.parse(JSON.stringify(PV_DEFAULT));
-const PV_CAT={ invertor:'invertor', baterie:'baterii', tablou:'echipament', teg:'echipament', bmp:'echipament', bmpt:'echipament' };
+const PV_CAT={ panou:'panouri', invertor:'invertor', baterie:'baterii', tablou:'echipament', teg:'echipament', bmp:'echipament', bmpt:'echipament' };
 const PV_MATCH={ tablou:'TABLOU', teg:'TEG', bmp:'BMP', bmpt:'BMPT' };
 function pvIcon(cat){ return cat==='invertor'?'🔌':cat==='baterii'?'🔋':cat==='panouri'?'🟦':'🟩'; }
 function pvPick(btnKey){ const cat=PV_CAT[btnKey]; const list=pvCatalog[cat]||[]; if(!list.length) return null;
