@@ -208,6 +208,11 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
   const nx=cxp+Math.sin(a)*rr, ny=cyp-Math.cos(a)*rr; px.strokeStyle='#c0392b'; px.lineWidth=2; px.beginPath(); px.moveTo(cxp,cyp); px.lineTo(nx,ny); px.stroke(); px.fillText('N',nx,ny-4);
   // streasina (conturul acoperisului, mai mare ca amprenta)
   if(footClosed && foot.length>=3 && eaveOverhang>0.01){ const rf=offsetFootprint(eaveOverhang); px.strokeStyle='#b9a25a'; px.lineWidth=1.5; px.setLineDash([6,4]); px.beginPath(); rf.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); px.closePath(); px.stroke(); px.setLineDash([]); }
+  // coama (segment cu buline): capete = alungire/scurtare, mijloc = mutare
+  if(footClosed && foot.length>=3 && ridgeRaise>0.02 && roofLogic==='auto'){ const rs=ridgeSeg(); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2;
+    px.strokeStyle='#a64a32'; px.lineWidth=3; px.setLineDash([7,4]); px.beginPath(); px.moveTo(SX(rs.a.x),SY(rs.a.z)); px.lineTo(SX(rs.b.x),SY(rs.b.z)); px.stroke(); px.setLineDash([]);
+    [rs.a,rs.b].forEach(p=>{ px.fillStyle='#a64a32'; px.beginPath(); px.arc(SX(p.x),SY(p.z),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); });
+    px.fillStyle='#d98200'; px.beginPath(); px.arc(SX(mx),SY(mz),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); }
   // contur
   if(foot.length){ px.strokeStyle='#1c7bd6'; px.lineWidth=4; px.lineJoin='round'; px.beginPath(); foot.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); if(footClosed) px.closePath(); px.stroke();
     // goluri (usi/ferestre) pe pereti
