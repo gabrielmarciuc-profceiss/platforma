@@ -321,11 +321,14 @@ function build3D(){
   building.add(meshFromTris(rpos,matRoof));
   // hornuri
   chimneys.forEach(ch=>{ const total=ridgeRaise+ch.height; const m=new THREE.Mesh(new THREE.BoxGeometry(ch.size,total,ch.size),matChim); m.position.set(ch.x, wallH+total/2, ch.z); building.add(m); });
-  // busola (nu se roteste cu cladirea; Nordul = orientationDeg)
+  // busola pe sol: cercuri punctate + linii radiale + puncte cardinale (fara con)
   const span=Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x)); const span2=Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)); const R=Math.max(span,span2,4)*0.62+2.5;
   compass.position.set(c.x,0.02,c.z); compass.rotation.y=-orientationDeg*Math.PI/180;
-  [['N',0,-R,'#c0392b'],['E',R,0,'#5d6b82'],['S',0,R,'#5d6b82'],['V',-R,0,'#5d6b82']].forEach(([t,xx,zz,col])=>{ const s=makeText(t,col); s.position.set(xx,0.5,zz); compass.add(s); });
-  const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.35,1.1,12),new THREE.MeshStandardMaterial({color:0xc0392b})); arrow.position.set(0,0.2,-R+0.7); arrow.rotation.x=-Math.PI/2; compass.add(arrow);
+  const dashOut=new THREE.LineDashedMaterial({color:0x5d6b82,dashSize:0.34,gapSize:0.22,transparent:true,opacity:.85});
+  const dashIn=new THREE.LineDashedMaterial({color:0x9aa7bb,dashSize:0.28,gapSize:0.2,transparent:true,opacity:.65});
+  [[R,dashOut],[R*0.64,dashIn]].forEach(([rad,mat])=>{ const pc2=[]; for(let i=0;i<=72;i++){ const a=i/72*Math.PI*2; pc2.push(new THREE.Vector3(Math.sin(a)*rad,0,-Math.cos(a)*rad)); } const ln=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pc2),mat); ln.computeLineDistances(); compass.add(ln); });
+  [0,90,180,270].forEach(deg=>{ const a=deg*Math.PI/180; const ln=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(Math.sin(a)*R,0,-Math.cos(a)*R)]),dashIn); ln.computeLineDistances(); compass.add(ln); });
+  [['N',0,'#c0392b'],['E',90,'#5d6b82'],['S',180,'#5d6b82'],['V',270,'#5d6b82']].forEach(([t,deg,col])=>{ const a=deg*Math.PI/180; const s=makeText(t,col); s.position.set(Math.sin(a)*(R+0.55),0.5,-Math.cos(a)*(R+0.55)); compass.add(s); });
   frameCamera(c,Math.max(span,span2,4));
 }
 let framed=false;
@@ -341,7 +344,7 @@ window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
 
 /* ===== start ===== */
 window.addEventListener('resize',()=>{ sizeView(); drawPlan(); });
-sizeView(); setTools(); drawPlan(); build3D(); commit(); animate();
+sizeView(); setTools(); drawCompassDial(); drawPlan(); build3D(); commit(); animate();
 </script>
 <script src="../assets/profceiss-projects.js" defer></script>
 </body>
