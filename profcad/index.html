@@ -97,6 +97,7 @@
       <canvas id="plan"></canvas>
     </div>
     <div class="walls" id="wallList"></div>
+    <div class="elems" id="elemList"></div>
     <div class="dims" id="dimsCasa">
       <label>Inaltime pereti <input id="wallH" type="number" min="180" max="600" step="10" value="300"> cm</label>
       <label>Coama <input id="ridgeH" type="number" min="0" max="400" step="10" value="160"> cm</label>
@@ -223,6 +224,15 @@ function drawPlan(){ fitPC(); computeMap(); const W=pc.clientWidth,H=pc.clientHe
     px.fillStyle='rgba(43,108,176,.16)'; px.strokeStyle=col; px.lineWidth=2; px.fillRect(cx-w_/2,cy-d_/2,w_,d_); px.strokeRect(cx-w_/2,cy-d_/2,w_,d_);
     px.fillStyle=col; px.font='700 10px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText(pvIcon(it.cat),cx,cy);
     px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+w_/2,cy-d_/2,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.fillText('x',cx+w_/2,cy-d_/2); });
+  // velux (dreptunghi pe acoperis + maner resize + X)
+  veluxes.forEach(v=>{ const w_=Math.max(10,v.w*planMap.s), l_=Math.max(10,v.l*planMap.s), cx=SX(v.x), cy=SY(v.z);
+    px.fillStyle='rgba(159,210,255,.35)'; px.strokeStyle='#2b8fd6'; px.lineWidth=2; px.fillRect(cx-w_/2,cy-l_/2,w_,l_); px.strokeRect(cx-w_/2,cy-l_/2,w_,l_);
+    px.fillStyle='#2b8fd6'; px.font='700 10px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('Velux',cx,cy);
+    px.fillStyle='#1c7bd6'; px.beginPath(); px.arc(cx+w_/2,cy+l_/2,6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=1.5; px.stroke();
+    px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+w_/2,cy-l_/2,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.fillText('x',cx+w_/2,cy-l_/2); });
+  // X pe goluri (usa/fereastra)
+  openings.forEach(o=>{ const A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) return; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2),cx=SX(mx),cy=SY(mz);
+    px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+10,cy-10,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('x',cx+10,cy-10); });
   renderWalls();
 }
 
@@ -253,8 +263,11 @@ pc.addEventListener('pointerdown',ev=>{ const w=world(ev);
   if(mode==='del'){ delElement(w); return; }
   if(mode==='edit'){ const i=nearest(foot,w,0.35); if(i>=0){ drag={kind:'foot',i}; return; }
     let best=null,bd=0.35; ridges.forEach((r,ri)=>['a','b'].forEach(k=>{ const d=Math.hypot(w.x-r[k].x,w.z-r[k].z); if(d<bd){bd=d;best={ri,k};} })); if(best) drag={kind:'ridge',ri:best.ri,k:best.k}; return; }
-  if(mode==='horn'){ const i=nearest(chimneys,w,0.4); if(i>=0){ drag={kind:'horn',i}; return; } chimneys.push({x:snap(w.x),z:snap(w.z),size:chimSize,height:chimH}); drawPlan(); build3D(); return; }
-  if(mode==='open'){ const hit=nearestWall(w); if(hit){ const d=OPEN_DEF[openType]; const L=wallLen(hit.wall); let pos=Math.max(0,Math.min(L-d.w,hit.pos-d.w/2)); openings.push({wall:hit.wall,pos,w:d.w,sill:d.sill,head:Math.min(d.head,wallH),type:openType}); drawPlan(); build3D(); } return; }
+  if(mode==='open'){
+    if(openType==='horn'){ chimneys.push({x:snap(w.x),z:snap(w.z),size:chimSize,height:chimH}); drawPlan(); build3D(); renderElemList(); commit(); return; }
+    if(openType==='velux'){ if(footClosed && foot.length>=3 && pointInPolyG(foot,w.x,w.z)){ veluxes.push({x:snap(w.x),z:snap(w.z),w:0.78,l:1.18}); drawPlan(); build3D(); renderElemList(); commit(); } return; }
+    if(openType){ const hit=nearestWall(w); if(hit){ const d=OPEN_DEF[openType]; const L=wallLen(hit.wall); let pos=Math.max(0,Math.min(L-d.w,hit.pos-d.w/2)); openings.push({wall:hit.wall,pos,w:d.w,sill:d.sill,head:Math.min(d.head,wallH),type:openType}); drawPlan(); build3D(); renderElemList(); commit(); } }
+    return; }
   if(mode==='ridge'){
     if(!pendingRidge){
       // atingi un capat existent -> il muti
@@ -281,7 +294,10 @@ pc.addEventListener('pointermove',ev=>{ if(!drag) return; const w=world(ev);
   else if(drag.kind==='horn'){ chimneys[drag.i].x=snap(w.x); chimneys[drag.i].z=snap(w.z); }
   else if(drag.kind==='hornsize'){ const c=chimneys[drag.i]; if(c){ const d=Math.max(Math.abs(w.x-c.x),Math.abs(w.z-c.z))*2; c.size=Math.max(0.2,Math.min(3,snap(d))); } }
   else if(drag.kind==='pv'){ const it=pvItems[drag.i]; if(it){ it.x=snap(w.x); it.z=snap(w.z); } }
-  drawPlan(); build3D(); });
+  else if(drag.kind==='velux'){ const v=veluxes[drag.i]; if(v){ v.x=snap(w.x); v.z=snap(w.z); } }
+  else if(drag.kind==='veluxsize'){ const v=veluxes[drag.i]; if(v){ v.w=Math.max(0.4,Math.min(3,snap(Math.abs(w.x-v.x)*2))); v.l=Math.max(0.4,Math.min(4,snap(Math.abs(w.z-v.z)*2))); } }
+  else if(drag.kind==='opening'){ const o=openings[drag.i]; const hit=nearestWall(w); if(o&&hit){ o.wall=hit.wall; const L=wallLen(hit.wall); o.pos=Math.max(0,Math.min(L-o.w,hit.pos-o.w/2)); } }
+  drawPlan(); build3D(); renderElemList(); });
 pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){ mouseW=snapRidgePoint(world(ev)); drawPlan(); } });
 window.addEventListener('pointerup',()=>{ drag=null; commit(); });
 pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&pendingRidge){ pendingRidge=null; drawPlan(); } });
@@ -365,25 +381,24 @@ function setSegLen(i,cm){ const L=cm/100, n=foot.length; const A=foot[i],B=foot[
   for(let k=i+1;k<n;k++){ foot[k].x=snap(foot[k].x+ddx); foot[k].z=snap(foot[k].z+ddz); }
   drawPlan(); build3D(); renderWalls(); commit(); }
 function delElement(w){
-  let i=nearest(chimneys,w,0.5); if(i>=0){ chimneys.splice(i,1); drawPlan(); build3D(); return; }
+  let iv=nearest(veluxes,w,0.6); if(iv>=0){ veluxes.splice(iv,1); drawPlan(); build3D(); renderElemList(); return; }
+  let i=nearest(chimneys,w,0.5); if(i>=0){ chimneys.splice(i,1); drawPlan(); build3D(); renderElemList(); return; }
   let bo=-1,bd=0.5; openings.forEach((o,k)=>{ const A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) return; const ux=B.x-A.x,uz=B.z-A.z,L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2); const d=Math.hypot(w.x-mx,w.z-mz); if(d<bd){bd=d;bo=k;} }); if(bo>=0){ openings.splice(bo,1); drawPlan(); build3D(); return; }
   { let br=-1,bd=0.5; ridges.forEach((r,ri)=>{ const mx=(r.a.x+r.b.x)/2,mz=(r.a.z+r.b.z)/2; [r.a,r.b,{x:mx,z:mz}].forEach(pt=>{ const d=Math.hypot(w.x-pt.x,w.z-pt.z); if(d<bd){bd=d;br=ri;} }); }); if(br>=0){ ridges.splice(br,1); drawPlan(); build3D(); return; } }
   let ci=nearest(foot,w,0.4); if(ci>=0){ if(foot.length>3){ foot.splice(ci,1); openings=openings.filter(o=>o.wall<foot.length); drawPlan(); build3D(); } else alert('Conturul are nevoie de minim 3 colturi.'); return; }
 }
-function setTools(){ if(mode!=='ridge') pendingRidge=null; [['tFoot','foot'],['tEdit','edit'],['tAddWall','addwall'],['tRidge','ridge'],['tOpen','open'],['tHorn','horn'],['tDel','del']].forEach(([id,m])=>$(id).classList.toggle('on',mode===m)); }
+function setTools(){ if(mode!=='ridge') pendingRidge=null; [['tFoot','foot'],['tEdit','edit'],['tAddWall','addwall'],['tRidge','ridge'],['tDel','del']].forEach(([id,m])=>$(id).classList.toggle('on',mode===m)); const sel=$('openType'); if(sel) sel.classList.toggle('on',mode==='open'); }
 $('tFoot').onclick=()=>{ mode='foot'; setTools(); };
 $('tEdit').onclick=()=>{ mode='edit'; setTools(); };
 $('tAddWall').onclick=()=>{ mode='addwall'; setTools(); };
 $('tRidge').onclick=()=>{ mode='ridge'; pendingRidge=null; mouseW=null; setTools(); };
-$('tOpen').onclick=()=>{ mode='open'; setTools(); };
-$('tHorn').onclick=()=>{ mode='horn'; setTools(); };
 $('tDel').onclick=()=>{ mode='del'; setTools(); };
 $('tUndo').onclick=undo;
 $('tFit').onclick=()=>{ planZoom=1; planPan={x:0,y:0}; drawPlan(); };
 window.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ const t=e.target.tagName; if(t==='INPUT'||t==='SELECT') return; e.preventDefault(); undo(); } });
 $('tClose').onclick=()=>{ if(foot.length>=3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); commit(); } };
-$('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=false; ridges=[]; pendingRidge=null; openings=[]; chimneys=[]; mode='foot'; setTools(); drawPlan(); build3D(); commit(); } };
-$('openType').onchange=()=>{ openType=$('openType').value; };
+$('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=false; ridges=[]; pendingRidge=null; openings=[]; chimneys=[]; veluxes=[]; pvItems=[]; mode='foot'; setTools(); drawPlan(); build3D(); renderElemList(); renderBom(); commit(); } };
+$('openType').onchange=()=>{ openType=$('openType').value; if(openType){ mode='open'; } else { mode='foot'; } setTools(); };
 $('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); }; $('wallH').onchange=commit;
 $('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); }; $('ridgeH').onchange=commit;
 $('eaveH').oninput=()=>{ eaveOverhang=(parseInt($('eaveH').value,10)||0)/100; drawPlan(); build3D(); }; $('eaveH').onchange=commit;
@@ -458,9 +473,11 @@ function buildHipRoof(rpos){
   if(pts.length<3) return;
   const Hm=pts.map(p=>Math.max(0,inwardMin(p))); let hmax=0; Hm.forEach(h=>{ if(h>hmax) hmax=h; }); if(hmax<1e-4) hmax=1;
   const scale=ridgeRaise/hmax, Y=Hm.map(h=>wallH+h*scale);
+  roofEdgesCache=edges; roofScaleCache=scale;   // pt inaltimea acoperisului intr-un punct (velux)
   let tris; try{ tris=Delaunator.from(pts,p=>p.x,p=>p.z).triangles; }catch(e){ return; }
   for(let i=0;i<tris.length;i+=3){ const ia=tris[i],ib=tris[i+1],ic=tris[i+2],A=pts[ia],B=pts[ib],C=pts[ic]; const cx=(A.x+B.x+C.x)/3,cz=(A.z+B.z+C.z)/3; if(!pointInPolyG(rf,cx,cz)) continue; tri(rpos,V(A.x,Y[ia],A.z),V(B.x,Y[ib],B.z),V(C.x,Y[ic],C.z)); }
 }
+function roofHeightAt(x,z){ if(ridgeRaise<=0.02||!roofEdgesCache.length) return wallH+0.05; let m=1e9; for(const e of roofEdgesCache){ const d=(x-e.ax)*e.nx+(z-e.az)*e.nz; if(d<m) m=d; } return wallH+Math.max(0,m)*roofScaleCache; }
 function makeText(t,color){ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle=color; x.font='bold 46px system-ui'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(t,32,34); const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); sp.scale.set(1.1,1.1,1.1); return sp; }
 
 function build3D(){
@@ -496,6 +513,9 @@ function build3D(){
   building.add(meshFromTris(rpos,matRoof));
   // hornuri
   chimneys.forEach(ch=>{ const total=ridgeRaise+ch.height; const m=new THREE.Mesh(new THREE.BoxGeometry(ch.size,total,ch.size),matChim); m.position.set(ch.x, wallH+total/2, ch.z); building.add(m); });
+  // velux (fereastra de mansarda) plata pe acoperis
+  const matVlx=new THREE.MeshStandardMaterial({color:0x9fd2ff,roughness:.25,metalness:.1,transparent:true,opacity:.75,side:THREE.DoubleSide});
+  veluxes.forEach(v=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(v.w,0.06,v.l),matVlx); m.position.set(v.x, roofHeightAt(v.x,v.z)+0.05, v.z); building.add(m); });
   // elemente sistem fotovoltaic (cutii la dimensiunile din Excel)
   const PV_COL={ invertor:0x2b6cb0, baterii:0x2f855a, echipament:0x6b7280, panouri:0x1a3a6b };
   pvItems.forEach(it=>{ const mat=new THREE.MeshStandardMaterial({color:PV_COL[it.cat]||0x2b6cb0,roughness:.55,metalness:.2});
