@@ -27,7 +27,7 @@
   .tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px;border-bottom:1px solid var(--line);align-items:center}
   .pvbtn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #bfe6c9;background:#f3fff6;border-radius:9px;padding:9px 11px;font-size:12.5px;font-weight:600;font-family:inherit;color:var(--ink);cursor:pointer}
   .pvbtn b{font-size:13px} .pvbtn span{color:var(--muted);font-weight:500;font-size:11px}
-  #toolsPv{flex-direction:column;align-items:stretch}
+  #toolsPv{flex-direction:column;align-items:stretch;max-height:46vh;overflow-y:auto}
   .schips{display:flex;gap:5px;flex-wrap:wrap}
   .schip{border:1px solid #bcd8f5;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;font-weight:700;font-family:inherit;color:var(--pv);cursor:pointer}
   .schip.on{background:var(--pv);color:#fff;border-color:var(--pv)}
@@ -69,7 +69,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R73 (alegi mai multe ape la umplere)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R75 (meniu PV scrolabil)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -115,6 +115,7 @@
         <button class="btn" id="pvTemplate" style="flex:1">📄 Descarca model</button>
       </div>
       <input id="pvFile" type="file" accept=".xlsx" style="display:none">
+      <button class="pvbtn" id="pvScheme" style="background:#fff6e6;border-color:#f0d39a">⚡ <b>Schema electrica + necesar cabluri</b></button>
       <div id="pvStatus" style="font-size:10.5px;color:var(--muted)"></div>
       <div id="bom" style="display:flex;flex-direction:column;gap:5px;max-height:210px;overflow-y:auto"></div>
     </div>
@@ -149,6 +150,12 @@
   </div>
 </div>
 
+<div id="schemeModal" style="display:none;position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:50;align-items:center;justify-content:center;padding:18px">
+  <div style="background:#fff;border-radius:12px;max-width:920px;width:100%;max-height:92vh;overflow:auto;padding:16px;box-shadow:0 12px 44px rgba(0,0,0,.32)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><b style="font-size:15px;color:#1c7bd6">Schema electrica + necesar cabluri</b><button id="schClose" class="btn" style="margin-left:auto">Inchide</button></div>
+    <div id="schBody"></div>
+  </div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="../assets/no-diacritics.js"></script>
 <script type="module">
@@ -530,6 +537,34 @@ function refreshSlopeSel(){ const host=$('pvSlopeChips'); if(!host) return; cons
   host.innerHTML = sl.map(s=>'<button class="schip'+(pvFillSlopes.has(s.id)?' on':'')+'" data-slope="'+s.id+'" title="'+s.dir+'">A'+s.id+'</button>').join('') + (sl.length>1?'<button class="schip" id="schAll">Toate</button>':'');
   host.querySelectorAll('[data-slope]').forEach(b=> b.onclick=()=>{ const id=+b.dataset.slope; if(pvFillSlopes.has(id)) pvFillSlopes.delete(id); else pvFillSlopes.add(id); refreshSlopeSel(); });
   const all=$('schAll'); if(all) all.onclick=()=>{ if(pvFillSlopes.size===sl.length) pvFillSlopes.clear(); else sl.forEach(s=>pvFillSlopes.add(s.id)); refreshSlopeSel(); }; }
+/* ===== schema electrica + necesar cabluri ===== */
+function itemPos3D(it){ let y; if(it.cat==='panouri'||it.place==='acoperis') y=roofHeightAt(it.x,it.z); else if(it.place==='sol') y=(it.h||0.4)/2; else y=(it.y!=null)?it.y:1.2; return {x:it.x,y:y,z:it.z}; }
+function dist3(a,b){ return Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z); }
+function orderPanels(panels, fromPos){ const rem=panels.slice(), ord=[]; let cur=fromPos; while(rem.length){ let bi=0,bd=1e9; rem.forEach((p,i)=>{ const d=dist3(itemPos3D(p),cur); if(d<bd){bd=d;bi=i;} }); ord.push(rem[bi]); cur=itemPos3D(rem[bi]); rem.splice(bi,1); } return ord; }
+function escH(s){ return (''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+function buildScheme(){ const body=$('schBody'); if(!body) return; const inv=pvItems.find(it=>it.cat==='invertor'); const panels=pvItems.filter(it=>it.cat==='panouri');
+  if(!inv || !panels.length){ body.innerHTML='<div style="color:#c0392b;font-size:13px">Adauga cel putin un <b>invertor</b> si <b>panouri</b> ca sa generez schema.</div>'; $('schemeModal').style.display='flex'; return; }
+  const teg=pvItems.find(it=>/teg/i.test(it.name)); const bmp=pvItems.find(it=>/bmp/i.test(it.name)); const acProt=pvItems.find(it=>it.cat==='echipament'&&/tablou|protectie/i.test(it.name)&&!/teg/i.test(it.name)); const bat=pvItems.find(it=>it.cat==='baterii');
+  const invP=itemPos3D(inv), ord=orderPanels(panels,invP), route=(a,b)=>dist3(a,b)*1.15+0.5, m=x=>Math.round(x*10)/10;
+  const dcHome=route(invP,itemPos3D(ord[0]))+route(itemPos3D(ord[ord.length-1]),invP); let interJ=0; for(let i=1;i<ord.length;i++) interJ+=dist3(itemPos3D(ord[i-1]),itemPos3D(ord[i]));
+  let acLen=0,prev=inv; [acProt,teg,bmp].forEach(c=>{ if(c){ acLen+=route(itemPos3D(prev),itemPos3D(c)); prev=c; } }); const batLen=bat?route(invP,itemPos3D(bat)):0;
+  const chain=[{t:'Panouri x'+panels.length,c:'#1a3a6b'},{t:'Protectie CC',c:'#2f855a'},{t:(inv.name||'Invertor'),c:'#2b6cb0'},{t:'Protectie CA',c:'#2f855a'}];
+  if(bat) chain.splice(3,0,{t:'Baterie',c:'#2f855a'}); if(teg) chain.push({t:'TEG',c:'#6b7280'}); if(bmp) chain.push({t:(''+bmp.name).split(' ')[0],c:'#6b7280'}); chain.push({t:'Retea',c:'#8a93a0'});
+  const W=chain.length*150; let svg='<svg viewBox="0 0 '+W+' 110" style="width:100%">'; let x=15;
+  chain.forEach((b,i)=>{ svg+='<rect x="'+x+'" y="34" width="120" height="44" rx="8" fill="'+b.c+'"/><text x="'+(x+60)+'" y="60" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">'+escH(b.t)+'</text>'; if(i<chain.length-1) svg+='<line x1="'+(x+120)+'" y1="56" x2="'+(x+150)+'" y2="56" stroke="#34465e" stroke-width="2"/>'; x+=150; }); svg+='</svg>';
+  const row=(a,b)=>'<tr><td style="padding:6px;border-top:1px solid #eee">'+a+'</td><td style="padding:6px;border-top:1px solid #eee;text-align:right;font-weight:700">'+b+'</td></tr>';
+  let bom='<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="background:#f1f6fc"><th style="text-align:left;padding:6px">Material</th><th style="text-align:right;padding:6px">Cantitate</th></tr>';
+  bom+=row('Panouri fotovoltaice', panels.length+' buc');
+  bom+=row('Cablu solar CC (string, dus-intors la invertor)', m(dcHome)+' m');
+  bom+=row('Cablu solar intre panouri (jumper serie)', m(interJ)+' m');
+  bom+=row('Conectori MC4 (perechi +/-)', panels.length+' perechi');
+  bom+=row('Cablu CA (invertor → protectie → TEG/retea)', m(acLen)+' m');
+  if(bat) bom+=row('Cablu baterie CC', m(batLen)+' m');
+  bom+=row('Protectie CC (DC)', '1 set'); bom+=row('Protectie CA (AC)', '1 set'); bom+='</table>';
+  body.innerHTML='<div style="font-weight:700;margin-bottom:6px">Schema monofilara</div>'+svg+'<div style="font-weight:700;margin:14px 0 4px">Necesar de materiale</div>'+bom+'<div style="font-size:11px;color:#8a93a0;margin-top:8px">Traseu: BMP → TEG → protectie CA → invertor → protectie CC → panouri (serie). Estimare din pozitiile 3D (factor 1.15 + margini). Invertorul poate avea 1-4 stringuri; aici panourile sunt un singur string in serie.</div>';
+  $('schemeModal').style.display='flex'; }
+if($('pvScheme')) $('pvScheme').onclick=buildScheme;
+if($('schClose')) $('schClose').onclick=()=>{ $('schemeModal').style.display='none'; };
 function elevWallAtH(h){ const n=foot.length; let best=null,bd=1e9; for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); const d=(h>=lo&&h<=hi)?0:Math.min(Math.abs(h-lo),Math.abs(h-hi)); if(d<bd){bd=d;best={A,B,hA,hB};} } return best; }
 function pvWallIndex(it){ let wi=-1,wd=0.9; for(let i=0;i<foot.length;i++){ const q=projOnSeg({x:it.x,z:it.z},foot[i],foot[(i+1)%foot.length]); const d=Math.hypot(it.x-q.x,it.z-q.z); if(d<wd){wd=d;wi=i;} } return wi; }
 function elevAddPv(m){ if(!pvPlace) return; const best=elevWallAtH(m.h); if(!best) return;   // doar pe un perete spre aceasta fatada; fara cadere in centru
