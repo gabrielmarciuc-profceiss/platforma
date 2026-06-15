@@ -71,7 +71,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R78 (cabluri pe pereti: sus/jos/sol/punte)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R80 (cer+gazon, etichete, culori, umplere V/O/auto, productie)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -108,11 +108,13 @@
         <div style="font-size:12px;font-weight:700">🟦 Umple cu panouri</div>
         <div style="font-size:10.5px;color:var(--muted)">Alege apele (poti mai multe): apasa A1, A3...</div>
         <div id="pvSlopeChips" class="schips"></div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="btn" id="pvFill" style="flex:1">Umple apele alese</button>
-          <button class="btn bad" id="pvClearPan">Goleste</button>
+        <div style="font-size:10.5px;color:var(--muted)">Orientare panouri la umplere:</div>
+        <div style="display:flex;gap:5px;align-items:center">
+          <button class="btn" id="pvFillV" style="flex:1" title="Toate in picioare (portrait)">↕ Vertical</button>
+          <button class="btn" id="pvFillH" style="flex:1" title="Toate culcate (landscape)">↔ Orizontal</button>
+          <button class="btn" id="pvFillA" style="flex:1" title="Combina vertical+orizontal pentru numar maxim">✦ Auto (max)</button>
         </div>
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><input type="checkbox" id="pvHoriz" style="width:auto" checked> Roteste unde incap mai multe (orizontal)</label>
+        <button class="btn bad" id="pvClearPan" style="width:100%">Goleste panourile</button>
       </div>
       <div style="display:flex;gap:6px;margin-top:4px">
         <button class="btn" id="pvUndo" style="flex:1">↶ Undo</button>
@@ -120,12 +122,16 @@
         <button class="btn" id="pvTemplate" style="flex:1">📄 Descarca model</button>
       </div>
       <input id="pvFile" type="file" accept=".xlsx" style="display:none">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px;flex-wrap:wrap">
-        <span style="color:var(--muted)">Traseu cabluri:</span>
-        <button class="schip on" data-rmode="sus">Sus</button>
-        <button class="schip" data-rmode="jos">Jos</button>
-        <button class="schip" data-rmode="sol">Sol</button>
-        <button class="schip" data-rmode="punte">Punte</button>
+      <div style="font-size:11px;color:var(--muted);font-weight:700">Traseu cabluri (per circuit)</div>
+      <div id="pvRouteList" style="display:flex;flex-direction:column;gap:4px"></div>
+      <div style="display:flex;gap:5px;align-items:center;border:1px solid #cde6cf;background:#f2fbf3;border-radius:9px;padding:7px">
+        <label style="font-size:11px;color:var(--muted)">Zona <select id="pvZone" style="width:auto">
+          <option value="1320">Sud / Dobrogea</option>
+          <option value="1250">Sud-Vest / Muntenia</option>
+          <option value="1200" selected>Centru / Moldova</option>
+          <option value="1120">Nord / Ardeal</option>
+        </select></label>
+        <button class="btn" id="pvProd" style="flex:1">☀️ Productie estimata</button>
       </div>
       <button class="pvbtn" id="pvScheme" style="background:#fff6e6;border-color:#f0d39a">⚡ <b>Schema electrica + necesar cabluri</b></button>
       <div id="pvStatus" style="font-size:10.5px;color:var(--muted)"></div>
@@ -149,6 +155,8 @@
       <label>Streasina <input id="eaveH" type="number" min="0" max="300" step="5" value="40"> cm</label>
       <label>Apa <select id="roofLogic" style="width:auto"><option value="auto">Coama reglabila (buline)</option><option value="manual">Coame manuale (desen)</option></select></label>
       <label>Acoperis <select id="roofType" style="width:auto"><option value="tigla">Tigla</option><option value="tabla">Tabla cutata</option><option value="tabla_tigla">Tabla tip tigla</option><option value="terasa">Terasa (membrana)</option></select></label>
+      <label>Culoare pereti <input id="wallColor" type="color" value="#eef1f4" style="width:42px;padding:1px;height:26px"></label>
+      <label>Culoare acoperis <input id="roofColor" type="color" value="#b0533a" style="width:42px;padding:1px;height:26px"> <button id="roofColorReset" class="btn" style="padding:3px 7px" title="Revino la culoarea materialului">auto</button></label>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
         <canvas id="compassDial" width="104" height="104" style="width:104px;height:104px;cursor:grab;touch-action:none"></canvas>
         <span style="font-size:10.5px;color:var(--muted)">Nord fata de casa: <b id="orientVal">0&deg;</b> · roteste busola</span>
@@ -184,6 +192,7 @@ let pendingRidge=null, mouseW=null;        // primul capat plasat + pozitia mous
 let openings=[];               // {wall,pos,w,sill,head,type}
 let chimneys=[];               // {x,z,size,height}
 let wallH=3.0, ridgeRaise=1.6, orientationDeg=0, roofType='tigla', eaveOverhang=0.4, roofLogic='auto';
+let wallColorHex='#eef1f4', roofColorHex='';
 let ridgeA0=0.2, ridgeA1=0.8, ridgeOffFrac=0;   // coama: capete pe axa lunga (fractii 0..1) + offset perpendicular (-0.5..0.5)
 let chimSize=0.6, chimH=1.0, openType='';
 let pvItems=[];                // elemente sistem fotovoltaic plasate {cat,name,h,w,d (m),x,z,place}
@@ -195,10 +204,10 @@ let planView='sus', elevMap={s:30,ox:0,oy:0};   // Sus = plan; fata/spate/stanga
 let curCat='casa';   // categoria activa: 'casa' (editezi constructia) sau 'pv' (doar amplasezi sistem fotovoltaic)
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
 function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
-function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,orientationDeg,roofType}); }
+function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,orientationDeg,roofType,wallColorHex,roofColorHex}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
-function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; if(o.ridgeA0!=null)ridgeA0=o.ridgeA0; if(o.ridgeA1!=null)ridgeA1=o.ridgeA1; if(o.ridgeOffFrac!=null)ridgeOffFrac=o.ridgeOffFrac; orientationDeg=o.orientationDeg; roofType=o.roofType;
-  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); renderElemList(); }
+function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; if(o.ridgeA0!=null)ridgeA0=o.ridgeA0; if(o.ridgeA1!=null)ridgeA1=o.ridgeA1; if(o.ridgeOffFrac!=null)ridgeOffFrac=o.ridgeOffFrac; orientationDeg=o.orientationDeg; roofType=o.roofType; wallColorHex=o.wallColorHex||'#eef1f4'; roofColorHex=o.roofColorHex||'';
+  $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; if($('wallColor'))$('wallColor').value=wallColorHex; if($('roofColor')&&roofColorHex)$('roofColor').value=roofColorHex; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); renderElemList(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
 /* ===== canvas 2D ===== */
@@ -272,7 +281,7 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
     // buton X stergere (dreapta-sus)
     px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+h/2,cy-h/2,8,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 12px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('x',cx+h/2,cy-h/2); });
   // circuite automate (cablaj) intre componentele PV - rutate pe pereti
-  pvConnections().forEach(s=>{ const path=pvRoutePath(itemPos3D(s.a),itemPos3D(s.b)); px.strokeStyle = s.type==='dc'?'#e07b39':(s.type==='bat'?'#2f855a':'#2b6cb0'); px.lineWidth=2; px.setLineDash(s.type==='dc'?[]:[5,3]); px.beginPath(); path.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); px.stroke(); px.setLineDash([]); });
+  pvConnections().forEach(s=>{ const path=pvRoutePath(itemPos3D(s.a),itemPos3D(s.b),routeModeFor(s.kind)); px.strokeStyle = s.type==='dc'?'#e07b39':(s.type==='bat'?'#2f855a':'#2b6cb0'); px.lineWidth=2; px.setLineDash(s.type==='dc'?[]:[5,3]); px.beginPath(); path.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); px.stroke(); px.setLineDash([]); });
   // elemente PV vazute de sus (panou = latime x lungime; altele = latime x grosime) + rotire + X
   const PV_C2={ invertor:'#2b6cb0', baterii:'#2f855a', echipament:'#6b7280', panouri:'#1a3a6b' };
   pvItems.forEach(it=>{ const cx=SX(it.x), cy=SY(it.z), col=PV_C2[it.cat]||'#2b6cb0', rot=it.rot||0;
@@ -482,7 +491,12 @@ pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){
 window.addEventListener('pointerup',()=>{ drag=null; commit(); });
 pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&pendingRidge){ pendingRidge=null; drawPlan(); } });
 pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
-  if(planView!=='sus'){ planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89))); drawPlan(); return; }
+  // Shift+scroll sau scroll lateral (trackpad) = pan stanga/dreapta (toate categoriile/fatadele)
+  if(ev.shiftKey || Math.abs(ev.deltaX)>Math.abs(ev.deltaY)){ planPan.x -= (ev.shiftKey?ev.deltaY:ev.deltaX)*0.8; drawPlan(); return; }
+  if(planView!=='sus'){ // zoom centrat pe cursor (pastreaza punctul de sub mouse)
+    const fox0=elevMap?elevMap.ox:mx, fs0=elevMap?elevMap.s:1; const h0=(mx-fox0)/(fs0||1);
+    planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89)));
+    drawPlan(); const fs1=elevMap?elevMap.s:1, fox1=elevMap?elevMap.ox:mx; planPan.x += mx-(fox1+h0*fs1); drawPlan(); return; }
   const wx=(mx-planMap.ox)/planMap.s, wz=(my-planMap.oy)/planMap.s;
   planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89)));
   computeMap(); planPan.x += mx-(planMap.ox+wx*planMap.s); planPan.y += my-(planMap.oy+wz*planMap.s);
@@ -524,7 +538,8 @@ function addPv(btnKey){ const cat=PV_CAT[btnKey]; const p=pvPick(btnKey); if(!p)
   document.querySelectorAll('.pvbtn').forEach(b=>b.classList.toggle('on', b.dataset.pv===btnKey));
   switchCat('pv'); if(typeof pvStatus==='function') pvStatus('Selectat: '+p.name+' ('+Math.round(pvPlace.h*100)+'×'+Math.round(pvPlace.w*100)+'×'+Math.round(pvPlace.d*100)+' cm). Click pe plan (Sus) sau pe peretele din fatada ca sa-l pui. Re-apasa butonul = renunti.'); }
 function clampRoofXZ(x,z,w,l,rot){ rot=rot||0; const ac=Math.abs(Math.cos(rot)),as=Math.abs(Math.sin(rot)); const ew=w*ac+l*as, el=w*as+l*ac; const b=roofBBox(); const hw=Math.min(ew,(b.xmx-b.xmn))/2, hl=Math.min(el,(b.zmx-b.zmn))/2; return { x:Math.max(b.xmn+hw,Math.min(b.xmx-hw,x)), z:Math.max(b.zmn+hl,Math.min(b.zmx-hl,z)) }; }   // panoul (rotit) nu iese din conturul acoperisului
-function placePvAt(x,z,place,y){ if(!pvPlace) return; place=place||(pvPlace.cat==='panouri'?'acoperis':(pvPlace.cat==='baterii'?'sol':'perete'));
+function defaultPlace(p){ if(p.cat==='panouri') return 'acoperis'; if(p.cat==='baterii') return 'sol'; if(/bmp/i.test(p.name)) return 'sol'; return 'perete'; }
+function placePvAt(x,z,place,y){ if(!pvPlace) return; place=place||defaultPlace(pvPlace);
   if(place==='acoperis'){ const c=clampRoofXZ(x,z,pvPlace.w,pvPlace.h); x=c.x; z=c.z; }
   const it={cat:pvPlace.cat,name:pvPlace.name,h:pvPlace.h,w:pvPlace.w,d:pvPlace.d,x:snap(x),z:snap(z),place}; if(y!=null) it.y=y; pvItems.push(it); renderBom(); drawPlan(); build3D(); commit(); }
 // impachetare pe randuri intr-o apa (convex): portrait cat incape, apoi orizontal in fasia ramasa spre coama
@@ -536,38 +551,45 @@ function packSlope(s, w, l, gap, allowHoriz){
   const puv=s.poly.map(toUV); const vmax=Math.max.apply(null,puv.map(p=>p[1]));
   const uSpanAt=v=>{ let lo=1e9,hi=-1e9; const n=puv.length; for(let i=0;i<n;i++){ const a=puv[i],b=puv[(i+1)%n],v1=a[1],v2=b[1]; if((v1<=v&&v2>=v)||(v2<=v&&v1>=v)){ if(Math.abs(v2-v1)<1e-9){ lo=Math.min(lo,a[0],b[0]); hi=Math.max(hi,a[0],b[0]); } else { const t=(v-v1)/(v2-v1),u=a[0]+(b[0]-a[0])*t; lo=Math.min(lo,u); hi=Math.max(hi,u); } } } return [lo,hi]; };
   const portraitRot=horizU?0:Math.PI/2, landscapeRot=horizU?Math.PI/2:0, out=[], mg=0.02; let v0=0,guard=0;
-  while(v0<vmax-0.05 && guard++<300){ const orients = allowHoriz?[[w,l,portraitRot],[l,w,landscapeRot]]:[[w,l,portraitRot]]; let done=false;
-    for(const o of orients){ const pu=o[0],pv=o[1],rot=o[2]; if(v0+pv>vmax+1e-6) continue; const s0=uSpanAt(v0+mg), s1=uSpanAt(v0+pv-mg); const lo=Math.max(s0[0],s1[0])+mg, hi=Math.min(s0[1],s1[1])-mg, avail=hi-lo;
-      const ncol=Math.floor((avail+gap)/(pu+gap)); if(ncol<1) continue; const usedU=ncol*pu+(ncol-1)*gap, su=(lo+hi)/2-usedU/2+pu/2;
-      for(let c=0;c<ncol;c++){ const xz=toXZ(su+c*(pu+gap), v0+pv/2); out.push({x:xz.x,z:xz.z,rot}); } v0+=pv+gap; done=true; break; }
-    if(!done) v0+=0.12; }
+  const portrait=[w,l,portraitRot], landscape=[l,w,landscapeRot];
+  const cand = allowHoriz==='landscape'?[landscape] : allowHoriz==='auto'?[portrait,landscape] : [portrait];   // portrait | landscape | auto(densitate maxima)
+  while(v0<vmax-0.05 && guard++<400){ let best=null;
+    for(const o of cand){ const pu=o[0],pv=o[1],rot=o[2]; if(v0+pv>vmax+1e-6) continue; const s0=uSpanAt(v0+mg), s1=uSpanAt(v0+pv-mg); const lo=Math.max(s0[0],s1[0])+mg, hi=Math.min(s0[1],s1[1])-mg, avail=hi-lo;
+      const ncol=Math.floor((avail+gap)/(pu+gap)); if(ncol<1) continue; const dens=ncol/pv; if(!best||dens>best.dens){ best={pu,pv,rot,lo,hi,ncol,dens}; } }
+    if(best){ const usedU=best.ncol*best.pu+(best.ncol-1)*gap, su=(best.lo+best.hi)/2-usedU/2+best.pu/2;
+      for(let c=0;c<best.ncol;c++){ const xz=toXZ(su+c*(best.pu+gap), v0+best.pv/2); out.push({x:xz.x,z:xz.z,rot:best.rot}); } v0+=best.pv+gap; }
+    else v0+=0.12; }
   return out; }
-function fillRoofPanels(slopeIds, allowHoriz){ if(ridgeRaise<=0.02){ alert('Acoperisul nu are panta inclinata.'); return; } const panel=(pvCatalog.panouri&&pvCatalog.panouri[0]); if(!panel){ alert('Nu exista panou in catalog (sheet Panouri).'); return; }
-  const w=(+panel.w||113)/100, l=(+panel.h||223)/100, th=(+panel.d||4)/100, gap=0.02; const slopes=roofSlopes(); let n=0; const chosen=[];
-  slopes.forEach(s=>{ if(slopeIds && slopeIds.length && slopeIds.indexOf(s.id)<0) return; chosen.push('A'+s.id); packSlope(s,w,l,gap,allowHoriz).forEach(c=>{ pvItems.push({cat:'panouri',name:panel.name,h:l,w:w,d:th,x:snap(c.x),z:snap(c.z),place:'acoperis',slope:s.id,rot:c.rot}); n++; }); });
-  renderBom(); drawPlan(); build3D(); commit(); if(typeof pvStatus==='function') pvStatus(n? ('Umplut: '+n+' panouri pe '+(chosen.length?chosen.join(', '):'toate apele')+(allowHoriz?' (portrait + orizontal)':' (portrait)')+'.') : 'Nu incape niciun panou pe apele alese.'); }
+function fillRoofPanels(slopeIds, mode){ if(ridgeRaise<=0.02){ alert('Acoperisul nu are panta inclinata.'); return; } const panel=(pvCatalog.panouri&&pvCatalog.panouri[0]); if(!panel){ alert('Nu exista panou in catalog (sheet Panouri).'); return; }
+  mode=mode||'portrait'; const w=(+panel.w||113)/100, l=(+panel.h||223)/100, th=(+panel.d||4)/100, gap=0.02; const slopes=roofSlopes(); let n=0; const chosen=[];
+  slopes.forEach(s=>{ if(slopeIds && slopeIds.length && slopeIds.indexOf(s.id)<0) return; chosen.push('A'+s.id); packSlope(s,w,l,gap,mode).forEach(c=>{ pvItems.push({cat:'panouri',name:panel.name,h:l,w:w,d:th,x:snap(c.x),z:snap(c.z),place:'acoperis',slope:s.id,rot:c.rot}); n++; }); });
+  const modeTxt = mode==='landscape'?'orizontal':mode==='auto'?'auto (maxim)':'vertical';
+  renderBom(); drawPlan(); build3D(); commit(); if(typeof pvStatus==='function') pvStatus(n? ('Umplut: '+n+' panouri pe '+(chosen.length?chosen.join(', '):'toate apele')+' ('+modeTxt+').') : 'Nu incape niciun panou pe apele alese.'); }
 function refreshSlopeSel(){ const host=$('pvSlopeChips'); if(!host) return; const sl=roofSlopes(); const ids=new Set(sl.map(s=>s.id));
   [...pvFillSlopes].forEach(id=>{ if(!ids.has(id)) pvFillSlopes.delete(id); });   // curata apele disparute
   host.innerHTML = sl.map(s=>'<button class="schip'+(pvFillSlopes.has(s.id)?' on':'')+'" data-slope="'+s.id+'" title="'+s.dir+'">A'+s.id+'</button>').join('') + (sl.length>1?'<button class="schip" id="schAll">Toate</button>':'');
   host.querySelectorAll('[data-slope]').forEach(b=> b.onclick=()=>{ const id=+b.dataset.slope; if(pvFillSlopes.has(id)) pvFillSlopes.delete(id); else pvFillSlopes.add(id); refreshSlopeSel(); });
   const all=$('schAll'); if(all) all.onclick=()=>{ if(pvFillSlopes.size===sl.length) pvFillSlopes.clear(); else sl.forEach(s=>pvFillSlopes.add(s.id)); refreshSlopeSel(); }; }
 /* ===== schema electrica + necesar cabluri ===== */
-function itemPos3D(it){ let y; if(it.cat==='panouri'||it.place==='acoperis') y=roofHeightAt(it.x,it.z); else if(it.place==='sol') y=(it.h||0.4)/2; else y=(it.y!=null)?it.y:1.2; return {x:it.x,y:y,z:it.z}; }
+function itemPos3D(it){ let y; if(it.cat==='panouri'||it.place==='acoperis') y=roofHeightAt(it.x,it.z); else if(it.place==='sol') y=(it.h||0.4)/2; else if(it.place==='perete' && pvWallIndex(it)<0) y=(it.h||0.4)/2; else y=(it.y!=null)?it.y:1.2; return {x:it.x,y:y,z:it.z}; }
 function dist3(a,b){ return Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z); }
 function orderPanels(panels, fromPos){ const rem=panels.slice(), ord=[]; let cur=fromPos; while(rem.length){ let bi=0,bd=1e9; rem.forEach((p,i)=>{ const d=dist3(itemPos3D(p),cur); if(d<bd){bd=d;bi=i;} }); ord.push(rem[bi]); cur=itemPos3D(rem[bi]); rem.splice(bi,1); } return ord; }
 // circuitele care se formeaza automat din componentele plasate (BMP→TEG→protectie→invertor→panouri serie)
+function pvRole(it){ if(!it) return 'x'; if(/bmp/i.test(it.name)) return 'bmp'; if(/teg/i.test(it.name)) return 'teg'; if(it.cat==='echipament') return 'tablou'; if(it.cat==='invertor') return 'inv'; if(it.cat==='panouri') return 'panou'; if(it.cat==='baterii') return 'bat'; return 'x'; }
+const PV_ROUTE_DEFAULTS={ bmp_teg:'sol', teg_tablou:'perete', tablou_inv:'perete', teg_inv:'perete', dc:'sus', bat:'jos' };
+function routeModeFor(kind){ return pvRouteByKind[kind] || PV_ROUTE_DEFAULTS[kind] || 'sus'; }
 function pvConnections(){ const inv=pvItems.find(it=>it.cat==='invertor'); const panels=pvItems.filter(it=>it.cat==='panouri'); const teg=pvItems.find(it=>/teg/i.test(it.name)); const bmp=pvItems.find(it=>/bmp/i.test(it.name)); const tablou=pvItems.find(it=>it.cat==='echipament'&&/tablou|protectie/i.test(it.name)&&!/teg/i.test(it.name)); const bat=pvItems.find(it=>it.cat==='baterii');
-  const segs=[]; const acOrder=[bmp,teg,tablou,inv].filter(Boolean); for(let i=1;i<acOrder.length;i++) segs.push({a:acOrder[i-1],b:acOrder[i],type:'ac'});
-  if(inv && panels.length){ const ord=orderPanels(panels,itemPos3D(inv)); segs.push({a:inv,b:ord[0],type:'dc'}); for(let i=1;i<ord.length;i++) segs.push({a:ord[i-1],b:ord[i],type:'dc'}); segs.push({a:ord[ord.length-1],b:inv,type:'dc'}); }
-  if(inv && bat) segs.push({a:inv,b:bat,type:'bat'});
+  const segs=[]; const acOrder=[bmp,teg,tablou,inv].filter(Boolean); for(let i=1;i<acOrder.length;i++){ const k=pvRole(acOrder[i-1])+'_'+pvRole(acOrder[i]); segs.push({a:acOrder[i-1],b:acOrder[i],type:'ac',kind:k}); }
+  if(inv && panels.length){ const ord=orderPanels(panels,itemPos3D(inv)); segs.push({a:inv,b:ord[0],type:'dc',kind:'dc'}); for(let i=1;i<ord.length;i++) segs.push({a:ord[i-1],b:ord[i],type:'dc',kind:'dc'}); segs.push({a:ord[ord.length-1],b:inv,type:'dc',kind:'dc'}); }
+  if(inv && bat) segs.push({a:inv,b:bat,type:'bat',kind:'bat'});
   return segs; }
 /* ===== rutarea cablurilor pe pereti (sus/jos/sol) sau direct (punte) - ca in configuratorul electric ===== */
-let pvRouteMode='sus';   // sus = pe varful peretilor; jos = la plinta; sol = pe sol; punte = direct
+let pvRouteByKind={};   // traseu per circuit: kind -> 'sus'|'perete'|'jos'|'sol'|'punte'
 function pvPerim(){ const pts=foot.slice(); if(pts.length<2) return null; const m=pts.length, cum=[0]; let L=0; for(let i=0;i<m;i++){ const a=pts[i],b=pts[(i+1)%m]; L+=Math.hypot(b.x-a.x,b.z-a.z); cum.push(L); } return {pts,cum,Ltot:L,m}; }
 function projPerim(P,PER){ let best=null; for(let i=0;i<PER.m;i++){ const a=PER.pts[i],b=PER.pts[(i+1)%PER.m],dx=b.x-a.x,dz=b.z-a.z,ln=Math.hypot(dx,dz)||1; let t=((P.x-a.x)*dx+(P.z-a.z)*dz)/(ln*ln); t=Math.max(0,Math.min(1,t)); const cx=a.x+t*dx,cz=a.z+t*dz,d=Math.hypot(P.x-cx,P.z-cz); if(!best||d<best.d) best={d,x:cx,z:cz,s:PER.cum[i]+t*ln,edge:i}; } return best; }
 function perimMids(sA,sB,PER){ const Lt=PER.Ltot, fwdD=((sB-sA)%Lt+Lt)%Lt, fwd=fwdD<=Lt-fwdD, dist=fwd?fwdD:Lt-fwdD, out=[]; for(let k=0;k<PER.m;k++){ const cs=PER.cum[k], dd=fwd?(((cs-sA)%Lt+Lt)%Lt):(((sA-cs)%Lt+Lt)%Lt); if(dd>0.001&&dd<dist-0.001) out.push({d:dd,p:PER.pts[k]}); } out.sort((x,y)=>x.d-y.d); return out.map(o=>o.p); }
-function pvRoutePath(a,b){ if(pvRouteMode==='punte') return [a,b]; const PER=pvPerim(); if(!PER) return [a,b];
-  const level = pvRouteMode==='sol'?0.05 : pvRouteMode==='jos'?0.12 : wallH-0.05;
+function pvRoutePath(a,b,mode){ mode=mode||'sus'; if(mode==='punte') return [a,b]; const PER=pvPerim(); if(!PER) return [a,b];
+  const level = mode==='sol'?0.05 : mode==='jos'?0.12 : mode==='perete'?wallH*0.5 : wallH-0.05;
   const pa=projPerim(a,PER), pb=projPerim(b,PER), mids=perimMids(pa.s,pb.s,PER);
   const xz=[{x:pa.x,z:pa.z},...mids,{x:pb.x,z:pb.z}]; const path=[{x:a.x,y:a.y,z:a.z}]; xz.forEach(p=>path.push({x:p.x,y:level,z:p.z})); path.push({x:b.x,y:b.y,z:b.z}); return path; }
 function pathLen(p){ let L=0; for(let i=1;i<p.length;i++) L+=Math.hypot(p[i].x-p[i-1].x,p[i].y-p[i-1].y,p[i].z-p[i-1].z); return L; }
@@ -575,9 +597,9 @@ function escH(s){ return (''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':
 function buildScheme(){ const body=$('schBody'); if(!body) return; const inv=pvItems.find(it=>it.cat==='invertor'); const panels=pvItems.filter(it=>it.cat==='panouri');
   if(!inv || !panels.length){ body.innerHTML='<div style="color:#c0392b;font-size:13px">Adauga cel putin un <b>invertor</b> si <b>panouri</b> ca sa generez schema.</div>'; $('schemeModal').style.display='flex'; return; }
   const teg=pvItems.find(it=>/teg/i.test(it.name)); const bmp=pvItems.find(it=>/bmp/i.test(it.name)); const acProt=pvItems.find(it=>it.cat==='echipament'&&/tablou|protectie/i.test(it.name)&&!/teg/i.test(it.name)); const bat=pvItems.find(it=>it.cat==='baterii');
-  const invP=itemPos3D(inv), ord=orderPanels(panels,invP), route=(a,b)=>pathLen(pvRoutePath(a,b)), m=x=>Math.round(x*10)/10;
-  const dcHome=route(invP,itemPos3D(ord[0]))+route(itemPos3D(ord[ord.length-1]),invP); let interJ=0; for(let i=1;i<ord.length;i++) interJ+=dist3(itemPos3D(ord[i-1]),itemPos3D(ord[i]));
-  let acLen=0,prev=inv; [acProt,teg,bmp].forEach(c=>{ if(c){ acLen+=route(itemPos3D(prev),itemPos3D(c)); prev=c; } }); const batLen=bat?route(invP,itemPos3D(bat)):0;
+  const invP=itemPos3D(inv), ord=orderPanels(panels,invP), route=(a,b,kind)=>pathLen(pvRoutePath(a,b,routeModeFor(kind))), m=x=>Math.round(x*10)/10;
+  const dcHome=route(invP,itemPos3D(ord[0]),'dc')+route(itemPos3D(ord[ord.length-1]),invP,'dc'); let interJ=0; for(let i=1;i<ord.length;i++) interJ+=dist3(itemPos3D(ord[i-1]),itemPos3D(ord[i]));
+  let acLen=0,prev=inv; [acProt,teg,bmp].forEach(c=>{ if(c){ acLen+=route(itemPos3D(prev),itemPos3D(c),pvRole(prev)+'_'+pvRole(c)); prev=c; } }); const batLen=bat?route(invP,itemPos3D(bat),'bat'):0;
   const chain=[{t:'Panouri x'+panels.length,c:'#1a3a6b'},{t:'Protectie CC',c:'#2f855a'},{t:(inv.name||'Invertor'),c:'#2b6cb0'},{t:'Protectie CA',c:'#2f855a'}];
   if(bat) chain.splice(3,0,{t:'Baterie',c:'#2f855a'}); if(teg) chain.push({t:'TEG',c:'#6b7280'}); if(bmp) chain.push({t:(''+bmp.name).split(' ')[0],c:'#6b7280'}); chain.push({t:'Retea',c:'#8a93a0'});
   const W=chain.length*150; let svg='<svg viewBox="0 0 '+W+' 110" style="width:100%">'; let x=15;
@@ -593,7 +615,12 @@ function buildScheme(){ const body=$('schBody'); if(!body) return; const inv=pvI
   bom+=row('Protectie CC (DC)', '1 set'); bom+=row('Protectie CA (AC)', '1 set'); bom+='</table>';
   body.innerHTML='<div style="font-weight:700;margin-bottom:6px">Schema monofilara</div>'+svg+'<div style="font-weight:700;margin:14px 0 4px">Necesar de materiale</div>'+bom+'<div style="font-size:11px;color:#8a93a0;margin-top:8px">Traseu: BMP → TEG → protectie CA → invertor → protectie CC → panouri (serie). Estimare din pozitiile 3D (factor 1.15 + margini). Invertorul poate avea 1-4 stringuri; aici panourile sunt un singur string in serie.</div>';
   $('schemeModal').style.display='flex'; }
-document.querySelectorAll('[data-rmode]').forEach(b=> b.onclick=()=>{ pvRouteMode=b.dataset.rmode; document.querySelectorAll('[data-rmode]').forEach(x=>x.classList.toggle('on',x===b)); drawPlan(); build3D(); });
+function renderRouteList(){ const host=$('pvRouteList'); if(!host) return; const segs=pvConnections(); const seen=[], kinds=[]; segs.forEach(s=>{ if(seen.indexOf(s.kind)<0){ seen.push(s.kind); kinds.push(s.kind); } });
+  if(!kinds.length){ host.innerHTML='<div style="font-size:10.5px;color:var(--muted)">Adauga componente (invertor, panouri, TEG, BMP...) ca sa apara circuitele.</div>'; return; }
+  const LBL={bmp_teg:'BMP → TEG',teg_tablou:'TEG → Tablou',tablou_inv:'Tablou → Invertor',teg_inv:'TEG → Invertor',dc:'Invertor → Panouri (CC)',bat:'Invertor → Baterie'};
+  const MODES={sus:'Sus',perete:'Perete',jos:'Jos',sol:'Sol',punte:'Punte'};
+  host.innerHTML = kinds.map(k=>'<div style="display:flex;align-items:center;gap:6px;font-size:11px"><span style="flex:1">'+(LBL[k]||k)+'</span><select data-kind="'+k+'" style="font-size:11px;padding:2px;width:auto">'+Object.keys(MODES).map(mm=>'<option value="'+mm+'"'+(routeModeFor(k)===mm?' selected':'')+'>'+MODES[mm]+'</option>').join('')+'</select></div>').join('');
+  host.querySelectorAll('select[data-kind]').forEach(sel=> sel.onchange=()=>{ pvRouteByKind[sel.dataset.kind]=sel.value; drawPlan(); build3D(); }); }
 if($('pvScheme')) $('pvScheme').onclick=buildScheme;
 if($('schClose')) $('schClose').onclick=()=>{ $('schemeModal').style.display='none'; };
 function elevWallAtH(h){ const n=foot.length; let best=null,bd=1e9; for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); const d=(h>=lo&&h<=hi)?0:Math.min(Math.abs(h-lo),Math.abs(h-hi)); if(d<bd){bd=d;best={A,B,hA,hB};} } return best; }
@@ -602,18 +629,20 @@ function elevAddPv(m){ if(!pvPlace) return; const best=elevWallAtH(m.h); if(!bes
   const {A,B,hA,hB}=best; let t=(Math.abs(hB-hA)>1e-3)?((m.h-hA)/(hB-hA)):0.5; t=Math.max(0,Math.min(1,t)); placePvAt(A.x+(B.x-A.x)*t, A.z+(B.z-A.z)*t, 'perete', Math.max(0.2,m.y)); }
 document.querySelectorAll('[data-pv]').forEach(b=> b.onclick=()=>addPv(b.dataset.pv));
 
-function renderBom(){ const host=$('bom'); if(!host) return;
+function renderBom(){ const host=$('bom'); if(!host) return; if(typeof renderRouteList==='function') renderRouteList();
   let arr=pvItems.map((it,idx)=>({it,idx})); let ctx='toate lateralele';
   if(planView!=='sus'){ ctx='latura '+planView.toUpperCase(); arr=arr.filter(({it})=>{ if(it.place!=='perete') return false; const wi=pvWallIndex(it); return wi>=0 && wallFaces(wi); }); }
   if(!arr.length){ host.innerHTML='<div style="font-size:11px;color:var(--muted)">Niciun element pe '+ctx+'. Selecteaza un produs si pune-l cu click.</div>'; return; }
   // grupare dupa nume + pozitie (+ apa) ca lista sa fie compacta
   const groups=[]; const map={}; arr.forEach(({it,idx})=>{ const k=it.name+'|'+it.place+'|'+(it.slope||''); if(map[k]==null){ map[k]=groups.length; groups.push({it,idxs:[]}); } groups[map[k]].idxs.push(idx); });
   let html='<div style="font-size:11px;font-weight:700;margin:2px 0">Componente ('+ctx+') · '+arr.length+' buc</div>';
-  groups.forEach((g,gi)=>{ const it=g.it,cnt=g.idxs.length; const loc=it.place+(it.place==='acoperis'&&it.slope?(' A'+it.slope):'');
+  groups.forEach((g,gi)=>{ const it=g.it,cnt=g.idxs.length;
     html+='<div style="display:flex;align-items:center;gap:5px;font-size:11px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:#fff">'+
-    '<span style="flex:1">'+pvIcon(it.cat)+' '+it.name+(cnt>1?(' <b>×'+cnt+'</b>'):'')+' <span style="color:var(--muted)">'+Math.round(it.h*100)+'×'+Math.round(it.w*100)+' · '+loc+'</span></span>'+
+    '<span style="flex:1">'+pvIcon(it.cat)+' '+it.name+(cnt>1?(' <b>×'+cnt+'</b>'):'')+' <span style="color:var(--muted)">'+Math.round(it.h*100)+'×'+Math.round(it.w*100)+'</span></span>'+
+    '<select data-gp="'+gi+'" style="font-size:10px;padding:1px"><option value="perete"'+(it.place==='perete'?' selected':'')+'>perete</option><option value="sol"'+(it.place==='sol'?' selected':'')+'>sol</option><option value="acoperis"'+(it.place==='acoperis'?' selected':'')+'>acoperis</option></select>'+
     '<button data-gd="'+gi+'" class="btn bad" style="padding:2px 8px">x</button></div>'; });
   host.innerHTML=html;
+  host.querySelectorAll('select[data-gp]').forEach(s=> s.onchange=()=>{ const g=groups[+s.dataset.gp]; g.idxs.forEach(i=>{ if(pvItems[i]) pvItems[i].place=s.value; }); drawPlan(); build3D(); commit(); renderBom(); });
   host.querySelectorAll('button[data-gd]').forEach(b=> b.onclick=()=>{ b.blur(); const g=groups[+b.dataset.gd]; const set=new Set(g.idxs); pvItems=pvItems.filter((_,i)=>!set.has(i)); renderBom(); drawPlan(); build3D(); commit(); }); }
 
 /* ===== lista unificata de elemente (usa/fereastra/horn/velux) cu cote in cm + delete ===== */
@@ -652,7 +681,19 @@ function downloadPvTemplate(){ if(typeof XLSX==='undefined'){ alert('Biblioteca 
   XLSX.utils.book_append_sheet(wb,mk(pvCatalog.invertor),'Invertor'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.panouri),'Panouri'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.echipament),'Echipament electric'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.baterii),'Baterii');
   XLSX.writeFile(wb,'catalog_componente.xlsx'); }
 if($('pvUndo')) $('pvUndo').onclick=undo;
-if($('pvFill')) $('pvFill').onclick=()=>{ const ids=[...pvFillSlopes]; const hz=$('pvHoriz')&&$('pvHoriz').checked; fillRoofPanels(ids.length?ids:null, hz); };
+function pvProduction(){ const pans=pvItems.filter(it=>it.cat==='panouri'); if(!pans.length){ alert('Adauga panouri pe acoperis intai.'); return; }
+  let kwp=0; pans.forEach(p=>{ const m=/(\d{3,4})\s*w/i.exec(p.name||''); kwp += (m?+m[1]:450)/1000; });
+  const yld=+(($('pvZone')&&$('pvZone').value)||1200);
+  const dev=Math.abs(((orientationDeg+180)%360+360)%360-180);   // deviatie fata de sud (0=sud, 180=nord)
+  const orientF=Math.max(0.55, Math.cos(dev*Math.PI/180)*0.35+0.65);   // ~1.0 sud, ~0.65 E/V, ~0.55 nord
+  const kwh=Math.round(kwp*yld*orientF);
+  if(typeof pvStatus==='function') pvStatus('Putere instalata ~'+kwp.toFixed(2)+' kWp · productie estimata ~'+kwh.toLocaleString('ro-RO')+' kWh/an.');
+  alert('Estimare productie fotovoltaica\n\nPanouri: '+pans.length+'\nPutere instalata: ~'+kwp.toFixed(2)+' kWp\nProductie estimata: ~'+kwh.toLocaleString('ro-RO')+' kWh/an\n\nZona: '+yld+' kWh/kWp/an · factor orientare: '+orientF.toFixed(2)+'\n(Estimare orientativa - depinde de orientarea reala a apei, inclinare, umbrire si pierderi de sistem.)'); }
+if($('pvProd')) $('pvProd').onclick=pvProduction;
+function doFill(mode){ const ids=[...pvFillSlopes]; fillRoofPanels(ids.length?ids:null, mode); }
+if($('pvFillV')) $('pvFillV').onclick=()=>doFill('portrait');
+if($('pvFillH')) $('pvFillH').onclick=()=>doFill('landscape');
+if($('pvFillA')) $('pvFillA').onclick=()=>doFill('auto');
 if($('pvClearPan')) $('pvClearPan').onclick=()=>{ const before=pvItems.length; pvItems=pvItems.filter(it=>it.cat!=='panouri'); if(pvItems.length!==before){ renderBom(); drawPlan(); build3D(); commit(); } };
 if($('pvLoad')) $('pvLoad').onclick=()=>$('pvFile').click();
 if($('pvFile')) $('pvFile').onchange=e=>{ if(e.target.files[0]) loadPvFile(e.target.files[0]); };
@@ -698,6 +739,9 @@ $('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; bu
 $('eaveH').oninput=()=>{ eaveOverhang=(parseInt($('eaveH').value,10)||0)/100; drawPlan(); build3D(); }; $('eaveH').onchange=commit;
 $('roofLogic').onchange=()=>{ roofLogic=$('roofLogic').value; build3D(); commit(); };
 $('roofType').onchange=()=>{ roofType=$('roofType').value; build3D(); commit(); };
+if($('wallColor')) $('wallColor').oninput=()=>{ wallColorHex=$('wallColor').value; build3D(); commit(); };
+if($('roofColor')) $('roofColor').oninput=()=>{ roofColorHex=$('roofColor').value; build3D(); commit(); };
+if($('roofColorReset')) $('roofColorReset').onclick=()=>{ roofColorHex=''; build3D(); commit(); };
 /* ===== busola rotativa 2D ===== */
 function drawCompassDial(){ const cv=$('compassDial'); if(!cv) return; const g=cv.getContext('2d'); const W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=W/2-12;
   g.clearRect(0,0,W,H);
@@ -719,7 +763,10 @@ $('chimH').oninput=()=>{ chimH=(parseInt($('chimH').value,10)||100)/100; };
 
 /* ===== 3D ===== */
 const view=$('view');
-const scene=new THREE.Scene(); scene.background=new THREE.Color(0xdfe8f2);
+function makeSkyTex(){ const c=document.createElement('canvas'); c.width=8; c.height=256; const g=c.getContext('2d'); const grd=g.createLinearGradient(0,0,0,256); grd.addColorStop(0,'#5b97d6'); grd.addColorStop(0.45,'#9cc6ee'); grd.addColorStop(0.8,'#cfe6f8'); grd.addColorStop(1,'#eef6fc'); g.fillStyle=grd; g.fillRect(0,0,8,256); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
+function makeGrassTex(){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); g.fillStyle='#82b65c'; g.fillRect(0,0,256,256); for(let i=0;i<5000;i++){ const r=Math.random(); g.fillStyle='rgba('+(70+r*40|0)+','+(130+r*70|0)+','+(55+r*45|0)+','+(0.25+r*0.45)+')'; const x=Math.random()*256,y=Math.random()*256; g.fillRect(x,y,1,2+Math.random()*3); } const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(28,28); t.colorSpace=THREE.SRGBColorSpace; return t; }
+function makeCloudTex(){ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); const grd=g.createRadialGradient(64,64,8,64,64,60); grd.addColorStop(0,'rgba(255,255,255,.92)'); grd.addColorStop(.6,'rgba(255,255,255,.55)'); grd.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=grd; g.fillRect(0,0,128,128); const t=new THREE.CanvasTexture(c); return t; }
+const scene=new THREE.Scene(); scene.background=makeSkyTex();
 const camera=new THREE.PerspectiveCamera(50,1,0.1,500);
 const orthoCam=new THREE.OrthographicCamera(-10,10,10,-10,-100,500);
 let activeCam=camera, viewMode='3d', camTween=null;
@@ -728,7 +775,8 @@ const controls=new OrbitControls(camera,renderer.domElement); controls.enableDam
 scene.add(new THREE.HemisphereLight(0xffffff,0xb9c7d8,1.1));
 const sun=new THREE.DirectionalLight(0xffffff,0.95); sun.position.set(6,14,8); scene.add(sun);
 scene.add(new THREE.AmbientLight(0xffffff,0.28));
-const ground=new THREE.Mesh(new THREE.CircleGeometry(80,48), new THREE.MeshStandardMaterial({color:0xcfe0c8,roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.y=-0.01; scene.add(ground);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(120,64), new THREE.MeshStandardMaterial({map:makeGrassTex(),roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.y=-0.01; scene.add(ground);
+const clouds=new THREE.Group(); scene.add(clouds); { const ct=makeCloudTex(); for(let i=0;i<7;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:ct,transparent:true,depthWrite:false,opacity:.9})); const a=Math.random()*Math.PI*2, rd=40+Math.random()*55; sp.position.set(Math.cos(a)*rd, 28+Math.random()*16, Math.sin(a)*rd); sp.scale.set(16+Math.random()*16, 8+Math.random()*7, 1); clouds.add(sp); } }
 const building=new THREE.Group(); scene.add(building);
 const compass=new THREE.Group(); scene.add(compass);
 const ROOF_MAT={ tigla:{color:0xb0533a,rough:.92,metal:0}, tabla:{color:0x8a93a0,rough:.5,metal:.45}, tabla_tigla:{color:0x8a5a40,rough:.7,metal:.25}, terasa:{color:0x474c54,rough:1,metal:0} };
@@ -802,15 +850,18 @@ function buildHipRoof(rpos){ const b=roofBBox(); const xmn=b.xmn,xmx=b.xmx,zmn=b
     tri(rpos,C01,C11,R1); } }                      // teisitura spate (z=zmx)
 function roofHeightAt(x,z){ return roofY2(x,z); }
 function makeText(t,color){ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'); x.fillStyle=color; x.font='bold 46px system-ui'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(t,32,34); const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); sp.scale.set(1.1,1.1,1.1); return sp; }
+function makeLabel(text){ const pad=12,fs=30,h=46; let c=document.createElement('canvas'); let x=c.getContext('2d'); x.font='bold '+fs+'px system-ui'; const w=Math.ceil(x.measureText(text).width)+pad*2; c.width=w; c.height=h; x=c.getContext('2d'); x.font='bold '+fs+'px system-ui';
+  x.fillStyle='rgba(255,255,255,.93)'; const r=10; x.beginPath(); x.moveTo(r,0); x.arcTo(w,0,w,h,r); x.arcTo(w,h,0,h,r); x.arcTo(0,h,0,0,r); x.arcTo(0,0,w,0,r); x.closePath(); x.fill(); x.strokeStyle='rgba(28,123,214,.7)'; x.lineWidth=2; x.stroke();
+  x.fillStyle='#10233f'; x.textBaseline='middle'; x.textAlign='center'; x.fillText(text,w/2,h/2+1); const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); sp.scale.set(w/100*0.85,h/100*0.85,1); sp.renderOrder=999; return sp; }
 
 function build3D(){
   while(building.children.length) building.remove(building.children[0]);
   while(compass.children.length) compass.remove(compass.children[0]);
   if(foot.length<3||!footClosed){ return; }
   const n=foot.length, c=centroidXZ();
-  const matWall=new THREE.MeshStandardMaterial({color:0xeef1f4,roughness:.9,side:THREE.DoubleSide});
+  const matWall=new THREE.MeshStandardMaterial({color:new THREE.Color(wallColorHex||'#eef1f4'),roughness:.9,side:THREE.DoubleSide});
   const matFloor=new THREE.MeshStandardMaterial({color:0xd7dee7,roughness:1,side:THREE.DoubleSide});
-  const rt=ROOF_MAT[roofType]||ROOF_MAT.tigla; const matRoof=new THREE.MeshStandardMaterial({color:rt.color,roughness:rt.rough,metalness:rt.metal,side:THREE.DoubleSide});
+  const rt=ROOF_MAT[roofType]||ROOF_MAT.tigla; const matRoof=new THREE.MeshStandardMaterial({color:roofColorHex?new THREE.Color(roofColorHex):rt.color,roughness:rt.rough,metalness:rt.metal,side:THREE.DoubleSide});
   const matDoor=new THREE.MeshStandardMaterial({color:0x6b4a2f,roughness:.7,side:THREE.DoubleSide});
   const matWin=new THREE.MeshStandardMaterial({color:0x9fd2ff,roughness:.3,transparent:true,opacity:.55,side:THREE.DoubleSide});
   const matChim=new THREE.MeshStandardMaterial({color:0x7a5230,roughness:.9});
@@ -855,16 +906,20 @@ function build3D(){
       const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.d,it.h),mat);
       let nx=0,nz=0; if(ridgeRaise>0.02){ const e=0.15; nx=-(roofY2(it.x+e,it.z)-roofY2(it.x-e,it.z))/(2*e); nz=-(roofY2(it.x,it.z+e)-roofY2(it.x,it.z-e))/(2*e); }
       const nrm=new THREE.Vector3(nx,1,nz).normalize(); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),nrm); m.rotateY(it.rot||0); m.position.set(it.x, roofHeightAt(it.x,it.z)+it.d/2+0.03, it.z); building.add(m);
-    } else if(it.place==='perete'){ // pe perete: lipit, orientat dupa peretele respectiv
-      const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat);
-      const wi=pvWallIndex(it); let ox=0,oz=1; if(wi>=0){ const A=foot[wi],B=foot[(wi+1)%foot.length]; let dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; const c=centroidXZ(); let nx=dz,nz=-dx; if((it.x-c.x)*nx+(it.z-c.z)*nz<0){nx=-nx;nz=-nz;} ox=nx;oz=nz; }
-      m.rotation.y=Math.atan2(ox,oz)+(it.rot||0); const y=(it.y!=null)?it.y:1.2; m.position.set(it.x+ox*it.d/2, y, it.z+oz*it.d/2); building.add(m);
+    } else if(it.place==='perete'){ // pe perete: lipit, orientat dupa peretele respectiv; daca nu e perete aproape -> pe sol
+      const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat); const wi=pvWallIndex(it);
+      if(wi<0){ m.rotation.y=it.rot||0; m.position.set(it.x, it.h/2, it.z); building.add(m); }
+      else { const A=foot[wi],B=foot[(wi+1)%foot.length]; let dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; dx/=L;dz/=L; const c=centroidXZ(); let nx=dz,nz=-dx; if((it.x-c.x)*nx+(it.z-c.z)*nz<0){nx=-nx;nz=-nz;} const ox=nx,oz=nz;
+        m.rotation.y=Math.atan2(ox,oz)+(it.rot||0); const y=(it.y!=null)?it.y:1.2; m.position.set(it.x+ox*it.d/2, y, it.z+oz*it.d/2); building.add(m); }
     } else { // sol: drept
       const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat); m.rotation.y=it.rot||0; m.position.set(it.x, it.h/2, it.z); building.add(m);
 
     } });
+  // etichete pe componente (invertor, tablou, baterie, bmp...) si o eticheta pentru grupul de panouri
+  pvItems.forEach(it=>{ if(it.cat==='panouri') return; const top=(it.place==='acoperis')?roofHeightAt(it.x,it.z)+(it.d||0.2):((it.place==='sol'||(it.place==='perete'&&pvWallIndex(it)<0))?(it.h||0.4):((it.y!=null?it.y:1.2)+(it.h||0.4)/2)); const lab=makeLabel(it.name); lab.position.set(it.x, top+0.45, it.z); building.add(lab); });
+  { const pans=pvItems.filter(it=>it.cat==='panouri'); if(pans.length){ let cx=0,cz=0,my=0; pans.forEach(p=>{ cx+=p.x; cz+=p.z; my=Math.max(my,roofHeightAt(p.x,p.z)); }); cx/=pans.length; cz/=pans.length; const lab=makeLabel(pans.length+' x '+pans[0].name); lab.position.set(cx,my+0.75,cz); building.add(lab); } }
   // circuite automate (cablaj 3D) intre componentele PV - rutate pe pereti
-  pvConnections().forEach(s=>{ const path=pvRoutePath(itemPos3D(s.a),itemPos3D(s.b)); const col=s.type==='dc'?0xe07b39:(s.type==='bat'?0x2f855a:0x2b6cb0); const g=new THREE.BufferGeometry().setFromPoints(path.map(p=>new THREE.Vector3(p.x,p.y+0.04,p.z))); building.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:col}))); });
+  pvConnections().forEach(s=>{ const path=pvRoutePath(itemPos3D(s.a),itemPos3D(s.b),routeModeFor(s.kind)); const col=s.type==='dc'?0xe07b39:(s.type==='bat'?0x2f855a:0x2b6cb0); const g=new THREE.BufferGeometry().setFromPoints(path.map(p=>new THREE.Vector3(p.x,p.y+0.04,p.z))); building.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:col}))); });
   // busola pe sol: cercuri punctate + linii radiale + puncte cardinale (fara con)
   const span=Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x)); const span2=Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)); const R=Math.max(span,span2,4)*0.62+2.5;
   compass.position.set(c.x,0.02,c.z); compass.rotation.y=-orientationDeg*Math.PI/180;
