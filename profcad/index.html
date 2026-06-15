@@ -28,6 +28,9 @@
   .pvbtn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #bfe6c9;background:#f3fff6;border-radius:9px;padding:9px 11px;font-size:12.5px;font-weight:600;font-family:inherit;color:var(--ink);cursor:pointer}
   .pvbtn b{font-size:13px} .pvbtn span{color:var(--muted);font-weight:500;font-size:11px}
   #toolsPv{flex-direction:column;align-items:stretch}
+  .schips{display:flex;gap:5px;flex-wrap:wrap}
+  .schip{border:1px solid #bcd8f5;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;font-weight:700;font-family:inherit;color:var(--pv);cursor:pointer}
+  .schip.on{background:var(--pv);color:#fff;border-color:var(--pv)}
   .btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-weight:600;font-family:inherit;color:var(--ink)}
   .btn.on{border-color:var(--solar);background:#fff4e0}
   .btn.bad{background:#fdecec;border-color:#e6b8b8;color:#c0392b}
@@ -66,7 +69,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R72 (undo in sistem fotovoltaic)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R73 (alegi mai multe ape la umplere)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -98,9 +101,10 @@
       <button class="pvbtn" data-pv="bmpt">📦 <b>BMPT</b> <span>bloc masura si protectie trifazat</span></button>
       <div style="display:flex;flex-direction:column;gap:5px;border:1px solid #bcd8f5;background:#eaf3ff;border-radius:9px;padding:7px">
         <div style="font-size:12px;font-weight:700">🟦 Umple cu panouri</div>
+        <div style="font-size:10.5px;color:var(--muted)">Alege apele (poti mai multe): apasa A1, A3...</div>
+        <div id="pvSlopeChips" class="schips"></div>
         <div style="display:flex;gap:6px;align-items:center">
-          <select id="pvSlopeSel" style="flex:1;font-size:11.5px"><option value="0">Toate apele</option></select>
-          <button class="btn" id="pvFill">Umple</button>
+          <button class="btn" id="pvFill" style="flex:1">Umple apele alese</button>
           <button class="btn bad" id="pvClearPan">Goleste</button>
         </div>
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><input type="checkbox" id="pvHoriz" style="width:auto" checked> Roteste unde incap mai multe (orizontal)</label>
@@ -492,6 +496,7 @@ function pvPick(btnKey){ const cat=PV_CAT[btnKey]; const list=pvCatalog[cat]||[]
   if(PV_MATCH[btnKey]){ const key=PV_MATCH[btnKey]; const m=list.find(p=>{ const N=(p.name||'').toUpperCase(); return N.includes(key) && (btnKey!=='bmp' || !N.includes('BMPT')); }); return m||list[0]; }
   return list[0]; }
 let pvPlace=null;   // elementul PV selectat pentru plasare prin click (pe Sus sau pe fatada)
+let pvFillSlopes=new Set();   // apele alese pentru umplere (gol = toate)
 function addPv(btnKey){ const cat=PV_CAT[btnKey]; const p=pvPick(btnKey); if(!p){ alert('Catalogul nu are produse pentru aceasta categorie.'); return; }
   if(pvPlace && pvPlace.btn===btnKey){ pvPlace=null; document.querySelectorAll('.pvbtn').forEach(b=>b.classList.remove('on')); switchCat('pv'); return; }   // re-apasare = deselectare
   pvPlace={btn:btnKey,cat,name:p.name,h:(+p.h||40)/100,w:(+p.w||40)/100,d:(+p.d||20)/100};
@@ -516,11 +521,15 @@ function packSlope(s, w, l, gap, allowHoriz){
       for(let c=0;c<ncol;c++){ const xz=toXZ(su+c*(pu+gap), v0+pv/2); out.push({x:xz.x,z:xz.z,rot}); } v0+=pv+gap; done=true; break; }
     if(!done) v0+=0.12; }
   return out; }
-function fillRoofPanels(onlySlope, allowHoriz){ if(ridgeRaise<=0.02){ alert('Acoperisul nu are panta inclinata.'); return; } const panel=(pvCatalog.panouri&&pvCatalog.panouri[0]); if(!panel){ alert('Nu exista panou in catalog (sheet Panouri).'); return; }
-  const w=(+panel.w||113)/100, l=(+panel.h||223)/100, th=(+panel.d||4)/100, gap=0.02; const slopes=roofSlopes(); let n=0, used=0;
-  slopes.forEach(s=>{ if(onlySlope && s.id!==onlySlope) return; used++; packSlope(s,w,l,gap,allowHoriz).forEach(c=>{ pvItems.push({cat:'panouri',name:panel.name,h:l,w:w,d:th,x:snap(c.x),z:snap(c.z),place:'acoperis',slope:s.id,rot:c.rot}); n++; }); });
-  renderBom(); drawPlan(); build3D(); commit(); if(typeof pvStatus==='function') pvStatus(n? ('Umplut: '+n+' panouri pe '+(onlySlope?('apa A'+onlySlope):(used+' ape'))+(allowHoriz?' (portrait + orizontal unde incape)':' (portrait)')+'.') : 'Nu incape niciun panou pe apa aleasa.'); }
-function refreshSlopeSel(){ const sel=$('pvSlopeSel'); if(!sel) return; const cur=sel.value; const sl=roofSlopes(); sel.innerHTML='<option value="0">Toate apele</option>'+sl.map(s=>'<option value="'+s.id+'">A'+s.id+' ('+s.dir+')</option>').join(''); if([...sel.options].some(o=>o.value===cur)) sel.value=cur; }
+function fillRoofPanels(slopeIds, allowHoriz){ if(ridgeRaise<=0.02){ alert('Acoperisul nu are panta inclinata.'); return; } const panel=(pvCatalog.panouri&&pvCatalog.panouri[0]); if(!panel){ alert('Nu exista panou in catalog (sheet Panouri).'); return; }
+  const w=(+panel.w||113)/100, l=(+panel.h||223)/100, th=(+panel.d||4)/100, gap=0.02; const slopes=roofSlopes(); let n=0; const chosen=[];
+  slopes.forEach(s=>{ if(slopeIds && slopeIds.length && slopeIds.indexOf(s.id)<0) return; chosen.push('A'+s.id); packSlope(s,w,l,gap,allowHoriz).forEach(c=>{ pvItems.push({cat:'panouri',name:panel.name,h:l,w:w,d:th,x:snap(c.x),z:snap(c.z),place:'acoperis',slope:s.id,rot:c.rot}); n++; }); });
+  renderBom(); drawPlan(); build3D(); commit(); if(typeof pvStatus==='function') pvStatus(n? ('Umplut: '+n+' panouri pe '+(chosen.length?chosen.join(', '):'toate apele')+(allowHoriz?' (portrait + orizontal)':' (portrait)')+'.') : 'Nu incape niciun panou pe apele alese.'); }
+function refreshSlopeSel(){ const host=$('pvSlopeChips'); if(!host) return; const sl=roofSlopes(); const ids=new Set(sl.map(s=>s.id));
+  [...pvFillSlopes].forEach(id=>{ if(!ids.has(id)) pvFillSlopes.delete(id); });   // curata apele disparute
+  host.innerHTML = sl.map(s=>'<button class="schip'+(pvFillSlopes.has(s.id)?' on':'')+'" data-slope="'+s.id+'" title="'+s.dir+'">A'+s.id+'</button>').join('') + (sl.length>1?'<button class="schip" id="schAll">Toate</button>':'');
+  host.querySelectorAll('[data-slope]').forEach(b=> b.onclick=()=>{ const id=+b.dataset.slope; if(pvFillSlopes.has(id)) pvFillSlopes.delete(id); else pvFillSlopes.add(id); refreshSlopeSel(); });
+  const all=$('schAll'); if(all) all.onclick=()=>{ if(pvFillSlopes.size===sl.length) pvFillSlopes.clear(); else sl.forEach(s=>pvFillSlopes.add(s.id)); refreshSlopeSel(); }; }
 function elevWallAtH(h){ const n=foot.length; let best=null,bd=1e9; for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); const d=(h>=lo&&h<=hi)?0:Math.min(Math.abs(h-lo),Math.abs(h-hi)); if(d<bd){bd=d;best={A,B,hA,hB};} } return best; }
 function pvWallIndex(it){ let wi=-1,wd=0.9; for(let i=0;i<foot.length;i++){ const q=projOnSeg({x:it.x,z:it.z},foot[i],foot[(i+1)%foot.length]); const d=Math.hypot(it.x-q.x,it.z-q.z); if(d<wd){wd=d;wi=i;} } return wi; }
 function elevAddPv(m){ if(!pvPlace) return; const best=elevWallAtH(m.h); if(!best) return;   // doar pe un perete spre aceasta fatada; fara cadere in centru
@@ -577,7 +586,7 @@ function downloadPvTemplate(){ if(typeof XLSX==='undefined'){ alert('Biblioteca 
   XLSX.utils.book_append_sheet(wb,mk(pvCatalog.invertor),'Invertor'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.panouri),'Panouri'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.echipament),'Echipament electric'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.baterii),'Baterii');
   XLSX.writeFile(wb,'catalog_componente.xlsx'); }
 if($('pvUndo')) $('pvUndo').onclick=undo;
-if($('pvFill')) $('pvFill').onclick=()=>{ const id=parseInt(($('pvSlopeSel')||{}).value,10)||0; const hz=$('pvHoriz')&&$('pvHoriz').checked; fillRoofPanels(id||null, hz); };
+if($('pvFill')) $('pvFill').onclick=()=>{ const ids=[...pvFillSlopes]; const hz=$('pvHoriz')&&$('pvHoriz').checked; fillRoofPanels(ids.length?ids:null, hz); };
 if($('pvClearPan')) $('pvClearPan').onclick=()=>{ const before=pvItems.length; pvItems=pvItems.filter(it=>it.cat!=='panouri'); if(pvItems.length!==before){ renderBom(); drawPlan(); build3D(); commit(); } };
 if($('pvLoad')) $('pvLoad').onclick=()=>$('pvFile').click();
 if($('pvFile')) $('pvFile').onchange=e=>{ if(e.target.files[0]) loadPvFile(e.target.files[0]); };
