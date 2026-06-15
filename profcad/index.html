@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R71 (umplere pe randuri, mixt portrait+orizontal)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R72 (undo in sistem fotovoltaic)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -106,6 +106,7 @@
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><input type="checkbox" id="pvHoriz" style="width:auto" checked> Roteste unde incap mai multe (orizontal)</label>
       </div>
       <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="btn" id="pvUndo" style="flex:1">↶ Undo</button>
         <button class="btn" id="pvLoad" style="flex:1">📥 Incarca Excel</button>
         <button class="btn" id="pvTemplate" style="flex:1">📄 Descarca model</button>
       </div>
@@ -575,6 +576,7 @@ function downloadPvTemplate(){ if(typeof XLSX==='undefined'){ alert('Biblioteca 
   const wb=XLSX.utils.book_new(); const mk=arr=>{ const d=[['Denumire','Inaltime (cm)','Latime (cm)','Grosime (cm)']]; arr.forEach(p=>d.push([p.name,p.h,p.w,p.d])); return XLSX.utils.aoa_to_sheet(d); };
   XLSX.utils.book_append_sheet(wb,mk(pvCatalog.invertor),'Invertor'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.panouri),'Panouri'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.echipament),'Echipament electric'); XLSX.utils.book_append_sheet(wb,mk(pvCatalog.baterii),'Baterii');
   XLSX.writeFile(wb,'catalog_componente.xlsx'); }
+if($('pvUndo')) $('pvUndo').onclick=undo;
 if($('pvFill')) $('pvFill').onclick=()=>{ const id=parseInt(($('pvSlopeSel')||{}).value,10)||0; const hz=$('pvHoriz')&&$('pvHoriz').checked; fillRoofPanels(id||null, hz); };
 if($('pvClearPan')) $('pvClearPan').onclick=()=>{ const before=pvItems.length; pvItems=pvItems.filter(it=>it.cat!=='panouri'); if(pvItems.length!==before){ renderBom(); drawPlan(); build3D(); commit(); } };
 if($('pvLoad')) $('pvLoad').onclick=()=>$('pvFile').click();
