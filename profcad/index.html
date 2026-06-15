@@ -66,7 +66,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R70 (umplere per apa centrata + lista grupata)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R71 (umplere pe randuri, mixt portrait+orizontal)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -103,7 +103,7 @@
           <button class="btn" id="pvFill">Umple</button>
           <button class="btn bad" id="pvClearPan">Goleste</button>
         </div>
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><input type="checkbox" id="pvHoriz" style="width:auto"> Roteste unde incap mai multe (orizontal)</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><input type="checkbox" id="pvHoriz" style="width:auto" checked> Roteste unde incap mai multe (orizontal)</label>
       </div>
       <div style="display:flex;gap:6px;margin-top:4px">
         <button class="btn" id="pvLoad" style="flex:1">📥 Incarca Excel</button>
@@ -500,22 +500,25 @@ function clampRoofXZ(x,z,w,l,rot){ rot=rot||0; const ac=Math.abs(Math.cos(rot)),
 function placePvAt(x,z,place,y){ if(!pvPlace) return; place=place||(pvPlace.cat==='panouri'?'acoperis':(pvPlace.cat==='baterii'?'sol':'perete'));
   if(place==='acoperis'){ const c=clampRoofXZ(x,z,pvPlace.w,pvPlace.h); x=c.x; z=c.z; }
   const it={cat:pvPlace.cat,name:pvPlace.name,h:pvPlace.h,w:pvPlace.w,d:pvPlace.d,x:snap(x),z:snap(z),place}; if(y!=null) it.y=y; pvItems.push(it); renderBom(); drawPlan(); build3D(); commit(); }
-function tileSlope(poly, pw, ph, gap){ // grila centrata; pastreaza doar panourile cu TOATE colturile in interiorul apei
-  let mnx=1e9,mxx=-1e9,mnz=1e9,mxz=-1e9; poly.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mnz=Math.min(mnz,p.z);mxz=Math.max(mxz,p.z);});
-  const availX=mxx-mnx, availZ=mxz-mnz; const ncol=Math.floor((availX+gap)/(pw+gap)), nrow=Math.floor((availZ+gap)/(ph+gap)); if(ncol<1||nrow<1) return [];
-  const usedX=ncol*pw+(ncol-1)*gap, usedZ=nrow*ph+(nrow-1)*gap; const sx=(mnx+mxx)/2-usedX/2+pw/2, sz=(mnz+mxz)/2-usedZ/2+ph/2; const out=[];
-  for(let r=0;r<nrow;r++) for(let c=0;c<ncol;c++){ const x=sx+c*(pw+gap), z=sz+r*(ph+gap); const m=0.012; let ok=true;
-    for(const cc of [[x-pw/2+m,z-ph/2+m],[x+pw/2-m,z-ph/2+m],[x+pw/2-m,z+ph/2-m],[x-pw/2+m,z+ph/2-m]]){ if(!pointInPolyG(poly,cc[0],cc[1])){ ok=false; break; } }
-    if(ok) out.push({x,z}); }
+// impachetare pe randuri intr-o apa (convex): portrait cat incape, apoi orizontal in fasia ramasa spre coama
+function packSlope(s, w, l, gap, allowHoriz){
+  let mnx=1e9,mxx=-1e9,mnz=1e9,mxz=-1e9; s.poly.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mnz=Math.min(mnz,p.z);mxz=Math.max(mxz,p.z);});
+  const dir=s.dir, horizU=(dir==='fata'||dir==='spate');
+  const toUV=p=>{ if(dir==='fata') return [p.x,p.z-mnz]; if(dir==='spate') return [p.x,mxz-p.z]; if(dir==='stanga') return [p.z,p.x-mnx]; return [p.z,mxx-p.x]; };
+  const toXZ=(u,v)=>{ if(dir==='fata') return {x:u,z:mnz+v}; if(dir==='spate') return {x:u,z:mxz-v}; if(dir==='stanga') return {z:u,x:mnx+v}; return {z:u,x:mxx-v}; };
+  const puv=s.poly.map(toUV); const vmax=Math.max.apply(null,puv.map(p=>p[1]));
+  const uSpanAt=v=>{ let lo=1e9,hi=-1e9; const n=puv.length; for(let i=0;i<n;i++){ const a=puv[i],b=puv[(i+1)%n],v1=a[1],v2=b[1]; if((v1<=v&&v2>=v)||(v2<=v&&v1>=v)){ if(Math.abs(v2-v1)<1e-9){ lo=Math.min(lo,a[0],b[0]); hi=Math.max(hi,a[0],b[0]); } else { const t=(v-v1)/(v2-v1),u=a[0]+(b[0]-a[0])*t; lo=Math.min(lo,u); hi=Math.max(hi,u); } } } return [lo,hi]; };
+  const portraitRot=horizU?0:Math.PI/2, landscapeRot=horizU?Math.PI/2:0, out=[], mg=0.02; let v0=0,guard=0;
+  while(v0<vmax-0.05 && guard++<300){ const orients = allowHoriz?[[w,l,portraitRot],[l,w,landscapeRot]]:[[w,l,portraitRot]]; let done=false;
+    for(const o of orients){ const pu=o[0],pv=o[1],rot=o[2]; if(v0+pv>vmax+1e-6) continue; const s0=uSpanAt(v0+mg), s1=uSpanAt(v0+pv-mg); const lo=Math.max(s0[0],s1[0])+mg, hi=Math.min(s0[1],s1[1])-mg, avail=hi-lo;
+      const ncol=Math.floor((avail+gap)/(pu+gap)); if(ncol<1) continue; const usedU=ncol*pu+(ncol-1)*gap, su=(lo+hi)/2-usedU/2+pu/2;
+      for(let c=0;c<ncol;c++){ const xz=toXZ(su+c*(pu+gap), v0+pv/2); out.push({x:xz.x,z:xz.z,rot}); } v0+=pv+gap; done=true; break; }
+    if(!done) v0+=0.12; }
   return out; }
 function fillRoofPanels(onlySlope, allowHoriz){ if(ridgeRaise<=0.02){ alert('Acoperisul nu are panta inclinata.'); return; } const panel=(pvCatalog.panouri&&pvCatalog.panouri[0]); if(!panel){ alert('Nu exista panou in catalog (sheet Panouri).'); return; }
   const w=(+panel.w||113)/100, l=(+panel.h||223)/100, th=(+panel.d||4)/100, gap=0.02; const slopes=roofSlopes(); let n=0, used=0;
-  slopes.forEach(s=>{ if(onlySlope && s.id!==onlySlope) return; used++;
-    const A=tileSlope(s.poly, w, l, gap);   // vertical (portrait)
-    let cells=A, rot=0;
-    if(allowHoriz){ const B=tileSlope(s.poly, l, w, gap); if(B.length>A.length){ cells=B; rot=Math.PI/2; } }   // alege orientarea cu mai multe panouri
-    cells.forEach(c=>{ pvItems.push({cat:'panouri',name:panel.name,h:l,w:w,d:th,x:snap(c.x),z:snap(c.z),place:'acoperis',slope:s.id,rot}); n++; }); });
-  renderBom(); drawPlan(); build3D(); commit(); if(typeof pvStatus==='function') pvStatus(n? ('Umplut: '+n+' panouri pe '+(onlySlope?('apa A'+onlySlope):(used+' ape'))+' (centrate, in margini, 2cm).') : 'Nu incape niciun panou pe apa aleasa.'); }
+  slopes.forEach(s=>{ if(onlySlope && s.id!==onlySlope) return; used++; packSlope(s,w,l,gap,allowHoriz).forEach(c=>{ pvItems.push({cat:'panouri',name:panel.name,h:l,w:w,d:th,x:snap(c.x),z:snap(c.z),place:'acoperis',slope:s.id,rot:c.rot}); n++; }); });
+  renderBom(); drawPlan(); build3D(); commit(); if(typeof pvStatus==='function') pvStatus(n? ('Umplut: '+n+' panouri pe '+(onlySlope?('apa A'+onlySlope):(used+' ape'))+(allowHoriz?' (portrait + orizontal unde incape)':' (portrait)')+'.') : 'Nu incape niciun panou pe apa aleasa.'); }
 function refreshSlopeSel(){ const sel=$('pvSlopeSel'); if(!sel) return; const cur=sel.value; const sl=roofSlopes(); sel.innerHTML='<option value="0">Toate apele</option>'+sl.map(s=>'<option value="'+s.id+'">A'+s.id+' ('+s.dir+')</option>').join(''); if([...sel.options].some(o=>o.value===cur)) sel.value=cur; }
 function elevWallAtH(h){ const n=foot.length; let best=null,bd=1e9; for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); const d=(h>=lo&&h<=hi)?0:Math.min(Math.abs(h-lo),Math.abs(h-hi)); if(d<bd){bd=d;best={A,B,hA,hB};} } return best; }
 function pvWallIndex(it){ let wi=-1,wd=0.9; for(let i=0;i<foot.length;i++){ const q=projOnSeg({x:it.x,z:it.z},foot[i],foot[(i+1)%foot.length]); const d=Math.hypot(it.x-q.x,it.z-q.z); if(d<wd){wd=d;wi=i;} } return wi; }
