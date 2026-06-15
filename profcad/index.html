@@ -71,7 +71,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R77 (circuite automate intre componente)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R78 (cabluri pe pereti: sus/jos/sol/punte)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -120,6 +120,13 @@
         <button class="btn" id="pvTemplate" style="flex:1">📄 Descarca model</button>
       </div>
       <input id="pvFile" type="file" accept=".xlsx" style="display:none">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;flex-wrap:wrap">
+        <span style="color:var(--muted)">Traseu cabluri:</span>
+        <button class="schip on" data-rmode="sus">Sus</button>
+        <button class="schip" data-rmode="jos">Jos</button>
+        <button class="schip" data-rmode="sol">Sol</button>
+        <button class="schip" data-rmode="punte">Punte</button>
+      </div>
       <button class="pvbtn" id="pvScheme" style="background:#fff6e6;border-color:#f0d39a">⚡ <b>Schema electrica + necesar cabluri</b></button>
       <div id="pvStatus" style="font-size:10.5px;color:var(--muted)"></div>
       <details open style="border:1px solid var(--line);border-radius:8px;padding:4px 7px"><summary style="font-size:11.5px;font-weight:700;cursor:pointer;color:var(--muted)">Componente plasate</summary><div id="bom" style="display:flex;flex-direction:column;gap:5px;max-height:170px;overflow-y:auto;margin-top:5px"></div></details>
@@ -264,8 +271,8 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
     px.fillStyle='#1c7bd6'; px.beginPath(); px.arc(cx+h/2,cy+h/2,6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=1.5; px.stroke();
     // buton X stergere (dreapta-sus)
     px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+h/2,cy-h/2,8,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 12px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('x',cx+h/2,cy-h/2); });
-  // circuite automate (cablaj) intre componentele PV
-  pvConnections().forEach(s=>{ px.strokeStyle = s.type==='dc'?'#e07b39':(s.type==='bat'?'#2f855a':'#2b6cb0'); px.lineWidth=2; px.setLineDash(s.type==='dc'?[]:[5,3]); px.beginPath(); px.moveTo(SX(s.a.x),SY(s.a.z)); px.lineTo(SX(s.b.x),SY(s.b.z)); px.stroke(); px.setLineDash([]); });
+  // circuite automate (cablaj) intre componentele PV - rutate pe pereti
+  pvConnections().forEach(s=>{ const path=pvRoutePath(itemPos3D(s.a),itemPos3D(s.b)); px.strokeStyle = s.type==='dc'?'#e07b39':(s.type==='bat'?'#2f855a':'#2b6cb0'); px.lineWidth=2; px.setLineDash(s.type==='dc'?[]:[5,3]); px.beginPath(); path.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); px.stroke(); px.setLineDash([]); });
   // elemente PV vazute de sus (panou = latime x lungime; altele = latime x grosime) + rotire + X
   const PV_C2={ invertor:'#2b6cb0', baterii:'#2f855a', echipament:'#6b7280', panouri:'#1a3a6b' };
   pvItems.forEach(it=>{ const cx=SX(it.x), cy=SY(it.z), col=PV_C2[it.cat]||'#2b6cb0', rot=it.rot||0;
@@ -554,11 +561,21 @@ function pvConnections(){ const inv=pvItems.find(it=>it.cat==='invertor'); const
   if(inv && panels.length){ const ord=orderPanels(panels,itemPos3D(inv)); segs.push({a:inv,b:ord[0],type:'dc'}); for(let i=1;i<ord.length;i++) segs.push({a:ord[i-1],b:ord[i],type:'dc'}); segs.push({a:ord[ord.length-1],b:inv,type:'dc'}); }
   if(inv && bat) segs.push({a:inv,b:bat,type:'bat'});
   return segs; }
+/* ===== rutarea cablurilor pe pereti (sus/jos/sol) sau direct (punte) - ca in configuratorul electric ===== */
+let pvRouteMode='sus';   // sus = pe varful peretilor; jos = la plinta; sol = pe sol; punte = direct
+function pvPerim(){ const pts=foot.slice(); if(pts.length<2) return null; const m=pts.length, cum=[0]; let L=0; for(let i=0;i<m;i++){ const a=pts[i],b=pts[(i+1)%m]; L+=Math.hypot(b.x-a.x,b.z-a.z); cum.push(L); } return {pts,cum,Ltot:L,m}; }
+function projPerim(P,PER){ let best=null; for(let i=0;i<PER.m;i++){ const a=PER.pts[i],b=PER.pts[(i+1)%PER.m],dx=b.x-a.x,dz=b.z-a.z,ln=Math.hypot(dx,dz)||1; let t=((P.x-a.x)*dx+(P.z-a.z)*dz)/(ln*ln); t=Math.max(0,Math.min(1,t)); const cx=a.x+t*dx,cz=a.z+t*dz,d=Math.hypot(P.x-cx,P.z-cz); if(!best||d<best.d) best={d,x:cx,z:cz,s:PER.cum[i]+t*ln,edge:i}; } return best; }
+function perimMids(sA,sB,PER){ const Lt=PER.Ltot, fwdD=((sB-sA)%Lt+Lt)%Lt, fwd=fwdD<=Lt-fwdD, dist=fwd?fwdD:Lt-fwdD, out=[]; for(let k=0;k<PER.m;k++){ const cs=PER.cum[k], dd=fwd?(((cs-sA)%Lt+Lt)%Lt):(((sA-cs)%Lt+Lt)%Lt); if(dd>0.001&&dd<dist-0.001) out.push({d:dd,p:PER.pts[k]}); } out.sort((x,y)=>x.d-y.d); return out.map(o=>o.p); }
+function pvRoutePath(a,b){ if(pvRouteMode==='punte') return [a,b]; const PER=pvPerim(); if(!PER) return [a,b];
+  const level = pvRouteMode==='sol'?0.05 : pvRouteMode==='jos'?0.12 : wallH-0.05;
+  const pa=projPerim(a,PER), pb=projPerim(b,PER), mids=perimMids(pa.s,pb.s,PER);
+  const xz=[{x:pa.x,z:pa.z},...mids,{x:pb.x,z:pb.z}]; const path=[{x:a.x,y:a.y,z:a.z}]; xz.forEach(p=>path.push({x:p.x,y:level,z:p.z})); path.push({x:b.x,y:b.y,z:b.z}); return path; }
+function pathLen(p){ let L=0; for(let i=1;i<p.length;i++) L+=Math.hypot(p[i].x-p[i-1].x,p[i].y-p[i-1].y,p[i].z-p[i-1].z); return L; }
 function escH(s){ return (''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 function buildScheme(){ const body=$('schBody'); if(!body) return; const inv=pvItems.find(it=>it.cat==='invertor'); const panels=pvItems.filter(it=>it.cat==='panouri');
   if(!inv || !panels.length){ body.innerHTML='<div style="color:#c0392b;font-size:13px">Adauga cel putin un <b>invertor</b> si <b>panouri</b> ca sa generez schema.</div>'; $('schemeModal').style.display='flex'; return; }
   const teg=pvItems.find(it=>/teg/i.test(it.name)); const bmp=pvItems.find(it=>/bmp/i.test(it.name)); const acProt=pvItems.find(it=>it.cat==='echipament'&&/tablou|protectie/i.test(it.name)&&!/teg/i.test(it.name)); const bat=pvItems.find(it=>it.cat==='baterii');
-  const invP=itemPos3D(inv), ord=orderPanels(panels,invP), route=(a,b)=>dist3(a,b)*1.15+0.5, m=x=>Math.round(x*10)/10;
+  const invP=itemPos3D(inv), ord=orderPanels(panels,invP), route=(a,b)=>pathLen(pvRoutePath(a,b)), m=x=>Math.round(x*10)/10;
   const dcHome=route(invP,itemPos3D(ord[0]))+route(itemPos3D(ord[ord.length-1]),invP); let interJ=0; for(let i=1;i<ord.length;i++) interJ+=dist3(itemPos3D(ord[i-1]),itemPos3D(ord[i]));
   let acLen=0,prev=inv; [acProt,teg,bmp].forEach(c=>{ if(c){ acLen+=route(itemPos3D(prev),itemPos3D(c)); prev=c; } }); const batLen=bat?route(invP,itemPos3D(bat)):0;
   const chain=[{t:'Panouri x'+panels.length,c:'#1a3a6b'},{t:'Protectie CC',c:'#2f855a'},{t:(inv.name||'Invertor'),c:'#2b6cb0'},{t:'Protectie CA',c:'#2f855a'}];
@@ -576,6 +593,7 @@ function buildScheme(){ const body=$('schBody'); if(!body) return; const inv=pvI
   bom+=row('Protectie CC (DC)', '1 set'); bom+=row('Protectie CA (AC)', '1 set'); bom+='</table>';
   body.innerHTML='<div style="font-weight:700;margin-bottom:6px">Schema monofilara</div>'+svg+'<div style="font-weight:700;margin:14px 0 4px">Necesar de materiale</div>'+bom+'<div style="font-size:11px;color:#8a93a0;margin-top:8px">Traseu: BMP → TEG → protectie CA → invertor → protectie CC → panouri (serie). Estimare din pozitiile 3D (factor 1.15 + margini). Invertorul poate avea 1-4 stringuri; aici panourile sunt un singur string in serie.</div>';
   $('schemeModal').style.display='flex'; }
+document.querySelectorAll('[data-rmode]').forEach(b=> b.onclick=()=>{ pvRouteMode=b.dataset.rmode; document.querySelectorAll('[data-rmode]').forEach(x=>x.classList.toggle('on',x===b)); drawPlan(); build3D(); });
 if($('pvScheme')) $('pvScheme').onclick=buildScheme;
 if($('schClose')) $('schClose').onclick=()=>{ $('schemeModal').style.display='none'; };
 function elevWallAtH(h){ const n=foot.length; let best=null,bd=1e9; for(let i=0;i<n;i++){ if(!wallFaces(i)) continue; const A=foot[i],B=foot[(i+1)%n]; const hA=elevH(A),hB=elevH(B),lo=Math.min(hA,hB),hi=Math.max(hA,hB); const d=(h>=lo&&h<=hi)?0:Math.min(Math.abs(h-lo),Math.abs(h-hi)); if(d<bd){bd=d;best={A,B,hA,hB};} } return best; }
@@ -845,8 +863,8 @@ function build3D(){
       const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat); m.rotation.y=it.rot||0; m.position.set(it.x, it.h/2, it.z); building.add(m);
 
     } });
-  // circuite automate (cablaj 3D) intre componentele PV
-  pvConnections().forEach(s=>{ const a=itemPos3D(s.a), b=itemPos3D(s.b); const col=s.type==='dc'?0xe07b39:(s.type==='bat'?0x2f855a:0x2b6cb0); const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,a.y+0.06,a.z),new THREE.Vector3(b.x,b.y+0.06,b.z)]); building.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:col,linewidth:2}))); });
+  // circuite automate (cablaj 3D) intre componentele PV - rutate pe pereti
+  pvConnections().forEach(s=>{ const path=pvRoutePath(itemPos3D(s.a),itemPos3D(s.b)); const col=s.type==='dc'?0xe07b39:(s.type==='bat'?0x2f855a:0x2b6cb0); const g=new THREE.BufferGeometry().setFromPoints(path.map(p=>new THREE.Vector3(p.x,p.y+0.04,p.z))); building.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:col}))); });
   // busola pe sol: cercuri punctate + linii radiale + puncte cardinale (fara con)
   const span=Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x)); const span2=Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)); const R=Math.max(span,span2,4)*0.62+2.5;
   compass.position.set(c.x,0.02,c.z); compass.rotation.y=-orientationDeg*Math.PI/180;
