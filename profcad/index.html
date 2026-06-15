@@ -25,9 +25,11 @@
   .cat:not(.on){opacity:.55;filter:saturate(.6)}
   .cat.on{transform:translateY(-2px)}
   .tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px;border-bottom:1px solid var(--line);align-items:center}
-  .pvbtn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #bfe6c9;background:#f3fff6;border-radius:9px;padding:9px 11px;font-size:12.5px;font-weight:600;font-family:inherit;color:var(--ink);cursor:pointer}
-  .pvbtn b{font-size:13px} .pvbtn span{color:var(--muted);font-weight:500;font-size:11px}
-  #toolsPv{flex-direction:column;align-items:stretch;max-height:46vh;overflow-y:auto}
+  .pvgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .pvbtn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:1px solid #bfe6c9;background:#f3fff6;border-radius:8px;padding:7px 8px;font-size:12px;font-weight:600;font-family:inherit;color:var(--ink);cursor:pointer}
+  .pvbtn.on{border-color:var(--pv);background:#e7f1fb;color:var(--pv)}
+  .pvbtn b{font-size:12.5px} .pvbtn span{display:none}
+  #toolsPv{flex-direction:column;align-items:stretch;gap:6px;max-height:48vh;overflow-y:auto;overflow-x:hidden}
   .schips{display:flex;gap:5px;flex-wrap:wrap}
   .schip{border:1px solid #bcd8f5;background:#fff;border-radius:7px;padding:4px 9px;font-size:12px;font-weight:700;font-family:inherit;color:var(--pv);cursor:pointer}
   .schip.on{background:var(--pv);color:#fff;border-color:var(--pv)}
@@ -69,7 +71,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R75 (meniu PV scrolabil)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R77 (circuite automate intre componente)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -92,13 +94,16 @@
       <button class="btn bad" id="tClearAll">Goleste tot</button>
     </div>
     <div class="tools" id="toolsPv" style="display:none">
-      <button class="pvbtn" data-pv="panou">🟦 <b>Panou fotovoltaic</b> <span>pe acoperis / sol / perete</span></button>
-      <button class="pvbtn" data-pv="invertor">🔌 <b>Invertor</b> <span>on-grid / hibrid</span></button>
-      <button class="pvbtn" data-pv="baterie">🔋 <b>Baterie</b> <span>stocare</span></button>
-      <button class="pvbtn" data-pv="tablou">🟩 <b>Tablou electric de protectie</b></button>
-      <button class="pvbtn" data-pv="teg">📟 <b>TEG</b> <span>tablou electric general</span></button>
-      <button class="pvbtn" data-pv="bmp">📦 <b>BMP</b> <span>bloc masura si protectie</span></button>
-      <button class="pvbtn" data-pv="bmpt">📦 <b>BMPT</b> <span>bloc masura si protectie trifazat</span></button>
+      <div style="font-size:10.5px;color:var(--muted);font-weight:600">Adauga element (click, apoi pune-l pe casa):</div>
+      <div class="pvgrid">
+        <button class="pvbtn" data-pv="panou">🟦 <b>Panou</b></button>
+        <button class="pvbtn" data-pv="invertor">🔌 <b>Invertor</b></button>
+        <button class="pvbtn" data-pv="baterie">🔋 <b>Baterie</b></button>
+        <button class="pvbtn" data-pv="tablou">🟩 <b>Tablou prot.</b></button>
+        <button class="pvbtn" data-pv="teg">📟 <b>TEG</b></button>
+        <button class="pvbtn" data-pv="bmp">📦 <b>BMP</b></button>
+        <button class="pvbtn" data-pv="bmpt">📦 <b>BMPT</b></button>
+      </div>
       <div style="display:flex;flex-direction:column;gap:5px;border:1px solid #bcd8f5;background:#eaf3ff;border-radius:9px;padding:7px">
         <div style="font-size:12px;font-weight:700">🟦 Umple cu panouri</div>
         <div style="font-size:10.5px;color:var(--muted)">Alege apele (poti mai multe): apasa A1, A3...</div>
@@ -117,7 +122,7 @@
       <input id="pvFile" type="file" accept=".xlsx" style="display:none">
       <button class="pvbtn" id="pvScheme" style="background:#fff6e6;border-color:#f0d39a">⚡ <b>Schema electrica + necesar cabluri</b></button>
       <div id="pvStatus" style="font-size:10.5px;color:var(--muted)"></div>
-      <div id="bom" style="display:flex;flex-direction:column;gap:5px;max-height:210px;overflow-y:auto"></div>
+      <details open style="border:1px solid var(--line);border-radius:8px;padding:4px 7px"><summary style="font-size:11.5px;font-weight:700;cursor:pointer;color:var(--muted)">Componente plasate</summary><div id="bom" style="display:flex;flex-direction:column;gap:5px;max-height:170px;overflow-y:auto;margin-top:5px"></div></details>
     </div>
     <div class="planwrap">
       <div class="pviews" id="pviews">
@@ -259,6 +264,8 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
     px.fillStyle='#1c7bd6'; px.beginPath(); px.arc(cx+h/2,cy+h/2,6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=1.5; px.stroke();
     // buton X stergere (dreapta-sus)
     px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+h/2,cy-h/2,8,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 12px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('x',cx+h/2,cy-h/2); });
+  // circuite automate (cablaj) intre componentele PV
+  pvConnections().forEach(s=>{ px.strokeStyle = s.type==='dc'?'#e07b39':(s.type==='bat'?'#2f855a':'#2b6cb0'); px.lineWidth=2; px.setLineDash(s.type==='dc'?[]:[5,3]); px.beginPath(); px.moveTo(SX(s.a.x),SY(s.a.z)); px.lineTo(SX(s.b.x),SY(s.b.z)); px.stroke(); px.setLineDash([]); });
   // elemente PV vazute de sus (panou = latime x lungime; altele = latime x grosime) + rotire + X
   const PV_C2={ invertor:'#2b6cb0', baterii:'#2f855a', echipament:'#6b7280', panouri:'#1a3a6b' };
   pvItems.forEach(it=>{ const cx=SX(it.x), cy=SY(it.z), col=PV_C2[it.cat]||'#2b6cb0', rot=it.rot||0;
@@ -541,6 +548,12 @@ function refreshSlopeSel(){ const host=$('pvSlopeChips'); if(!host) return; cons
 function itemPos3D(it){ let y; if(it.cat==='panouri'||it.place==='acoperis') y=roofHeightAt(it.x,it.z); else if(it.place==='sol') y=(it.h||0.4)/2; else y=(it.y!=null)?it.y:1.2; return {x:it.x,y:y,z:it.z}; }
 function dist3(a,b){ return Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z); }
 function orderPanels(panels, fromPos){ const rem=panels.slice(), ord=[]; let cur=fromPos; while(rem.length){ let bi=0,bd=1e9; rem.forEach((p,i)=>{ const d=dist3(itemPos3D(p),cur); if(d<bd){bd=d;bi=i;} }); ord.push(rem[bi]); cur=itemPos3D(rem[bi]); rem.splice(bi,1); } return ord; }
+// circuitele care se formeaza automat din componentele plasate (BMP→TEG→protectie→invertor→panouri serie)
+function pvConnections(){ const inv=pvItems.find(it=>it.cat==='invertor'); const panels=pvItems.filter(it=>it.cat==='panouri'); const teg=pvItems.find(it=>/teg/i.test(it.name)); const bmp=pvItems.find(it=>/bmp/i.test(it.name)); const tablou=pvItems.find(it=>it.cat==='echipament'&&/tablou|protectie/i.test(it.name)&&!/teg/i.test(it.name)); const bat=pvItems.find(it=>it.cat==='baterii');
+  const segs=[]; const acOrder=[bmp,teg,tablou,inv].filter(Boolean); for(let i=1;i<acOrder.length;i++) segs.push({a:acOrder[i-1],b:acOrder[i],type:'ac'});
+  if(inv && panels.length){ const ord=orderPanels(panels,itemPos3D(inv)); segs.push({a:inv,b:ord[0],type:'dc'}); for(let i=1;i<ord.length;i++) segs.push({a:ord[i-1],b:ord[i],type:'dc'}); segs.push({a:ord[ord.length-1],b:inv,type:'dc'}); }
+  if(inv && bat) segs.push({a:inv,b:bat,type:'bat'});
+  return segs; }
 function escH(s){ return (''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 function buildScheme(){ const body=$('schBody'); if(!body) return; const inv=pvItems.find(it=>it.cat==='invertor'); const panels=pvItems.filter(it=>it.cat==='panouri');
   if(!inv || !panels.length){ body.innerHTML='<div style="color:#c0392b;font-size:13px">Adauga cel putin un <b>invertor</b> si <b>panouri</b> ca sa generez schema.</div>'; $('schemeModal').style.display='flex'; return; }
@@ -830,7 +843,10 @@ function build3D(){
       m.rotation.y=Math.atan2(ox,oz)+(it.rot||0); const y=(it.y!=null)?it.y:1.2; m.position.set(it.x+ox*it.d/2, y, it.z+oz*it.d/2); building.add(m);
     } else { // sol: drept
       const m=new THREE.Mesh(new THREE.BoxGeometry(it.w,it.h,it.d),mat); m.rotation.y=it.rot||0; m.position.set(it.x, it.h/2, it.z); building.add(m);
+
     } });
+  // circuite automate (cablaj 3D) intre componentele PV
+  pvConnections().forEach(s=>{ const a=itemPos3D(s.a), b=itemPos3D(s.b); const col=s.type==='dc'?0xe07b39:(s.type==='bat'?0x2f855a:0x2b6cb0); const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,a.y+0.06,a.z),new THREE.Vector3(b.x,b.y+0.06,b.z)]); building.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:col,linewidth:2}))); });
   // busola pe sol: cercuri punctate + linii radiale + puncte cardinale (fara con)
   const span=Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x)); const span2=Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)); const R=Math.max(span,span2,4)*0.62+2.5;
   compass.position.set(c.x,0.02,c.z); compass.rotation.y=-orientationDeg*Math.PI/180;
