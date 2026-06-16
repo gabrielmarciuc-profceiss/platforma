@@ -296,11 +296,11 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   <div class="fg fg2">
     <div class="f"><label>Tip structura montaj (tip acoperis)</label>
       <select id="tip_struct" onchange="onTipStructChange()">
-        <option value="tigla">Tigla ceramica / beton</option>
-        <option value="tabla">Tabla cutata / lindab</option>
-        <option value="terasa">Terasa plata (balast)</option>
+        <option value="tigla">Tigla ceramica</option>
+        <option value="tabla">Tabla cutata (lindab)</option>
+        <option value="terasa_sud">Terasa structura SUD</option>
+        <option value="terasa_ev">Terasa structura est-vest</option>
         <option value="sol">Sol (structura fixa)</option>
-        <option value="carport">Carport / Pergola</option>
       </select>
     </div>
     <div class="f"><label>&nbsp;</label><div class="ibox" style="margin:0;font-size:11px;">Atentie, selecteaza corect tipul, pentru ca modelul structurii de prindere este diferit si poate influenta pretul final al sistemului fotovoltaic.</div></div>
@@ -502,7 +502,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
       </div>
       <div class="f">
         <label>Numar total panouri</label>
-        <input type="number" id="panouri_total" value="10" min="1" max="200" onchange="onSimplePanouriChange()">
+        <input type="number" id="panouri_total" value="1" min="0" max="200" onchange="onSimplePanouriChange()">
         <span class="hint" id="panouri_simple_kwp">Total: — kWp</span>
       </div>
     </div>
@@ -683,18 +683,20 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   </div>
   <div class="price-section">
     <div class="price-title" id="pan_prices_title">Panouri fotovoltaice</div>
-    <div id="pan_prices_container"></div>
+    <div class="toggle-row" style="margin:0 0 8px;"><button class="toggle" id="no_pan_toggle" onclick="toggleNoProd('pan')" type="button"></button><span style="font-size:12px;color:#888;">Fara panouri (clientul le are deja)</span></div>
+    <div id="fld_pan"><div id="pan_prices_container"></div></div>
   </div>
   <div class="price-section">
     <div class="price-title">Invertor</div>
-    <div class="fg fg2">
+    <div class="toggle-row" style="margin:0 0 8px;"><button class="toggle" id="no_inv_toggle" onclick="toggleNoProd('inv')" type="button"></button><span style="font-size:12px;color:#888;">Fara invertor (clientul il are deja)</span></div>
+    <div id="fld_inv"><div class="fg fg2">
       <div class="f"><label>Model (din pasul 2)</label>
         <div style="padding:7px 9px;border:0.5px solid #e0e0e0;border-radius:8px;font-size:13px;background:#f5f5f0;color:#888;" id="inv_model_disp">—</div>
       </div>
       <div class="f"><label>Pret invertor (RON, pas 5)</label><select id="inv_pret" onchange="updTotal()"></select>
         <div style="display:flex;gap:6px;margin-top:4px;align-items:center;"><span style="font-size:10px;color:#888;">Adaos:</span><input type="number" id="inv_adp" placeholder="%" onchange="onAdaosEdit('inv','pct')" style="width:54px;padding:4px 6px;font-size:12px;"><span style="font-size:10px;color:#888;">%</span><input type="number" id="inv_adr" placeholder="RON" onchange="onAdaosEdit('inv','ron')" style="width:78px;padding:4px 6px;font-size:12px;"><span style="font-size:10px;color:#888;">RON</span></div>
       </div>
-    </div>
+    </div></div>
   </div>
   <div class="price-section" id="bat_price_sec" style="display:none;">
     <div class="price-title">Baterie stocare</div>
@@ -712,6 +714,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
     <div class="fg fg2">
       <div class="f">
         <label>Structura montaj — <span id="struct_tip_lbl">—</span> (RON)</label>
+        <div class="toggle-row" style="margin:0 0 6px;"><button class="toggle" id="no_struct_toggle" onclick="toggleNoProd('struct')" type="button"></button><span style="font-size:12px;color:#888;">Fara structura (clientul o are deja)</span></div>
         <div class="toggle-row" style="margin:0 0 6px;">
           <button class="toggle on" id="struct_auto_toggle" onclick="toggleStructAuto()" type="button"></button>
           <span id="struct_auto_lbl" style="font-size:12px;color:#1a1a1a;">Auto-calcul dupa nr. panouri</span>
@@ -722,6 +725,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
       </div>
       <div class="f">
         <label>Manopera instalare (RON)</label>
+        <div class="toggle-row" style="margin:0 0 6px;"><button class="toggle" id="no_manop_toggle" onclick="toggleNoProd('manop')" type="button"></button><span style="font-size:12px;color:#888;">Fara manopera</span></div>
         <div class="toggle-row" style="margin:0 0 6px;">
           <button class="toggle on" id="manop_auto_toggle" onclick="toggleManopAuto()" type="button"></button>
           <span id="manop_auto_lbl" style="font-size:12px;color:#1a1a1a;">Auto-calcul dupa kW instalat</span>
@@ -734,6 +738,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
     <div class="fg fg2">
       <div class="f">
         <label>Tablouri CA & CC complet echipate (RON)</label>
+        <div class="toggle-row" style="margin:0 0 6px;"><button class="toggle" id="no_brans_toggle" onclick="toggleNoProd('brans')" type="button"></button><span style="font-size:12px;color:#888;">Fara tablouri (clientul le are deja)</span></div>
         <div class="toggle-row" style="margin:0 0 6px;">
           <button class="toggle on" id="brans_auto_toggle" onclick="toggleAutoPrice('brans')" type="button"></button>
           <span id="brans_auto_lbl" style="font-size:12px;color:#1a1a1a;">Auto-calcul dupa kW instalat</span>
@@ -744,6 +749,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
       </div>
       <div class="f">
         <label id="bos_label">Infrastructura electrica (RON)</label>
+        <div class="toggle-row" style="margin:0 0 6px;"><button class="toggle" id="no_bos_toggle" onclick="toggleNoProd('bos')" type="button"></button><span style="font-size:12px;color:#888;">Fara infrastructura (clientul o are deja)</span></div>
         <div class="toggle-row" style="margin:0 0 6px;background:#EAF2FB;padding:6px 10px;border-radius:6px;">
           <button class="toggle" id="backup_toggle" onclick="toggleBackup()" type="button"></button>
           <span id="backup_toggle_label" style="font-size:12px;color:#185FA5;font-weight:500;">Sistem fara back-up</span>
@@ -761,7 +767,9 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   <div class="price-section">
     <div class="price-title">Alte costuri</div>
     <div class="fg fg2">
-      <div class="f"><label>Dosar prosumator (RON)</label><select id="proiect_pret" onchange="updTotal()"></select>
+      <div class="f"><label>Dosar prosumator (RON)</label>
+        <div class="toggle-row" style="margin:0 0 6px;"><button class="toggle" id="no_proiect_toggle" onclick="toggleNoProd('proiect')" type="button"></button><span style="font-size:12px;color:#888;">Fara dosar prosumator</span></div>
+        <select id="proiect_pret" onchange="updTotal()"></select>
         <div style="display:flex;gap:6px;margin-top:4px;align-items:center;"><span style="font-size:10px;color:#888;">Adaos:</span><input type="number" id="proiect_adp" placeholder="%" onchange="onAdaosEdit('proiect','pct')" style="width:54px;padding:4px 6px;font-size:12px;"><span style="font-size:10px;color:#888;">%</span><input type="number" id="proiect_adr" placeholder="RON" onchange="onAdaosEdit('proiect','ron')" style="width:78px;padding:4px 6px;font-size:12px;"><span style="font-size:10px;color:#888;">RON</span></div>
       </div>
       <div class="f"><label>Cost suplimentar — descriere editabila</label>
@@ -1133,7 +1141,7 @@ function loadCatalogFromExcel(file) {
         if (setari['manop_bat_extra'] != null) PRICE_AUTO_CONFIG.manop.batExtra = setari['manop_bat_extra'];
         // Override preturi structuri PER PANOU (chei noi: struct_*_per_panou)
         // Folosite de auto-calculul: pret_total = pret_per_panou × nr_panouri
-        ['tigla','tabla','terasa','sol','carport'].forEach(t=>{
+        ['tigla','tabla','terasa_sud','terasa_ev','sol'].forEach(t=>{
           const keyPerPanou = 'struct_'+t+'_per_panou';
           if (setari[keyPerPanou] != null) structPerPanouExcel[t] = setari[keyPerPanou];
           // Backward compat: daca exista vechea cheie cu suma fixa, o pastram ca fallback
@@ -1304,6 +1312,7 @@ const CAT_BAT=[
 
 // ── Bransament & catalog invertor / baterie ─────────────────────────────────
 let bransament='mono';
+let clientOwns={pan:false,inv:false,struct:false,manop:false,brans:false,bos:false,proiect:false,alte:false};  // componente excluse din oferta (toggle "Fara X")
 let inv2BrandFilter='all';
 let inv2VoltageFilter='all'; // 'all' | 'lv' | 'hv' | 'na' — filtru tensiune pentru lista de invertoare
 let prodCalcEnabled=false;   // true = include calcul productie + sectiuni de productie in PDF; false (default) = doar oferta comerciala
@@ -1356,8 +1365,10 @@ function togglePanouriDetail(){
 }
 
 // Sincronizeaza modul simplu catre modul detaliat si actualizeaza afisarile Wp/pret/kWp.
+// Citeste numarul de panouri respectand 0 (gol -> 1, nu 10)
+function readPanTotal(){ const n=parseInt(v('panouri_total')?.value); return isNaN(n)?1:Math.max(0,n); }
 function onSimplePanouriChange(){
-  const total = parseInt(v('panouri_total')?.value) || 10;
+  const total = readPanTotal();
   // Fortam un singur string in modul simplu
   const nrStr = v('nr_str');
   if (nrStr && nrStr.value !== '1') {
@@ -1370,7 +1381,7 @@ function onSimplePanouriChange(){
 
 // Seteaza efectiv valorile s1_* din valorile din modul simplu (panouri_total + panouri_total_pan)
 function syncSimpleToDetailValues(){
-  const total = parseInt(v('panouri_total')?.value) || 10;
+  const total = readPanTotal();
   const s1nr = v('s1_nr');
   if (s1nr) s1nr.value = total;
   const simplePan = v('panouri_total_pan');
@@ -1741,12 +1752,12 @@ const priceAutoActive = { manop: true, brans: true, bos: true };
 // Preturi default pentru structuri (suprascriibile din Excel → foaia "Setari")
 // LEGACY: valori RON fixe (se pastreaza pentru compatibilitate). Nu mai sunt folosite
 // pentru calcul — sistemul nou foloseste struct_*_per_panou (vezi mai jos).
-const structDefsExcel = { tigla: 3500, tabla: 2800, terasa: 4000, sol: 5000, carport: 6000 };
+const structDefsExcel = { tigla: 3500, tabla: 2800, terasa_sud: 4000, terasa_ev: 3800, sol: 5000 };
 
 // Preturi RON per panou pentru fiecare tip de structura.
 // Configuratorul calculeaza automat: pret_total = pret_per_panou × nr_panouri.
 // Suprascriibile din Excel → foaia "Setari", chei: struct_tigla_per_panou, struct_tabla_per_panou, etc.
-const structPerPanouExcel = { tigla: 175, tabla: 150, terasa: 220, sol: 350, carport: 550 };
+const structPerPanouExcel = { tigla: 175, tabla: 150, terasa_sud: 220, terasa_ev: 200, sol: 350 };
 let structAutoActive = true;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2379,7 +2390,7 @@ function applyStructAuto(){
   }
   const info = v('struct_auto_info');
   if (info){
-    const structNames = {tigla:'Tigla',tabla:'Tabla',terasa:'Terasa',sol:'Sol',carport:'Carport'};
+    const structNames = {tigla:'Tigla ceramica',tabla:'Tabla cutata (lindab)',terasa_sud:'Terasa SUD',terasa_ev:'Terasa est-vest',sol:'Sol'};
     const tipNume = structNames[tip] || tip;
     if (nrPan === 0){
       info.innerHTML = `Adauga panouri in pasul 3 pentru a calcula structura — pret ${tipNume}: <strong>${fmt(pretPerPanou)} RON/panou</strong>`;
@@ -2411,7 +2422,7 @@ function toggleStructAuto(){
 
 function onTipStructChange(){
   // Cand se schimba tipul structurii, actualizam label-ul si recalculam pretul auto
-  const structNames = {tigla:'Tigla ceramica/beton', tabla:'Tabla cutata/Lindab', terasa:'Terasa plata (balast)', sol:'Sol (structura fixa)', carport:'Carport/Pergola'};
+  const structNames = {tigla:'Tigla ceramica', tabla:'Tabla cutata (lindab)', terasa_sud:'Terasa structura SUD', terasa_ev:'Terasa structura est-vest', sol:'Sol (structura fixa)'};
   const lbl = v('struct_tip_lbl'); if (lbl) lbl.textContent = structNames[v('tip_struct').value]||'';
   applyStructAuto();
   updTotal();
@@ -2718,7 +2729,7 @@ function initStep5(){
     syncSimpleToDetailValues();
   }
   let ns=parseInt(v('nr_str').value)||2;
-  let structNames={tigla:'Tigla',tabla:'Tabla cutata',terasa:'Terasa plata',sol:'Sol',carport:'Carport'};
+  let structNames={tigla:'Tigla ceramica',tabla:'Tabla cutata (lindab)',terasa_sud:'Terasa structura SUD',terasa_ev:'Terasa structura est-vest',sol:'Sol'};
   let el;
   // Titlul sectiunii Panouri — fara "per string" cand e un singur string
   el=v('pan_prices_title'); if(el) el.textContent = ns>1 ? 'Panouri fotovoltaice — per string' : 'Panouri fotovoltaice';
@@ -2990,11 +3001,11 @@ function updTotal(){
     let pr=parseInt(v('pan'+i+'_pret')?v('pan'+i+'_pret').value:0)||0;
     let base=nr*pr;
     let lt=base+lineAdaos('pan'+i,base);
-    total+=lt;
-    panLines.push({i:i,lt:lt});
+    if(!clientOwns.pan) total+=lt;
+    panLines.push({i:i,lt:clientOwns.pan?0:lt});
   }
   [['inv','inv_pret'],['struct','struct_pret'],['manop','manop_pret'],['brans','brans_pret'],['bos','bos_pret'],['proiect','proiect_pret'],['alte','alte_pret']].forEach(p=>{
-    let el=v(p[1]);if(el){let base=parseInt(el.value)||0;total+=base+lineAdaos(p[0],base);}
+    let el=v(p[1]);if(el && !clientOwns[p[0]]){let base=parseInt(el.value)||0;total+=base+lineAdaos(p[0],base);}
   });
   if(hasBat){
     let el=v('bat_pret');if(el){let base=parseInt(el.value)||0;total+=base+lineAdaos('bat',base);}
@@ -3035,6 +3046,10 @@ function updTotal(){
   let tce=v('total_cu_tva_eur');if(tce)tce.textContent=fmtE(cuTva);
 }
 
+// Toggle "Fara X" pe pasul 5 — exclude componenta din oferta (clientul o are deja).
+function toggleNoProd(key){ clientOwns[key]=!clientOwns[key]; const b=v('no_'+key+'_toggle'); if(b) b.classList.toggle('on',clientOwns[key]);
+  const wrap=v('fld_'+key); if(wrap){ wrap.style.opacity=clientOwns[key]?'0.4':''; }
+  if(typeof updTotal==='function') updTotal(); }
 function getPrices(){
   let ns=parseInt(v('nr_str').value)||2;
   let panTotal=0,panDet=[];
@@ -3093,6 +3108,15 @@ function getPrices(){
     infra_accTotal,
     proiect:_line('proiect'),
     alte:_line('alte')};
+  // Componente marcate "Fara X" (clientul le are deja) -> scoase din oferta
+  if(clientOwns.pan){ res.panTotal=0; res.panDet=res.panDet.map(p=>({...p,total:0,pr_buc:0})); }
+  if(clientOwns.inv) res.invertor=0;
+  if(clientOwns.struct) res.structura=0;
+  if(clientOwns.manop) res.manopera=0;
+  if(clientOwns.brans) res.bransament=0;
+  if(clientOwns.bos){ res.bos=0; res.infra_accesorii=[]; res.infra_accTotal=0; }
+  if(clientOwns.proiect) res.proiect=0;
+  if(clientOwns.alte) res.alte=0;
   // Adaos pe oferta totala — distribuit proportional, invizibil pentru client
   if(adaosGlobalActive){
     let sum=res.panTotal+res.invertor+res.baterie+res.bat_accTotal+res.structura+res.manopera+res.bransament+res.bos+res.infra_accTotal+res.proiect+res.alte;
@@ -3250,7 +3274,7 @@ function calcAll(){
 }
 
 function renderOferta(d){
-  let structNames={tigla:'Tigla ceramica/beton',tabla:'Tabla cutata/Lindab',terasa:'Terasa plata (balast)',sol:'Sol (structura fixa)',carport:'Carport/Pergola'};
+  let structNames={tigla:'Tigla ceramica',tabla:'Tabla cutata (lindab)',terasa_sud:'Terasa structura SUD',terasa_ev:'Terasa structura est-vest',sol:'Sol (structura fixa)'};
   let E=ron=>Math.round(ron/d.rate).toLocaleString('ro-RO')+' EUR';
   let fE=ron=>'≈ '+E(ron);
 
@@ -3428,8 +3452,9 @@ function renderOferta(d){
   if(d.prices.alte>0) servRows.push({d:d.alteDesc||'Cost suplimentar',um:'serviciu',c:1,pu:d.prices.alte,v:d.prices.alte});
   let subEch=echRows.reduce((a,r)=>a+r.v,0), subServ=servRows.reduce((a,r)=>a+r.v,0);
   // Doua variante de rand: cu preturi (oferta detaliata) sau fara preturi (doar lista)
-  let _eqRow=(r,nr)=>`<tr><td style="text-align:center;color:#888;">${nr}</td><td style="text-align:left;">${r.d}</td><td style="text-align:center;">${r.um}</td><td style="text-align:center;">${r.c}</td><td>${fmt(r.pu)}</td><td><strong>${fmt(r.v)}</strong></td></tr>`;
-  let _eqRowNoPrice=(r,nr)=>`<tr><td style="text-align:center;color:#888;">${nr}</td><td style="text-align:left;">${r.d}</td><td style="text-align:center;">${r.um}</td><td style="text-align:center;">${r.c}</td></tr>`;
+  let _off=r=>(r.c===0 || r.v<=0);   // cantitate 0 sau pret 0 = produsul nu intra in oferta (clientul il are deja)
+  let _eqRow=(r,nr)=>{ const o=_off(r); return `<tr style="${o?'opacity:.4;':''}"><td style="text-align:center;color:#888;">${nr}</td><td style="text-align:left;">${r.d}${o?' <span style="color:#aaa;font-size:10px;font-style:italic;">(asigurat de client / neinclus)</span>':''}</td><td style="text-align:center;">${r.um}</td><td style="text-align:center;">${o?0:r.c}</td><td>${o?'—':fmt(r.pu)}</td><td><strong>${o?'—':fmt(r.v)}</strong></td></tr>`; };
+  let _eqRowNoPrice=(r,nr)=>{ const o=_off(r); return `<tr style="${o?'opacity:.4;':''}"><td style="text-align:center;color:#888;">${nr}</td><td style="text-align:left;">${r.d}${o?' <span style="color:#aaa;font-size:10px;font-style:italic;">(asigurat de client)</span>':''}</td><td style="text-align:center;">${r.um}</td><td style="text-align:center;">${o?0:r.c}</td></tr>`; };
   let equipmentBody;
   if (ofertaPerProdus){
     // Oferta detaliata — afiseaza preturi pentru fiecare linie + subtotal

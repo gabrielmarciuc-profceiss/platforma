@@ -72,7 +72,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R82 (umplere ocoleste horn/velux + meniu derulabil in fereastra)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R85 (soare fix est-vest, casa se roteste fata de el)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -575,6 +575,8 @@ function panelBlocked(cx,cz,hx,hz){ const mo=0.12;   // panoul nu se aseaza pest
   return false; }
 function fillRoofPanels(slopeIds, mode){ if(ridgeRaise<=0.02){ alert('Acoperisul nu are panta inclinata.'); return; } const panel=(pvCatalog.panouri&&pvCatalog.panouri[0]); if(!panel){ alert('Nu exista panou in catalog (sheet Panouri).'); return; }
   mode=mode||'portrait'; const w=(+panel.w||113)/100, l=(+panel.h||223)/100, th=(+panel.d||4)/100, gap=0.02; const slopes=roofSlopes(); let n=0; const chosen=[];
+  // fiecare apasare reface umplerea: sterge panourile existente de pe apele alese (sau toate), ca sa nu se suprapuna
+  pvItems=pvItems.filter(it=> !(it.cat==='panouri' && it.place==='acoperis' && (!slopeIds || !slopeIds.length || slopeIds.indexOf(it.slope)>=0)) );
   slopes.forEach(s=>{ if(slopeIds && slopeIds.length && slopeIds.indexOf(s.id)<0) return; chosen.push('A'+s.id); packSlope(s,w,l,gap,mode).forEach(c=>{ pvItems.push({cat:'panouri',name:panel.name,h:l,w:w,d:th,x:snap(c.x),z:snap(c.z),place:'acoperis',slope:s.id,rot:c.rot}); n++; }); });
   const modeTxt = mode==='landscape'?'orizontal':mode==='auto'?'auto (maxim)':'vertical';
   renderBom(); drawPlan(); build3D(); commit(); if(typeof pvStatus==='function') pvStatus(n? ('Umplut: '+n+' panouri pe '+(chosen.length?chosen.join(', '):'toate apele')+' ('+modeTxt+').') : 'Nu incape niciun panou pe apele alese.'); }
@@ -703,11 +705,13 @@ function pvProduction(){ const pans=pvItems.filter(it=>it.cat==='panouri'); if(!
   if(typeof pvStatus==='function') pvStatus('Putere instalata ~'+kwp.toFixed(2)+' kWp · productie estimata ~'+kwh.toLocaleString('ro-RO')+' kWh/an.');
   alert('Estimare productie fotovoltaica\n\nPanouri: '+pans.length+'\nPutere instalata: ~'+kwp.toFixed(2)+' kWp\nProductie estimata: ~'+kwh.toLocaleString('ro-RO')+' kWh/an\n\nZona: '+yld+' kWh/kWp/an · factor orientare: '+orientF.toFixed(2)+'\n(Estimare orientativa - depinde de orientarea reala a apei, inclinare, umbrire si pierderi de sistem.)'); }
 if($('pvProd')) $('pvProd').onclick=pvProduction;
-function doFill(mode){ const ids=[...pvFillSlopes]; fillRoofPanels(ids.length?ids:null, mode); }
+function doFill(mode){ const ids=[...pvFillSlopes]; fillRoofPanels(ids.length?ids:null, mode);
+  ['pvFillV','pvFillH','pvFillA'].forEach(id=>{ const b=$(id); if(b) b.classList.remove('on'); });
+  const ab=$({portrait:'pvFillV',landscape:'pvFillH',auto:'pvFillA'}[mode]); if(ab) ab.classList.add('on'); }
 if($('pvFillV')) $('pvFillV').onclick=()=>doFill('portrait');
 if($('pvFillH')) $('pvFillH').onclick=()=>doFill('landscape');
 if($('pvFillA')) $('pvFillA').onclick=()=>doFill('auto');
-if($('pvClearPan')) $('pvClearPan').onclick=()=>{ const before=pvItems.length; pvItems=pvItems.filter(it=>it.cat!=='panouri'); if(pvItems.length!==before){ renderBom(); drawPlan(); build3D(); commit(); } };
+if($('pvClearPan')) $('pvClearPan').onclick=()=>{ const before=pvItems.length; pvItems=pvItems.filter(it=>it.cat!=='panouri'); ['pvFillV','pvFillH','pvFillA'].forEach(id=>{ const b=$(id); if(b) b.classList.remove('on'); }); if(pvItems.length!==before){ renderBom(); drawPlan(); build3D(); commit(); } };
 if($('pvLoad')) $('pvLoad').onclick=()=>$('pvFile').click();
 if($('pvFile')) $('pvFile').onchange=e=>{ if(e.target.files[0]) loadPvFile(e.target.files[0]); };
 if($('pvTemplate')) $('pvTemplate').onclick=downloadPvTemplate;
@@ -800,7 +804,7 @@ function updateSun(t){ const c=(foot.length>=3)?centroidXZ():{x:0,z:0};
   const span=Math.max(8,(foot.length>=3?(Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x))+Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)))/2:10));
   const dist=span*2.2+18; const elevAng=Math.sin(Math.max(0,Math.min(1,t))*Math.PI)*(72*Math.PI/180);
   const compassDeg=90+t*180; const a=compassDeg*Math.PI/180; let hx=Math.sin(a), hz=-Math.cos(a);
-  const o=-orientationDeg*Math.PI/180, co=Math.cos(o), so=Math.sin(o); const rx=hx*co-hz*so, rz=hx*so+hz*co;
+  const rx=hx, rz=hz;   // soarele e FIX in lume: rasare mereu de la est (+X), apune la vest (-X), indiferent de rotatia casei
   const ce=Math.cos(elevAng), se=Math.sin(elevAng); const dir={x:rx*ce,y:Math.max(0.03,se),z:rz*ce};
   sun.position.set(c.x+dir.x*dist, dir.y*dist, c.z+dir.z*dist); sun.target.position.set(c.x,0,c.z);
   sunMesh.position.copy(sun.position); sunGlow.position.copy(sun.position);
