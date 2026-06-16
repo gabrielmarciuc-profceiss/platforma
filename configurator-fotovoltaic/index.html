@@ -900,6 +900,7 @@ h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:0.5rem;}
   <div class="btn-row" style="margin-top:1.5rem;">
     <button class="btn" onclick="goStep(6)">← Modifica</button>
     <button class="btn pri" onclick="window.print()">Printeaza / Salveaza PDF</button>
+    <button class="btn" type="button" onclick="exportOfertaWord()" style="background:#185FA5;color:#fff;border-color:#185FA5;">⬇ Descarca Word (editabil)</button>
   </div>
 </div>
 
@@ -4059,6 +4060,30 @@ function deleteSavedOffer(id){
 }
 
 // Export ca JSON. id=null → backup TOATE ofertele. id=string → o singura oferta.
+// Export oferta ca document Word editabil (.doc bazat pe HTML — se deschide in Word/LibreOffice si se poate edita)
+function exportOfertaWord(){
+  const content = v('oferta_content');
+  if(!content || !content.innerHTML.trim()){ alert('Genereaza intai oferta (pasul 5 -> Genereaza oferta).'); return; }
+  const nrOf = (v('oferta_nr') && v('oferta_nr').value.trim()) ? v('oferta_nr').value.trim() : ('PF'+new Date().toISOString().slice(0,19).replace(/[-T:]/g,''));
+  // inlocuieste canvas-urile (grafice) cu imagini PNG ca sa apara si in Word
+  let body = content.cloneNode(true);
+  const srcCanv = content.querySelectorAll('canvas');
+  body.querySelectorAll('canvas').forEach((c,i)=>{ try{ const img=document.createElement('img'); img.src=srcCanv[i].toDataURL('image/png'); img.style.maxWidth='100%'; c.replaceWith(img); }catch(e){ c.remove(); } });
+  const styles = '<style>'
+    +'body{font-family:\'Segoe UI\',Calibri,Arial,sans-serif;color:#1a1a1a;font-size:11pt;line-height:1.45;}'
+    +'table{border-collapse:collapse;width:100%;margin:8px 0;}'
+    +'td,th{border:0.5pt solid #bbb;padding:5px 7px;font-size:10pt;}'
+    +'h1,h2,h3{color:#0F6E56;margin:10px 0 6px;}'
+    +'img{max-width:100%;}'
+    +'</style>';
+  const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+    +'<head><meta charset="utf-8"><title>Oferta '+nrOf+'</title>'+styles+'</head><body>'+body.innerHTML+'</body></html>';
+  const blob = new Blob(['﻿', html], {type:'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='Oferta_'+nrOf+'.doc';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ try{ document.body.removeChild(a); }catch(e){} URL.revokeObjectURL(url); }, 1000);
+}
 function exportOfferAsJson(id){
   const offers = getSavedOffers();
   let payload, niceName;
