@@ -200,6 +200,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
         <button class="btn" data-add="intrerupator" data-sub="scara">🔘 Cap-scara</button>
         <button class="btn" data-add="intrerupator" data-sub="cruce">🔘 Cap-cruce</button>
         <button class="btn" data-add="priza">🔌 Priza</button>
+        <button class="btn" data-add="ventilator">🌀 Ventilator</button>
         <button class="btn" data-add="doza">🟡 Doza</button>
         <button class="btn" id="cancelAdd">✖ Anuleaza</button>
       </div>
@@ -251,8 +252,8 @@ const plan={ points:[ {x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3} ], closed:true, op
 let planMode='edit', planDrag=-1, planMap={s:1,ox:0,oy:0};
 const OPEN_DEF={ usa:{sill:0,head:2.05,w:0.9,label:'Usa'}, gol_usa:{sill:0,head:2.05,w:0.9,label:'Gol usa'}, fereastra:{sill:0.9,head:2.1,w:1.2,label:'Fereastra'}, gol_fereastra:{sill:0.9,head:2.1,w:1.2,label:'Gol fereastra'} };
 
-const DEF_POWER={bec:10,priza:2000,intrerupator:0,tablou:0};
-const ADD={ tablou:{label:'Tablou electric',h:1.45,kind:null}, intrerupator:{label:'Intrerupator',h:1.10,kind:'lumina'}, bec:{label:'Bec',h:null,kind:'lumina'}, priza:{label:'Priza',h:0.30,kind:'prize'} };
+const DEF_POWER={bec:10,priza:2000,intrerupator:0,tablou:0,ventilator:60};
+const ADD={ tablou:{label:'Tablou electric',h:1.45,kind:null}, intrerupator:{label:'Intrerupator',h:1.10,kind:'lumina'}, bec:{label:'Bec',h:null,kind:'lumina'}, priza:{label:'Priza',h:0.30,kind:'prize'}, ventilator:{label:'Ventilator',h:null,kind:'prize'} };
 const ROOMEL={ usa:'opening', gol_usa:'opening', fereastra:'opening', gol_fereastra:'opening', treapta:'furniture', pat:'furniture', mobilier:'furniture' };
 const FURN={ pat:{w:1.6,h:0.5,d:2.0,color:0x5a6472,label:'Pat'}, mobilier:{w:0.8,h:2.0,d:0.6,color:0x8a6d3b,label:'Mobilier'}, treapta:{w:1.0,h:0.15,d:0.4,color:0x44505f,label:'Treapta'} };
 const props=[]; const history=[];
@@ -442,7 +443,9 @@ function init3D(){
 }
 function sizeRenderer(){ const w=$('canvaswrap').clientWidth, h=$('canvaswrap').clientHeight; renderer.setSize(w,h); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); }
 let _vcEl=null;
-function animate(){ requestAnimationFrame(animate); if(controls) controls.update(); if(renderer&&state.mode==='3d') renderer.render(scene,camera);
+function animate(){ requestAnimationFrame(animate); if(controls) controls.update();
+  if(state.mode==='3d'){ devices.forEach(d=>{ if(d.type==='ventilator' && d._spin && d.mesh){ d.mesh.traverse(o=>{ if(o.userData&&o.userData.fan) o.rotation.y+=0.28; }); } }); }   // roteste paletele ventilatoarelor alimentate
+  if(renderer&&state.mode==='3d') renderer.render(scene,camera);
   if(state.mode==='3d' && camera && controls){ if(!_vcEl) _vcEl=document.getElementById('vcCube'); if(_vcEl){ const off=camera.position.clone().sub(controls.target); const sph=new THREE.Spherical().setFromVector3(off); const azDeg=-sph.theta*180/Math.PI, elDeg=(sph.phi-Math.PI/2)*180/Math.PI; _vcEl.style.transform=`rotateX(${elDeg.toFixed(1)}deg) rotateY(${azDeg.toFixed(1)}deg)`; } } }
 
 function buildRoom3D(){
@@ -499,7 +502,7 @@ function updateDevLabel(dev){ if(dev.lab){ dev.mesh.remove(dev.lab); dev.lab=nul
 document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.dataset.add; addSub=b.dataset.sub||'simplu'; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); $('addInfo').innerHTML=addType==='bec'?'Click pe <b>tavan</b>.':'Click pe un <b>perete</b>.'; });
 $('cancelAdd').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent=''; };
 function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera); const hits=raycaster.intersectObjects(surfaces,false); if(!hits.length) return;
-  const want=(ROOMEL[addType]==='furniture')?'floor':(addType==='bec'?'ceiling':(addType==='doza'?null:'wall'));
+  const want=(ROOMEL[addType]==='furniture')?'floor':((addType==='bec'||addType==='ventilator')?'ceiling':(addType==='doza'?null:'wall'));
   const h=want?(hits.find(x=>x.object.userData.kind===want)||hits[0]):hits[0];
   if(ROOMEL[addType]==='opening'){ addOpeningAt(addType,h); clearAddTool(); }
   else if(ROOMEL[addType]==='furniture'){ placeFurniture(addType,h); clearAddTool(); }
@@ -523,8 +526,13 @@ function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit
   if(type==='tablou'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34,0.46,0.11),new THREE.MeshStandardMaterial({color:0xdfe3e8,metalness:.3,roughness:.6}))); const d=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.012),new THREE.MeshStandardMaterial({color:0xf2f4f6})); d.position.z=0.06; g.add(d); }
   else if(type==='intrerupator'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.035),new THREE.MeshStandardMaterial({color:0xf0f0f0}))); const t=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.02),new THREE.MeshStandardMaterial({color:col})); t.position.z=0.025; g.add(t); }
   else if(type==='priza'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.085,0.085,0.035),new THREE.MeshStandardMaterial({color:0xf0f0f0}))); const t=new THREE.Mesh(new THREE.TorusGeometry(0.025,0.006,8,16),new THREE.MeshStandardMaterial({color:col})); t.position.z=0.025; g.add(t); }
-  else if(type==='bec'){ g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.02,16),new THREE.MeshStandardMaterial({color:0xdddddf}))); const b=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,12),new THREE.MeshStandardMaterial({color:0xfff2b0,emissive:0xffd24d,emissiveIntensity:.7})); b.position.y=-0.08; g.add(b); }
+  else if(type==='bec'){ g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.02,16),new THREE.MeshStandardMaterial({color:0xdddddf}))); const b=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,12),new THREE.MeshStandardMaterial({color:0xfff2b0,emissive:0xffd24d,emissiveIntensity:0})); b.position.y=-0.08; b.userData.bulb=true; g.add(b); const pl=new THREE.PointLight(0xffe6a0,0,3.5,2); pl.position.y=-0.08; pl.userData.bulbLight=true; g.add(pl); }
+  else if(type==='ventilator'){ g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.06,16),new THREE.MeshStandardMaterial({color:0xdddddf,metalness:.3,roughness:.6}))); const blades=new THREE.Group(); blades.userData.fan=true; [0,Math.PI/2].forEach(a=>{ const bl=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.01,0.07),new THREE.MeshStandardMaterial({color:col,roughness:.5})); bl.rotation.y=a; blades.add(bl); }); blades.position.y=-0.05; g.add(blades); }
   return g; }
+// Roteste paletele ventilatoarelor alimentate (tablou prezent + circuit live: fie nu are intrerupator, fie un intrerupator de pe circuit e pornit)
+function updateFans(){ const hasPanel=!!panelDev(); devices.filter(d=>d.type==='ventilator').forEach(v=>{ const sw=devices.filter(s=>s.type==='intrerupator'&&s.circuit===v.circuit); v._spin = hasPanel && (sw.length? sw.some(s=>s.on) : true); }); }
+// Aprinde/stinge becurile dupa starea intrerupatoarelor (intrerupator 'on' + tablou prezent + bec pe acelasi circuit = aprins)
+function updateLamps(){ const hasPanel=!!panelDev(); devices.filter(d=>d.type==='bec').forEach(b=>{ const lit = hasPanel && devices.some(s=>s.type==='intrerupator' && s.circuit===b.circuit && s.on); if(b.mesh){ b.mesh.traverse(o=>{ if(o.userData&&o.userData.bulb&&o.material) o.material.emissiveIntensity=lit?1.5:0; if(o.userData&&o.userData.bulbLight) o.intensity=lit?2.2:0; }); } }); }
 
 /* ===== elemente camera · doze manuale · undo ===== */
 function pushHistory(fn){ history.push(fn); recordState(); }
@@ -561,10 +569,12 @@ function pickSelectable(e){ const r=renderer.domElement.getBoundingClientRect();
 function selectEl(sel){ selectedEl=sel; const m=$('measure'); if(!sel){ m.classList.add('hidden'); return; } const el=elObj(sel); if(!el){ m.classList.add('hidden'); return; } updateMeasure(el); m.classList.remove('hidden'); }
 function onPointerDown(e){ if(state.mode!=='3d') return; if(addType){ controls.enabled=false; onPick(e); return; }
   if(dragging){ dragging=null; dragOrig=null; controls.enabled=true; renderWires(); recordState(); return; }   // eram in mutare armata (buton Muta) -> click = fixeaza piesa
-  const sel=pickSelectable(e); if(sel){ selectEl(sel); controls.enabled=true; } else { selectEl(null); controls.enabled=true; } }   // click = doar selecteaza; piesele raman fixe (orbit liber). Mutarea se face din butonul Muta
+  const sel=pickSelectable(e); if(sel){ selectEl(sel); controls.enabled=true;
+    if(sel.kind==='dev'){ const dv=devices.find(x=>x.id===sel.id); if(dv && dv.type==='intrerupator'){ dv.on=!dv.on; updateLamps(); updateFans(); } }   // click pe intrerupator = aprinde/stinge becul (si ventilatorul comandat)
+  } else { selectEl(null); controls.enabled=true; } }   // click = doar selecteaza; piesele raman fixe. Mutarea se face din butonul Muta
 function onPointerMove(e){ if(!dragging) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera);
   const el=elObj(dragging); if(!el){ dragging=null; controls.enabled=true; return; }
-  let want; if(dragging.kind==='dev') want= el.type==='bec'?'ceiling':'wall'; else if(dragging.kind==='doza') want=null; else want= el.type==='doza'?null:'floor';
+  let want; if(dragging.kind==='dev') want= (el.type==='bec'||el.type==='ventilator')?'ceiling':'wall'; else if(dragging.kind==='doza') want=null; else want= el.type==='doza'?null:'floor';
   const hits=raycaster.intersectObjects(surfaces,true); if(!hits.length) return; const h=want?(hits.find(x=>x.object.userData.kind===want)||null):hits[0]; if(!h) return;
   moveElementTo(el,dragging.kind,h); updateMeasure(el); renderWiresThrottled(); }
 function onPointerUp(){ if(dragging){ dragging=null; dragOrig=null; renderWires(); recordState(); } controls.enabled=true; }
@@ -734,12 +744,18 @@ function applyRouteMode(){ dozas.forEach(z=>{ ['priza','bec'].forEach(tp=>{ cons
 const dozas=[];
 function ensureDoza(cid,defPos){ let d=dozas.find(x=>x.circuit===cid); if(!d){ d={id:uid++,circuit:cid,pos:defPos.clone(),mesh:makeDozaMesh()}; d.mesh.userData={el:'doza',id:d.id}; d.mesh.position.copy(d.pos); scene.add(d.mesh); dozas.push(d); } return d; }
 function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find(x=>x.id===dozas[i].circuit); const has=c&&devices.some(dd=>dd.circuit===c.id&&dd.type==='intrerupator'); if(!has){ scene.remove(dozas[i].mesh); dozas.splice(i,1); } } }
-// Cablaj corect de iluminat: becul se alimenteaza din intrerupatorul de pe acelasi circuit (faza comutata), nu direct din doza.
-function autoLinkBecs(){ devices.filter(d=>d.type==='bec').forEach(b=>{
-  const src=b.source; let linkedToSwOrBec=false;
-  if(src && src.kind==='dev'){ const s=devices.find(x=>x.id===src.id); if(s && (s.type==='intrerupator'||s.type==='bec')) linkedToSwOrBec=true; }
-  if(!linkedToSwOrBec){ const sw=devices.find(d=>d.type==='intrerupator' && d.circuit===b.circuit); if(sw) b.source={kind:'dev',id:sw.id}; }   // leaga becul de intrerupator (daca exista pe circuit)
-}); }
+// doza care deserveste circuitul cid (cea mai apropiata de poz, daca e dat)
+function dozaForCircuit(cid, poz){ let cand=dozas.filter(z=> devices.some(x=>x.doza===z.id && x.circuit===cid)); if(!cand.length) cand=dozas.slice(); if(!cand.length) return null; if(!poz) return cand[0]; let best=null,bd=1e9; cand.forEach(z=>{ const dd=z.pos.distanceTo(poz); if(dd<bd){bd=dd;best=z;} }); return best; }
+// Cablaj corect de iluminat: intrerupatorul ia faza din doza, becul din intrerupator (faza comutata), iar nul+PE vin din doza.
+function autoLinkBecs(){
+  // intrerupatorul cu doza disponibila pe circuit se alimenteaza din doza (faza tablou->doza->intrerupator)
+  devices.filter(d=>d.type==='intrerupator').forEach(s=>{ if(!s.source || s.source.kind==='panel'){ const z=s.doza?dozas.find(x=>x.id===s.doza):dozaForCircuit(s.circuit,s.pos); if(z) s.source={kind:'doza',id:z.id}; } });
+  // becul se alimenteaza din intrerupatorul de pe acelasi circuit (faza comutata)
+  devices.filter(d=>d.type==='bec').forEach(b=>{
+    const src=b.source; let linkedToSwOrBec=false;
+    if(src && src.kind==='dev'){ const s=devices.find(x=>x.id===src.id); if(s && (s.type==='intrerupator'||s.type==='bec')) linkedToSwOrBec=true; }
+    if(!linkedToSwOrBec){ const sw=devices.find(d=>d.type==='intrerupator' && d.circuit===b.circuit); if(sw) b.source={kind:'dev',id:sw.id}; }
+  }); }
 // Becul isi ia nul+impamantare din cea mai apropiata doza de pe ACELASI circuit (nu de la tablou/intrerupator)
 function becNeutralSource(d){
   if(d.doza){ const z=dozas.find(x=>x.id===d.doza); if(z) return z.pos; }   // doza asignata becului
@@ -751,20 +767,24 @@ function becNeutralSource(d){
 function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases(); autoLinkBecs();
   const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
   // doze -> sursa lor (doar daca au copii)
-  dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=z.route||child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
+  dozas.forEach(z=>{ const child=devices.find(d=>(d.source&&d.source.kind==='doza'&&d.source.id===z.id) || d.doza===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=z.route||child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
   // dispozitive -> sursa lor (lant pana la tablou)
   const samePlane=(d,o)=> d&&o&&d.normal&&o.normal && d.normal.dot(o.normal)>0.95;
   devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=d.route||'sus';
     const sd=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const str=(rm==='direct')&&samePlane(d,sd);
-    if(d.type==='priza'){ drawConductor(d.pos,sp,Lc,0,rm,rd,str); drawConductor(d.pos,sp,COND.N,1,rm,rd,str); drawConductor(d.pos,sp,COND.PE,2,rm,rd,str); }
-    else if(d.type==='bec'){ const src=d.source; const swDev=(src&&src.kind==='dev')?devices.find(x=>x.id===src.id):null;
-      const np=becNeutralSource(d) || srcPos(swDev?swDev.source:d.source);   // nul+impamantare din cea mai apropiata doza de pe acelasi circuit
-      if(swDev && swDev.type==='intrerupator'){ drawConductor(d.pos,swDev.pos,COND.SW,0,rm,rd,samePlane(d,swDev)&&rm==='direct'); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); }
-      else { drawConductor(d.pos,sp,COND.SW,0,rm,rd,str); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); } }
+    // PRIZE / VENTILATOR: 3 conductoare (faza, nul, PE) in PUNTE (lant) de la sursa (doza sau priza anterioara) — bucla L+N+PE conform practicii
+    if(d.type==='priza'||d.type==='ventilator'){ drawConductor(d.pos,sp,Lc,0,rm,rd,str); drawConductor(d.pos,sp,COND.N,1,rm,rd,str); drawConductor(d.pos,sp,COND.PE,2,rm,rd,str); }
+    // BEC: in doza raman nul + impamantare (merg direct la bec), iar faza trece prin intrerupator si se intoarce comutata. Becul ia TOATE 3 firele din DOZA. (ref. schema standard intrerupator simplu)
+    else if(d.type==='bec'){ const zPos=becNeutralSource(d);
+      if(zPos){ drawConductor(d.pos,zPos,COND.SW,0,rm,rd); drawConductor(d.pos,zPos,COND.N,1,rm,rd); drawConductor(d.pos,zPos,COND.PE,2,rm,rd); }   // doza = nod: faza comutata + nul + PE, toate din doza
+      else { const swDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const np=srcPos(swDev?swDev.source:d.source); const tSW=(swDev&&swDev.type==='intrerupator')?swDev.pos:sp;
+        drawConductor(d.pos,tSW,COND.SW,0,rm,rd); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); } }   // fara doza: faza comutata din intrerupator, nul+PE de la tablou
+    // INTRERUPATOR: 2 conductoare spre doza — faza (dus) si faza comutata (intors). Intrerupatorul taie doar faza.
     else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
       if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ const s2=(rm==='direct')&&samePlane(d,srcDev); drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd,s2); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd,s2); }
-      else { drawConductor(d.pos,sp,Lc,0,rm,rd,str); drawConductor(d.pos,sp,COND.SW,1,rm,rd,str); } }
-  }); }
+      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; drawConductor(d.pos,tgt,Lc,0,rm,rd); drawConductor(d.pos,tgt,COND.SW,1,rm,rd); } }   // faza dus-intors prin doza (sau direct la sursa daca nu exista doza)
+  });
+  updateLamps(); updateFans(); }
 
 /* ===== dimensionare ===== */
 function circPower(c){ return devices.filter(d=>d.circuit===c.id).reduce((s,d)=>s+(d.power||0),0); }
@@ -800,12 +820,12 @@ function renderLists(){ const cl=$('circuitList');
     const circOpts=circuits.filter(x=>x.kind===myKind).map(x=>`<option value="${x.id}" ${x.id===d.circuit?'selected':''}>C${x.n}</option>`).join('')||'<option value="">—</option>';
     const dozOk=dozas.filter(z=>{ const k=dozaKind(z); return k===null||k===myKind; });
     const srcOpts=`<option value="panel" ${srcSel.kind==='panel'?'selected':''}>Tablou</option>`+dozOk.map(z=>`<option value="doza:${z.id}" ${(srcSel.kind==='doza'&&srcSel.id===z.id)?'selected':''}>Doza ${z.n}</option>`).join('')+devices.filter(x=>x.id!==d.id&&x.type!=='tablou'&&ADD[x.type].kind===myKind).map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${(x.name||ADD[x.type].label).replace(/"/g,'&quot;')}</option>`).join('');
-    const load=(d.type==='bec'||d.type==='priza');
+    const load=(d.type==='bec'||d.type==='priza'||d.type==='ventilator');
     el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
       +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursa</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="sus" ${(d.route||'sus')==='sus'?'selected':''}>pe sus</option><option value="podea" ${d.route==='podea'?'selected':''}>pe podea</option><option value="direct" ${d.route==='direct'?'selected':''}>punte directa</option><option value="orto" ${d.route==='orto'?'selected':''}>punte orto</option></select>`
       +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto;width:54px"> W`:'')+`</div>`;
     return el; };
-  [['tablou','Tablou'],['intrerupator','Intrerupatoare'],['bec','Becuri / spoturi'],['priza','Prize']].forEach(([tp,tl])=>{ const list=devices.filter(d=>d.type===tp); if(!list.length) return; const open=listOpen[tp]!==false;
+  [['tablou','Tablou'],['intrerupator','Intrerupatoare'],['bec','Becuri / spoturi'],['priza','Prize'],['ventilator','Ventilatoare']].forEach(([tp,tl])=>{ const list=devices.filter(d=>d.type===tp); if(!list.length) return; const open=listOpen[tp]!==false;
     const hd=document.createElement('div'); hd.className='row'; hd.style.cssText='cursor:pointer;background:#e3ecf7'; hd.innerHTML=`<span style="flex:1;font-family:Chakra Petch;font-size:12px;letter-spacing:.04em">${open?'▾':'▸'} ${tl} (${list.length})</span>`; hd.onclick=()=>{ listOpen[tp]=!open; renderLists(); }; dl.appendChild(hd);
     if(open) list.forEach(d=> dl.appendChild(buildRow(d))); });
   dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
@@ -833,7 +853,7 @@ function serializeProject(){
     route:{...route},
     plan:{ points:plan.points.map(p=>({x:p.x,z:p.z})), closed:plan.closed, openings:plan.openings.map(o=>({...o})) },
     circuits:circuits.map(c=>({...c})),
-    devices:devices.map(d=>({ id:d.id,type:d.type,circuit:d.circuit,doza:d.doza,source:d.source?{...d.source}:{kind:'panel'},sub:d.sub,route:d.route,power:d.power,name:d.name,surf:d.surf, pos:{x:d.pos.x,y:d.pos.y,z:d.pos.z}, normal:d.normal?{x:d.normal.x,y:d.normal.y,z:d.normal.z}:null })),
+    devices:devices.map(d=>({ id:d.id,type:d.type,circuit:d.circuit,doza:d.doza,source:d.source?{...d.source}:{kind:'panel'},sub:d.sub,route:d.route,power:d.power,name:d.name,surf:d.surf,on:!!d.on, pos:{x:d.pos.x,y:d.pos.y,z:d.pos.z}, normal:d.normal?{x:d.normal.x,y:d.normal.y,z:d.normal.z}:null })),
     dozas:dozas.map(z=>({ id:z.id,n:z.n,route:z.route||'sus',surf:z.surf||'floor',normal:z.normal?{x:z.normal.x,y:z.normal.y,z:z.normal.z}:null,source:z.source?{...z.source}:{kind:'panel'}, pos:{x:z.pos.x,y:z.pos.y,z:z.pos.z} })),
     props:props.map(p=>({ id:p.id,type:p.type,label:p.label,dim:{...p.dim}, pos:{x:p.mesh.position.x,y:p.mesh.position.y,z:p.mesh.position.z} })),
     uid, cuid };
@@ -853,7 +873,7 @@ function applyProject(o){
   if(scene){
     buildRoom3D();
     (o.devices||[]).forEach(dd=>{ const mesh=buildDeviceMesh(dd.type,dd.circuit); const pos=new THREE.Vector3(dd.pos.x,dd.pos.y,dd.pos.z); mesh.position.copy(pos); const normal=dd.normal?new THREE.Vector3(dd.normal.x,dd.normal.y,dd.normal.z):null; if(dd.surf==='wall'&&normal) mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
-      const dev={ id:dd.id,type:dd.type,circuit:dd.circuit,doza:dd.doza,source:dd.source||{kind:'panel'},sub:dd.sub,route:dd.route||'sus',power:dd.power||0,pos,mesh,normal,surf:dd.surf,name:dd.name }; mesh.userData={el:'dev',id:dev.id}; devices.push(dev); updateDevLabel(dev); });
+      const dev={ id:dd.id,type:dd.type,circuit:dd.circuit,doza:dd.doza,source:dd.source||{kind:'panel'},sub:dd.sub,route:dd.route||'sus',power:dd.power||0,pos,mesh,normal,surf:dd.surf,name:dd.name,on:!!dd.on }; mesh.userData={el:'dev',id:dev.id}; devices.push(dev); updateDevLabel(dev); });
     (o.dozas||[]).forEach(zz=>{ const g=makeDozaMesh('Doza '+zz.n); const pos=new THREE.Vector3(zz.pos.x,zz.pos.y,zz.pos.z); g.position.copy(pos); const nrm=zz.normal?new THREE.Vector3(zz.normal.x,zz.normal.y,zz.normal.z):null; orientDoza(g, zz.surf==='wall'&&nrm, nrm); scene.add(g); const dz={id:zz.id,n:zz.n,route:zz.route||'sus',surf:zz.surf||'floor',normal:nrm,pos,mesh:g,source:zz.source||{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); });
     (o.props||[]).forEach(pp=>{ const f=FURN[pp.type]||{color:0x8a6d3b}; const m=new THREE.Mesh(new THREE.BoxGeometry(pp.dim.w,pp.dim.h,pp.dim.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); m.position.set(pp.pos.x,pp.pos.y,pp.pos.z); scene.add(m); const pr={id:pp.id,type:pp.type,mesh:m,label:pp.label,kind:'prop',dim:{...pp.dim}}; m.userData={el:'prop',id:pr.id}; props.push(pr); });
     renderWires();
