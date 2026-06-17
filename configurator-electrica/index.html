@@ -630,10 +630,13 @@ function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[
   items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns='';
     if(it.k==='op') btns+=`<button class="editbtn" data-ek="${it.idx}">✎ dim.</button>`;
     if(it.k==='prop') btns+=`<button class="editbtn" data-fe="${it.id}">✎ dim.</button>`;
-    if(it.k==='doza'){ const z=dozas.find(x=>x.id===it.id); const rv=(z&&z.route)||'sus'; btns+=`<select data-dz-rt="${it.id}" style="background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:2px 4px;font-size:11px;margin-right:4px"><option value="sus" ${rv==='sus'?'selected':''}>pe sus</option><option value="podea" ${rv==='podea'?'selected':''}>pe podea</option><option value="direct" ${rv==='direct'?'selected':''}>punte directa</option><option value="orto" ${rv==='orto'?'selected':''}>punte orto</option></select>`; }
+    if(it.k==='doza'){ const z=dozas.find(x=>x.id===it.id); const rv=(z&&z.route)||'sus'; const ss=(z&&z.source)||{kind:'panel'}; const sst='background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:2px 4px;font-size:11px;margin-right:4px';
+      btns+=`<select data-dz-src="${it.id}" style="${sst}"><option value="panel" ${ss.kind==='panel'?'selected':''}>Tablou</option>`+dozas.filter(o=>o.id!==it.id).map(o=>`<option value="doza:${o.id}" ${(ss.kind==='doza'&&ss.id===o.id)?'selected':''}>Doza ${o.n}</option>`).join('')+`</select>`;
+      btns+=`<select data-dz-rt="${it.id}" style="${sst}"><option value="sus" ${rv==='sus'?'selected':''}>pe sus</option><option value="podea" ${rv==='podea'?'selected':''}>pe podea</option><option value="direct" ${rv==='direct'?'selected':''}>punte directa</option><option value="orto" ${rv==='orto'?'selected':''}>punte orto</option></select>`; }
     btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='op'?it.idx:it.id}">✕</button>`;
     d.innerHTML=`<span class="dot" style="background:${it.col}"></span><span style="flex:1">${it.label}</span>${btns}`; el.appendChild(d); });
   el.querySelectorAll('[data-dz-rt]').forEach(sel=> sel.onchange=()=>{ const z=dozas.find(x=>x.id===parseInt(sel.dataset.dzRt,10)); if(z){ z.route=sel.value; renderWires(); recordState(); } });
+  el.querySelectorAll('[data-dz-src]').forEach(sel=> sel.onchange=()=>{ const z=dozas.find(x=>x.id===parseInt(sel.dataset.dzSrc,10)); if(!z) return; const v=sel.value; z.source = v==='panel'?{kind:'panel'}:{kind:'doza',id:parseInt(v.slice(5),10)}; renderWires(); recordState(); });
   el.querySelectorAll('[data-ek]').forEach(b=> b.onclick=()=>editOpening(parseInt(b.dataset.ek,10)));
   el.querySelectorAll('[data-fe]').forEach(b=> b.onclick=()=>editFurniture(parseInt(b.dataset.fe,10)));
   el.querySelectorAll('[data-rk]').forEach(b=> b.onclick=()=>{ const k=b.dataset.rk, ri=parseInt(b.dataset.ri,10); if(k==='prop') removeProp(ri); else if(k==='doza') removeDoza(ri); else { plan.openings.splice(ri,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
@@ -748,8 +751,9 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
   }
   if(!pts){ const level=(rmode==='podea'?0.08:(H-0.06))-idx*0.028; pts=levelRoute(a,b,level); }   // sus/jos pe suprafete (perete+tavan/podea), nimic prin aer
   pts=avoidOpenings(pts);   // ocoleste usile/ferestrele/golurile (ridica firul peste pragul de sus)
+  if(!pts || pts.length<2 || pts.some(p=> !p || !isFinite(p.x)||!isFinite(p.y)||!isFinite(p.z))) pts=[a.clone(), b.clone()];   // protectie: orice traseu invalid -> linie dreapta (firul nu dispare niciodata)
   // elimina punctele (aproape) coincidente — altfel CatmullRom produce NaN si tubul devine invizibil (ex. intrerupator + doza pe acelasi perete)
-  { const dd=[pts[0]]; for(let i=1;i<pts.length;i++){ if(pts[i].distanceTo(dd[dd.length-1])>0.006) dd.push(pts[i]); } pts = dd.length>=2 ? dd : [pts[0], pts[pts.length-1].clone().add(new THREE.Vector3(0,0.02,0))]; }
+  { const dd=[pts[0]]; for(let i=1;i<pts.length;i++){ if(pts[i].distanceTo(dd[dd.length-1])>0.006) dd.push(pts[i]); } pts = dd.length>=2 ? dd : [a.clone(), b.clone()]; }
   const curve=new THREE.CatmullRomCurve3(pts,false,'catmullrom',0.0); const geo=new THREE.TubeGeometry(curve, Math.max(8,pts.length*6), rad||0.006, 7, false);
   wireGroup.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:new THREE.Color(colorHex), roughness:.55, metalness:.1}))); }
 // Ocolirea golurilor: pe segmentele orizontale de fir, daca firul ar trece prin dreptul unei usi/ferestre la inaltimea lui, il ridica peste pragul de sus al golului
@@ -809,15 +813,15 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
     const sd=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const str=(rm==='direct')&&samePlane(d,sd);
     // PRIZE / VENTILATOR: 3 conductoare (faza, nul, PE) in PUNTE (lant) de la sursa (doza sau priza anterioara) — bucla L+N+PE conform practicii
     if(d.type==='priza'||d.type==='ventilator'){ const st2=(d.type==='ventilator')?true:str; drawConductor(d.pos,sp,Lc,0,rm,rd,st2); drawConductor(d.pos,sp,COND.N,1,rm,rd,st2); drawConductor(d.pos,sp,COND.PE,2,rm,rd,st2); }   // ventilator: cordon direct la priza
-    // BEC: doar firul de FAZA (comutata) merge spre SURSA aleasa (intrerupator daca e selectat ca sursa, altfel doza). NUL + IMPAMANTARE raman mereu din DOZA.
-    else if(d.type==='bec'){ const np=becNeutralSource(d)||sp;
-      drawConductor(d.pos,sp,COND.SW,0,rm,rd);   // faza comutata -> sursa aleasa (intrerupator sau doza)
-      drawConductor(d.pos,np,COND.N,1,rm,rd);    // nul -> din doza
-      drawConductor(d.pos,np,COND.PE,2,rm,rd); } // impamantare -> din doza
-    // INTRERUPATOR: faza (dus) spre doza; faza comutata (intors) spre doza DOAR daca niciun bec nu se ia direct din intrerupator (altfel becul deseneaza el firul comutat)
+    // BEC: ia toate 3 firele din DOZA (nod): faza comutata + nul + impamantare. (faza vine din doza, dupa ce a trecut prin intrerupator)
+    else if(d.type==='bec'){ const zPos=becNeutralSource(d)||sp;
+      drawConductor(d.pos,zPos,COND.SW,0,rm,rd);   // faza comutata <- din doza
+      drawConductor(d.pos,zPos,COND.N,1,rm,rd);    // nul <- din doza
+      drawConductor(d.pos,zPos,COND.PE,2,rm,rd); } // impamantare <- din doza
+    // INTRERUPATOR: 2 fire spre DOZA — faza (dus, din doza) si faza comutata (intors, in doza). Doza e doar legatura (nu se intrerupe).
     else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
       if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ const s2=(rm==='direct')&&samePlane(d,srcDev); drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd,s2); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd,s2); }
-      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; drawConductor(d.pos,tgt,Lc,0,rm,rd); const becOnSw=devices.some(x=>x.type==='bec'&&x.source&&x.source.kind==='dev'&&x.source.id===d.id); if(!becOnSw) drawConductor(d.pos,tgt,COND.SW,1,rm,rd); } }
+      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; drawConductor(d.pos,tgt,Lc,0,rm,rd); drawConductor(d.pos,tgt,COND.SW,1,rm,rd); } }   // faza dus + faza comutata, ambele spre doza
   });
   updateLamps(); updateFans(); }
 
