@@ -647,7 +647,12 @@ function cancelCurrent(){
   if(state.mode==='plan' && typeof planMode!=='undefined' && planMode==='draw'){ planMode='edit'; if(typeof setPlanModeUI==='function') setPlanModeUI(); if(typeof refreshPlan==='function') refreshPlan(); return true; }
   return false;
 }
-window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if(cancelCurrent()) e.preventDefault(); } });
+window.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ if(cancelCurrent()) e.preventDefault(); return; }
+  const tag=(e.target&&e.target.tagName)||''; if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA') return;   // nu fura Ctrl+Z din campuri de text
+  if((e.ctrlKey||e.metaKey) && !e.shiftKey && (e.key==='z'||e.key==='Z')){ e.preventDefault(); undo(); }
+  else if((e.ctrlKey||e.metaKey) && (e.key==='y'||e.key==='Y' || ((e.key==='z'||e.key==='Z')&&e.shiftKey))){ e.preventDefault(); redo(); }   // Ctrl+Y sau Ctrl+Shift+Z = redo
+});
 
 /* ===== cablare cu doze ===== */
 function panelDev(){ return devices.find(d=>d.type==='tablou'); }
@@ -1011,21 +1016,29 @@ function genDXF(){
   const face=(A,B,C,D,layer)=>{ D=D||C; e+=`0\n3DFACE\n8\n${layer}\n10\n${f(A.X)}\n20\n${f(A.Y)}\n30\n${f(A.Z)}\n11\n${f(B.X)}\n21\n${f(B.Y)}\n31\n${f(B.Z)}\n12\n${f(C.X)}\n22\n${f(C.Y)}\n32\n${f(C.Z)}\n13\n${f(D.X)}\n23\n${f(D.Y)}\n33\n${f(D.Z)}\n`; };
   const line=(A,B,layer)=>{ e+=`0\nLINE\n8\n${layer}\n10\n${f(A.X)}\n20\n${f(A.Y)}\n30\n${f(A.Z)}\n11\n${f(B.X)}\n21\n${f(B.Y)}\n31\n${f(B.Z)}\n`; };
   const text=(A,h,s,layer)=>{ e+=`0\nTEXT\n8\n${layer}\n10\n${f(A.X)}\n20\n${f(A.Y)}\n30\n${f(A.Z)}\n40\n${(h*S).toFixed(2)}\n1\n${String(s).replace(/[\n\r]/g,' ')}\n7\nSTANDARD\n`; };
-  // pereti extrudati pe inaltime (cate o fata 3DFACE per perete)
-  eo.forEach(g=>{ face(P(g.p1.x,g.p1.z,0), P(g.p2.x,g.p2.z,0), P(g.p2.x,g.p2.z,Hm), P(g.p1.x,g.p1.z,Hm), 'PERETI'); });
-  // podea (triangulare evantai din primul colt)
-  const pp=plan.points; if(pp.length>=3){ const O=P(pp[0].x,pp[0].z,0); for(let i=1;i+1<pp.length;i++){ face(O, P(pp[i].x,pp[i].z,0), P(pp[i+1].x,pp[i+1].z,0), null, 'PARDOSEALA'); } }
+  // POLILINIE inchisa cu GROSIME (extrude nativ AutoCAD): conturul 2D extrudat pe inaltime -> pereti/cutii 3D editabile
+  const poly=(pts2D, elevH, thickH, layer)=>{ const eMm=elevH*S, tMm=thickH*S;
+    e+=`0\nPOLYLINE\n8\n${layer}\n66\n1\n10\n0.0\n20\n0.0\n30\n${eMm.toFixed(2)}\n39\n${tMm.toFixed(2)}\n70\n1\n`;
+    pts2D.forEach(p=>{ const X=p.x*S, Y=-p.z*S; if(X<minX)minX=X;if(X>maxX)maxX=X;if(Y<minY)minY=Y;if(Y>maxY)maxY=Y; e+=`0\nVERTEX\n8\n${layer}\n10\n${X.toFixed(2)}\n20\n${Y.toFixed(2)}\n30\n${eMm.toFixed(2)}\n`; });
+    e+=`0\nSEQEND\n8\n${layer}\n`; if(eMm<minZ)minZ=eMm; if(eMm+tMm>maxZ)maxZ=eMm+tMm; };
+  const rect=(cx,cz,w,d)=>[{x:cx-w/2,z:cz-d/2},{x:cx+w/2,z:cz-d/2},{x:cx+w/2,z:cz+d/2},{x:cx-w/2,z:cz+d/2}];
+  // peretii camerei = conturul extrudat pe inaltimea camerei (H)
+  const pp=plan.points; if(pp.length>=3) poly(pp.map(p=>({x:p.x,z:p.z})), 0, Hm, 'PERETI');
+  // podea (3DFACE plina la cota 0)
+  if(pp.length>=3){ const O=P(pp[0].x,pp[0].z,0); for(let i=1;i+1<pp.length;i++){ face(O, P(pp[i].x,pp[i].z,0), P(pp[i+1].x,pp[i+1].z,0), null, 'PARDOSEALA'); } }
   // goluri (usi/ferestre) ca dreptunghi vertical pe perete
   plan.openings.forEach(o=>{ const g=eo[o.wall]; if(!g) return; const dx=g.p2.x-g.p1.x,dz=g.p2.z-g.p1.z; const L=Math.hypot(dx,dz)||1; const ux=dx/L,uz=dz/L; const a={x:g.p1.x+ux*o.pos,z:g.p1.z+uz*o.pos}, b={x:g.p1.x+ux*(o.pos+o.w),z:g.p1.z+uz*(o.pos+o.w)}; const win=o.type.includes('fereastra'); const z0=win?0.9:0, z1=win?2.1:2.05; const lr=win?'FERESTRE':'USI'; const A=P(a.x,a.z,z0),B=P(b.x,b.z,z0),C=P(b.x,b.z,z1),D=P(a.x,a.z,z1); line(A,B,lr);line(B,C,lr);line(C,D,lr);line(D,A,lr); });
-  // aparataj: tija verticala pana la cota reala (din pozitia 3D) + eticheta
+  // mobilier = cutie extrudata cu dimensiunile reale (latime x adancime x inaltime)
+  props.forEach(pr=>{ const w=pr.dim.w,dd=pr.dim.d,h=pr.dim.h; const cx=pr.mesh.position.x, cz=pr.mesh.position.z; poly(rect(cx,cz,w,dd), 0, h, 'MOBILIER'); text(P(cx,cz,h+0.02),0.09,pr.label||'mobilier','MOBILIER'); });
+  // aparataj = mic volum extrudat la cota reala + tija pana la podea + eticheta
   const lay={tablou:'TABLOU',intrerupator:'INTRERUPATOARE',bec:'BECURI',priza:'PRIZE'};
   const dy=d=>(d.pos&&typeof d.pos.y==='number')?d.pos.y:(d.type==='bec'?Hm:(d.type==='priza'?0.4:1.1));
-  devices.forEach(d=>{ const lr=lay[d.type]||'APARATAJ'; const hy=dy(d); line(P(d.pos.x,d.pos.z,0), P(d.pos.x,d.pos.z,hy), lr); text(P(d.pos.x+0.05,d.pos.z,hy), 0.08, (d.name||d.type), lr); });
-  dozas.forEach(z=>{ const hy=(z.pos&&typeof z.pos.y==='number')?z.pos.y:(Hm-0.1); line(P(z.pos.x,z.pos.z,0), P(z.pos.x,z.pos.z,hy), 'DOZE'); text(P(z.pos.x+0.05,z.pos.z,hy), 0.08, 'Doza '+z.n, 'DOZE'); });
+  devices.forEach(d=>{ const lr=lay[d.type]||'APARATAJ'; const hy=dy(d); const sz=d.type==='tablou'?0.18:0.09; line(P(d.pos.x,d.pos.z,0), P(d.pos.x,d.pos.z,hy), lr); poly(rect(d.pos.x,d.pos.z,sz,sz), Math.max(0,hy-sz/2), sz, lr); text(P(d.pos.x+0.07,d.pos.z,hy), 0.08, (d.name||d.type), lr); });
+  dozas.forEach(z=>{ const hy=(z.pos&&typeof z.pos.y==='number')?z.pos.y:(Hm-0.1); line(P(z.pos.x,z.pos.z,0), P(z.pos.x,z.pos.z,hy), 'DOZE'); poly(rect(z.pos.x,z.pos.z,0.1,0.1), Math.max(0,hy-0.05), 0.1, 'DOZE'); text(P(z.pos.x+0.07,z.pos.z,hy), 0.08, 'Doza '+z.n, 'DOZE'); });
   // trasee 3D intre aparat si sursa
   devices.filter(d=>d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); const sy=(sp&&typeof sp.y==='number')?sp.y:1.1; line(P(d.pos.x,d.pos.z,dy(d)), P(sp.x,sp.z,sy), 'TRASEE'); });
   if(minX>maxX){ minX=0;minY=0;minZ=0;maxX=1000;maxY=1000;maxZ=Hm*S; }
-  const LAYERS=[['PERETI',7],['PARDOSEALA',8],['USI',3],['FERESTRE',5],['TABLOU',1],['INTRERUPATOARE',2],['BECURI',2],['PRIZE',4],['DOZE',6],['TRASEE',30],['APARATAJ',7]];
+  const LAYERS=[['PERETI',7],['PARDOSEALA',8],['MOBILIER',9],['USI',3],['FERESTRE',5],['TABLOU',1],['INTRERUPATOARE',2],['BECURI',2],['PRIZE',4],['DOZE',6],['TRASEE',30],['APARATAJ',7]];
   download('model-instalatie-3d.dxf', dxfWrap(e, LAYERS, {minX,minY,minZ,maxX,maxY,maxZ}));
 }
 function genSTL(){
@@ -1048,7 +1061,7 @@ document.querySelectorAll('[data-sys-seg]').forEach(b=> b.onclick=()=>setSystem(
 function askSystem(){ openModal(`<h2>Tip instalatie electrica</h2><p class="muted">Cum e alimentata casa?</p><div class="cbtns"><button class="btn act" data-sys="mono">Monofazat (230V)</button><button class="btn" data-sys="tri">Trifazat (400V)</button></div>`); $('modalBody').querySelectorAll('[data-sys]').forEach(b=>b.onclick=()=>{ setSystem(b.dataset.sys); closeModal(); }); }
 
 /* ===== comutare moduri ===== */
-$('raise').onclick=()=>{ if(!isClosed()){ alert('Inchide intai conturul camerei (buton „Inchide contur" sau click pe primul colt).'); return; } init3D(); buildRoom3D(); state.mode='3d'; $('planCanvas').style.display='none'; renderer.domElement.style.display='block'; sizeRenderer(); $('planPanel').classList.add('hidden'); $('elecPanel').classList.remove('hidden'); $('legend').classList.remove('hidden'); $('mode').innerHTML='Alege un element, apoi <b>click pe perete/tavan</b>. Drag = roteste. Apasa <b>🖐 Cursor</b> ca sa nu plasezi din greseala.'; $('topHint').textContent='Pasul 2 — adauga elemente'; renderLists(); renderRoomList(); };
+$('raise').onclick=()=>{ if(!isClosed()){ alert('Inchide intai conturul camerei (buton „Inchide contur" sau click pe primul colt).'); return; } init3D(); buildRoom3D(); state.mode='3d'; $('planCanvas').style.display='none'; renderer.domElement.style.display='block'; sizeRenderer(); $('planPanel').classList.add('hidden'); $('elecPanel').classList.remove('hidden'); $('legend').classList.remove('hidden'); $('mode').innerHTML='Alege un element, apoi <b>click pe perete/tavan</b>. Drag = roteste. Apasa <b>🖐 Cursor</b> ca sa nu plasezi din greseala.'; $('topHint').textContent='Pasul 2 — adauga elemente'; $('viewcube').classList.remove('hidden'); renderLists(); renderRoomList(); undoStates=[]; undoIdx=-1; recordState(); };
 $('toggleView').onclick=()=>{ if(state.mode==='plan') $('raise').click(); else $('backPlan').click(); };
 $('undoBtn').onclick=undo; $('undoBtn2').onclick=undo;
 $('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent='Mod cursor: rotesti / muti vederea, nu se plaseaza nimic.'; };
