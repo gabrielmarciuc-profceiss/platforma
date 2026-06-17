@@ -450,7 +450,7 @@ function buildRoom3D(){
   const {v,out}=edges(); const c=centroid();
   // podea + tavan (forma poligon)
   const shape=new THREE.Shape(); v.slice(0,-1).forEach((p,i)=> i?shape.lineTo(p.x,p.z):shape.moveTo(p.x,p.z)); shape.closePath();
-  const floor=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0xdbe4f0,roughness:.95,side:THREE.DoubleSide})); floor.rotation.x=Math.PI/2; floor.userData={kind:'floor'}; roomGroup.add(floor); surfaces.push(floor);
+  const floor=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0xdbe4f0,roughness:.95,transparent:true,opacity:.30,side:THREE.DoubleSide})); floor.rotation.x=Math.PI/2; floor.userData={kind:'floor'}; roomGroup.add(floor); surfaces.push(floor);
   const ceil=new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({color:0xeef3f9,roughness:.95,transparent:true,opacity:.35,side:THREE.DoubleSide})); ceil.rotation.x=Math.PI/2; ceil.position.y=H; ceil.userData={kind:'ceiling'}; roomGroup.add(ceil); surfaces.push(ceil);
   // pereti cu goluri
   out.forEach(e=>{
@@ -601,8 +601,10 @@ function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[
   items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns='';
     if(it.k==='op') btns+=`<button class="editbtn" data-ek="${it.idx}">✎ dim.</button>`;
     if(it.k==='prop') btns+=`<button class="editbtn" data-fe="${it.id}">✎ dim.</button>`;
+    if(it.k==='doza'){ const z=dozas.find(x=>x.id===it.id); const rv=(z&&z.route)||'sus'; btns+=`<select data-dz-rt="${it.id}" style="background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:2px 4px;font-size:11px;margin-right:4px"><option value="sus" ${rv==='sus'?'selected':''}>pe sus</option><option value="podea" ${rv==='podea'?'selected':''}>pe podea</option><option value="direct" ${rv==='direct'?'selected':''}>punte directa</option><option value="orto" ${rv==='orto'?'selected':''}>punte orto</option></select>`; }
     btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='op'?it.idx:it.id}">✕</button>`;
     d.innerHTML=`<span class="dot" style="background:${it.col}"></span><span style="flex:1">${it.label}</span>${btns}`; el.appendChild(d); });
+  el.querySelectorAll('[data-dz-rt]').forEach(sel=> sel.onchange=()=>{ const z=dozas.find(x=>x.id===parseInt(sel.dataset.dzRt,10)); if(z){ z.route=sel.value; renderWires(); recordState(); } });
   el.querySelectorAll('[data-ek]').forEach(b=> b.onclick=()=>editOpening(parseInt(b.dataset.ek,10)));
   el.querySelectorAll('[data-fe]').forEach(b=> b.onclick=()=>editFurniture(parseInt(b.dataset.fe,10)));
   el.querySelectorAll('[data-rk]').forEach(b=> b.onclick=()=>{ const k=b.dataset.rk, ri=parseInt(b.dataset.ri,10); if(k==='prop') removeProp(ri); else if(k==='doza') removeDoza(ri); else { plan.openings.splice(ri,1); buildRoom3D(); renderWires(); renderRoomList(); } }); }
@@ -712,7 +714,7 @@ function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find
 function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases();
   const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
   // doze -> sursa lor (doar daca au copii)
-  dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
+  dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=z.route||child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
   // dispozitive -> sursa lor (lant pana la tablou)
   const samePlane=(d,o)=> d&&o&&d.normal&&o.normal && d.normal.dot(o.normal)>0.95;
   devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=d.route||'sus';
@@ -732,7 +734,7 @@ function sizeCircuit(c){ const P=circPower(c); const I=P/U; const min=c.kind==='
 function condRad(c){ const sec=c?sizeCircuit(c).section:'1,5'; return ({'1,5':0.004,'2,5':0.008,'4':0.010,'6':0.012,'10':0.015})[sec]||0.006; }
 function circuitLength(c){ const panel=panelDev(); if(!panel) return 0; let L=0;
   devices.filter(d=>d.circuit===c.id && d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); L+=routeLen(d.pos, sp, d.route||'sus'); });
-  dozas.forEach(z=>{ const child=devices.find(d=>d.circuit===c.id && d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(child) L+=routeLen(z.pos, srcPos(z.source), child.route||'sus'); });
+  dozas.forEach(z=>{ const child=devices.find(d=>d.circuit===c.id && d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(child) L+=routeLen(z.pos, srcPos(z.source), z.route||child.route||'sus'); });
   return L*1.15; }
 function assignPhases(){ if(state.system!=='tri'){ circuits.forEach(c=>{ c.phase='L1'; }); return; } let i=0; circuits.forEach(c=>{ if(!['L1','L2','L3'].includes(c.phase)){ c.phase=['L1','L2','L3'][i%3]; } i++; }); }
 function sizeMain(){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); const tetra=(state.mainPoles||(state.system==='tri'?'tetra':'mono'))==='tetra'; const load=tetra?Math.max(acc.L1,acc.L2,acc.L3):(acc.L1+acc.L2+acc.L3); const I=load/U; const auto=MAINSTD.find(s=>s>=I*1.1)||63; return {tetra,I,main:state.mainOverride||auto,auto,acc}; }
@@ -794,7 +796,7 @@ function serializeProject(){
     plan:{ points:plan.points.map(p=>({x:p.x,z:p.z})), closed:plan.closed, openings:plan.openings.map(o=>({...o})) },
     circuits:circuits.map(c=>({...c})),
     devices:devices.map(d=>({ id:d.id,type:d.type,circuit:d.circuit,doza:d.doza,source:d.source?{...d.source}:{kind:'panel'},sub:d.sub,route:d.route,power:d.power,name:d.name,surf:d.surf, pos:{x:d.pos.x,y:d.pos.y,z:d.pos.z}, normal:d.normal?{x:d.normal.x,y:d.normal.y,z:d.normal.z}:null })),
-    dozas:dozas.map(z=>({ id:z.id,n:z.n,source:z.source?{...z.source}:{kind:'panel'}, pos:{x:z.pos.x,y:z.pos.y,z:z.pos.z} })),
+    dozas:dozas.map(z=>({ id:z.id,n:z.n,route:z.route||'sus',source:z.source?{...z.source}:{kind:'panel'}, pos:{x:z.pos.x,y:z.pos.y,z:z.pos.z} })),
     props:props.map(p=>({ id:p.id,type:p.type,label:p.label,dim:{...p.dim}, pos:{x:p.mesh.position.x,y:p.mesh.position.y,z:p.mesh.position.z} })),
     uid, cuid };
 }
@@ -814,7 +816,7 @@ function applyProject(o){
     buildRoom3D();
     (o.devices||[]).forEach(dd=>{ const mesh=buildDeviceMesh(dd.type,dd.circuit); const pos=new THREE.Vector3(dd.pos.x,dd.pos.y,dd.pos.z); mesh.position.copy(pos); const normal=dd.normal?new THREE.Vector3(dd.normal.x,dd.normal.y,dd.normal.z):null; if(dd.surf==='wall'&&normal) mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
       const dev={ id:dd.id,type:dd.type,circuit:dd.circuit,doza:dd.doza,source:dd.source||{kind:'panel'},sub:dd.sub,route:dd.route||'sus',power:dd.power||0,pos,mesh,normal,surf:dd.surf,name:dd.name }; mesh.userData={el:'dev',id:dev.id}; devices.push(dev); updateDevLabel(dev); });
-    (o.dozas||[]).forEach(zz=>{ const g=makeDozaMesh('Doza '+zz.n); const pos=new THREE.Vector3(zz.pos.x,zz.pos.y,zz.pos.z); g.position.copy(pos); scene.add(g); const dz={id:zz.id,n:zz.n,pos,mesh:g,source:zz.source||{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); });
+    (o.dozas||[]).forEach(zz=>{ const g=makeDozaMesh('Doza '+zz.n); const pos=new THREE.Vector3(zz.pos.x,zz.pos.y,zz.pos.z); g.position.copy(pos); scene.add(g); const dz={id:zz.id,n:zz.n,route:zz.route||'sus',pos,mesh:g,source:zz.source||{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); });
     (o.props||[]).forEach(pp=>{ const f=FURN[pp.type]||{color:0x8a6d3b}; const m=new THREE.Mesh(new THREE.BoxGeometry(pp.dim.w,pp.dim.h,pp.dim.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); m.position.set(pp.pos.x,pp.pos.y,pp.pos.z); scene.add(m); const pr={id:pp.id,type:pp.type,mesh:m,label:pp.label,kind:'prop',dim:{...pp.dim}}; m.userData={el:'prop',id:pr.id}; props.push(pr); });
     renderWires();
   }
