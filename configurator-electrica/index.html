@@ -793,7 +793,7 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
     // INTRERUPATOR: 2 conductoare spre doza — faza (dus) si faza comutata (intors). Intrerupatorul taie doar faza.
     else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
       if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ const s2=(rm==='direct')&&samePlane(d,srcDev); drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd,s2); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd,s2); }
-      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; const cb=devices.find(x=>x.type==='bec'&&x.circuit===d.circuit); const rmL=cb?(cb.route||'sus'):rm; drawConductor(d.pos,tgt,Lc,0,rmL,rd); drawConductor(d.pos,tgt,COND.SW,1,rmL,rd); } }   // faza dus-intors prin doza; acelasi mod de traseu ca becul comandat
+      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; drawConductor(d.pos,tgt,Lc,0,rm,rd); drawConductor(d.pos,tgt,COND.SW,1,rm,rd); } }   // faza dus-intors prin doza (traseu propriu al intrerupatorului)
   });
   updateLamps(); updateFans(); }
 
