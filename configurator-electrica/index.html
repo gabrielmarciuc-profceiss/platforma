@@ -699,6 +699,15 @@ function buildPerim(){ const {v}=edges(); const pts=v.slice(0,-1); if(pts.length
 function projPerim(P){ if(!PERIM) return {x:P.x,z:P.z,s:0,edge:null}; let best=null; for(let i=0;i<PERIM.m;i++){ const a=PERIM.pts[i], b=PERIM.pts[(i+1)%PERIM.m]; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; let t=((P.x-a.x)*dx+(P.z-a.z)*dz)/(ln*ln); t=Math.max(0,Math.min(1,t)); const cx=a.x+t*dx, cz=a.z+t*dz; const d=Math.hypot(P.x-cx,P.z-cz); if(!best||d<best.d) best={d,x:cx,z:cz,s:PERIM.cum[i]+t*ln,edge:i}; } return best; }
 function perimMids(sA,sB){ if(!PERIM) return []; const Lt=PERIM.Ltot; const fwdDist=((sB-sA)%Lt+Lt)%Lt; const fwd=fwdDist<=Lt-fwdDist; const dist=fwd?fwdDist:Lt-fwdDist; const out=[]; for(let k=0;k<PERIM.m;k++){ const cs=PERIM.cum[k]; const dd=fwd?(((cs-sA)%Lt+Lt)%Lt):(((sA-cs)%Lt+Lt)%Lt); if(dd>0.001 && dd<dist-0.001) out.push({d:dd,p:PERIM.pts[k]}); } out.sort((x,y)=>x.d-y.d); return out.map(o=>o.p); }
 function routeWaypoints(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [{x:a.x,z:a.z},{x:b.x,z:b.z}]; return [{x:pa.x,z:pa.z}, ...perimMids(pa.s,pb.s), {x:pb.x,z:pb.z}]; }
+// Traseu pe SUPRAFETE la un nivel (sus=tavan / jos=podea): de la punct -> peretele cel mai apropiat (pe tavan/podea), coboara/urca pe perete la nivel, merge pe perimetru, apoi urca la destinatie. Nimic prin aer.
+function levelRoute(a,b,level){ if(!PERIM) buildPerim(); if(!PERIM) return [a.clone(), b.clone()]; const pa=projPerim(a), pb=projPerim(b);
+  const out=[a.clone()];
+  out.push(new THREE.Vector3(pa.x, a.y, pa.z));      // pe tavan/podea, pana la perete (la inaltimea lui a)
+  out.push(new THREE.Vector3(pa.x, level, pa.z));    // pe perete, pana la nivel
+  perimMids(pa.s, pb.s).forEach(w=> out.push(new THREE.Vector3(w.x, level, w.z)));   // pe pereti, prin colturi, la nivel
+  out.push(new THREE.Vector3(pb.x, level, pb.z));    // langa destinatie, la nivel
+  out.push(new THREE.Vector3(pb.x, b.y, pb.z));      // pe perete, pana la inaltimea lui b
+  out.push(b.clone()); return out; }
 // traseu pe suprafete, pe drumul cel mai scurt prin colturi (inaltime interpolata) — fara fire prin aer/exterior
 function surfaceRoute(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [a.clone(),b.clone()];
   const startH=a.y>H*0.7?H:a.y, endH=b.y>H*0.7?H:b.y; const mids=perimMids(pa.s,pb.s);
@@ -737,7 +746,7 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
       else { const lvl=H-off; const mids=routeWaypoints(a,b).slice(1,-1); pts=[a.clone(), new THREE.Vector3(a.x,lvl,a.z), ...mids.map(w=>new THREE.Vector3(w.x,lvl,w.z)), new THREE.Vector3(b.x,lvl,b.z), b.clone()]; }
     }
   }
-  if(!pts){ const level=(rmode==='podea'?0.08:(H-0.06))-idx*0.014; const way=routeWaypoints(a,b); pts=[a.clone()]; way.forEach(w=>pts.push(new THREE.Vector3(w.x,level,w.z))); pts.push(b.clone()); }
+  if(!pts){ const level=(rmode==='podea'?0.08:(H-0.06))-idx*0.028; pts=levelRoute(a,b,level); }   // sus/jos pe suprafete (perete+tavan/podea), nimic prin aer
   pts=avoidOpenings(pts);   // ocoleste usile/ferestrele/golurile (ridica firul peste pragul de sus)
   // elimina punctele (aproape) coincidente — altfel CatmullRom produce NaN si tubul devine invizibil (ex. intrerupator + doza pe acelasi perete)
   { const dd=[pts[0]]; for(let i=1;i<pts.length;i++){ if(pts[i].distanceTo(dd[dd.length-1])>0.006) dd.push(pts[i]); } pts = dd.length>=2 ? dd : [pts[0], pts[pts.length-1].clone().add(new THREE.Vector3(0,0.02,0))]; }
@@ -799,7 +808,7 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
   devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=d.route||'sus';
     const sd=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const str=(rm==='direct')&&samePlane(d,sd);
     // PRIZE / VENTILATOR: 3 conductoare (faza, nul, PE) in PUNTE (lant) de la sursa (doza sau priza anterioara) — bucla L+N+PE conform practicii
-    if(d.type==='priza'||d.type==='ventilator'){ drawConductor(d.pos,sp,Lc,0,rm,rd,str); drawConductor(d.pos,sp,COND.N,1,rm,rd,str); drawConductor(d.pos,sp,COND.PE,2,rm,rd,str); }
+    if(d.type==='priza'||d.type==='ventilator'){ const st2=(d.type==='ventilator')?true:str; drawConductor(d.pos,sp,Lc,0,rm,rd,st2); drawConductor(d.pos,sp,COND.N,1,rm,rd,st2); drawConductor(d.pos,sp,COND.PE,2,rm,rd,st2); }   // ventilator: cordon direct la priza
     // BEC: doar firul de FAZA (comutata) merge spre SURSA aleasa (intrerupator daca e selectat ca sursa, altfel doza). NUL + IMPAMANTARE raman mereu din DOZA.
     else if(d.type==='bec'){ const np=becNeutralSource(d)||sp;
       drawConductor(d.pos,sp,COND.SW,0,rm,rd);   // faza comutata -> sursa aleasa (intrerupator sau doza)
