@@ -425,10 +425,10 @@ $('addOp').onclick=()=>{
 function init3D(){
   if(renderer) return;
   scene=new THREE.Scene();
-  camera=new THREE.PerspectiveCamera(52, 1, 0.05, 200);
+  camera=new THREE.PerspectiveCamera(52, 1, 0.01, 200);   // near mic: nu taie cand te apropii de piesa
   renderer=new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true, alpha:true}); renderer.setClearColor(0x000000,0); renderer.setPixelRatio(devicePixelRatio);
   $('canvaswrap').appendChild(renderer.domElement); renderer.domElement.id='glCanvas'; renderer.domElement.style.display='none';
-  controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=false;
+  controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=false; controls.zoomToCursor=true; controls.minDistance=0.05; controls.maxDistance=60;   // zoom spre cursor + apropiere mare de piese
   scene.add(new THREE.HemisphereLight(0xffffff,0xc8d4e2,1.25));
   const dir=new THREE.DirectionalLight(0xffffff,0.85); dir.position.set(4,8,6); scene.add(dir);
   scene.add(new THREE.AmbientLight(0xffffff,0.35));
@@ -702,8 +702,29 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
     }
   }
   if(!pts){ const level=(rmode==='podea'?0.08:(H-0.06))-idx*0.014; const way=routeWaypoints(a,b); pts=[a.clone()]; way.forEach(w=>pts.push(new THREE.Vector3(w.x,level,w.z))); pts.push(b.clone()); }
+  pts=avoidOpenings(pts);   // ocoleste usile/ferestrele/golurile (ridica firul peste pragul de sus)
   const curve=new THREE.CatmullRomCurve3(pts,false,'catmullrom',0.0); const geo=new THREE.TubeGeometry(curve, Math.max(8,pts.length*6), rad||0.006, 7, false);
   wireGroup.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:new THREE.Color(colorHex), roughness:.55, metalness:.1}))); }
+// Ocolirea golurilor: pe segmentele orizontale de fir, daca firul ar trece prin dreptul unei usi/ferestre la inaltimea lui, il ridica peste pragul de sus al golului
+function avoidOpenings(pts){ if(!plan.openings.length || pts.length<2) return pts; const eo=edges().out;
+  const ops=plan.openings.map(o=>{ const g=eo[o.wall]; if(!g) return null; const dx=g.p2.x-g.p1.x,dz=g.p2.z-g.p1.z; const L=Math.hypot(dx,dz)||1; const ux=dx/L,uz=dz/L; return { ax:g.p1.x+ux*o.pos, az:g.p1.z+uz*o.pos, bx:g.p1.x+ux*(o.pos+o.w), bz:g.p1.z+uz*(o.pos+o.w), ux, uz, sill:o.sill||0, head:Math.min(o.head||2.05,H) }; }).filter(Boolean);
+  if(!ops.length) return pts;
+  const res=[pts[0]];
+  for(let i=1;i<pts.length;i++){ const A=pts[i-1], B=pts[i];
+    if(Math.abs(A.y-B.y)>0.03){ res.push(B); continue; }   // doar segmente orizontale (la nivel)
+    const level=A.y; let sdx=B.x-A.x, sdz=B.z-A.z; const SL=Math.hypot(sdx,sdz); if(SL<1e-3){ res.push(B); continue; } const sux=sdx/SL, suz=sdz/SL;
+    let hits=[];
+    ops.forEach(op=>{ if(level<op.sill-0.02 || level>op.head+0.02) return;                 // firul e sub prag sau peste buiandrug -> nu intersecteaza
+      if(Math.abs(op.ux*sux+op.uz*suz)<0.97) return;                                       // golul nu e pe directia segmentului
+      const lat=Math.abs((op.ax-A.x)*(-suz)+(op.az-A.z)*sux); if(lat>0.30) return;          // golul e pe alt perete (lateral)
+      let ta=(op.ax-A.x)*sux+(op.az-A.z)*suz, tb=(op.bx-A.x)*sux+(op.bz-A.z)*suz; let t0=Math.max(0,Math.min(ta,tb)-0.04), t1=Math.min(SL,Math.max(ta,tb)+0.04); if(t1-t0<0.03) return;
+      hits.push({t0,t1,lift:op.head+0.07}); });
+    if(!hits.length){ res.push(B); continue; }
+    hits.sort((a,b)=>a.t0-b.t0);
+    hits.forEach(h=>{ res.push(new THREE.Vector3(A.x+sux*h.t0, level, A.z+suz*h.t0)); res.push(new THREE.Vector3(A.x+sux*h.t0, h.lift, A.z+suz*h.t0)); res.push(new THREE.Vector3(A.x+sux*h.t1, h.lift, A.z+suz*h.t1)); res.push(new THREE.Vector3(A.x+sux*h.t1, level, A.z+suz*h.t1)); });
+    res.push(B);
+  }
+  return res; }
 function addDoza(pos){ const g=makeDozaMesh(); g.position.copy(pos); g.position.y=H-0.03; g.position.x+=0.14; wireGroup.add(g); }
 function nearest(d,arr){ let best=null,bd=1e9; arr.forEach(a=>{const x=a.pos.distanceTo(d.pos); if(x<bd){bd=x;best=a;}}); return best; }
 function chainOrder(start,arr){ const rem=[...arr],out=[]; let cur=start; while(rem.length){ let bi=0,bd=1e9; rem.forEach((a,i)=>{const x=a.pos.distanceTo(cur.pos); if(x<bd){bd=x;bi=i;}}); cur=rem[bi]; out.push(cur); rem.splice(bi,1);} return out; }
@@ -711,7 +732,13 @@ function applyRouteMode(){ dozas.forEach(z=>{ ['priza','bec'].forEach(tp=>{ cons
 const dozas=[];
 function ensureDoza(cid,defPos){ let d=dozas.find(x=>x.circuit===cid); if(!d){ d={id:uid++,circuit:cid,pos:defPos.clone(),mesh:makeDozaMesh()}; d.mesh.userData={el:'doza',id:d.id}; d.mesh.position.copy(d.pos); scene.add(d.mesh); dozas.push(d); } return d; }
 function pruneDozas(){ for(let i=dozas.length-1;i>=0;i--){ const c=circuits.find(x=>x.id===dozas[i].circuit); const has=c&&devices.some(dd=>dd.circuit===c.id&&dd.type==='intrerupator'); if(!has){ scene.remove(dozas[i].mesh); dozas.splice(i,1); } } }
-function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases();
+// Cablaj corect de iluminat: becul se alimenteaza din intrerupatorul de pe acelasi circuit (faza comutata), nu direct din doza.
+function autoLinkBecs(){ devices.filter(d=>d.type==='bec').forEach(b=>{
+  const src=b.source; let linkedToSwOrBec=false;
+  if(src && src.kind==='dev'){ const s=devices.find(x=>x.id===src.id); if(s && (s.type==='intrerupator'||s.type==='bec')) linkedToSwOrBec=true; }
+  if(!linkedToSwOrBec){ const sw=devices.find(d=>d.type==='intrerupator' && d.circuit===b.circuit); if(sw) b.source={kind:'dev',id:sw.id}; }   // leaga becul de intrerupator (daca exista pe circuit)
+}); }
+function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases(); autoLinkBecs();
   const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
   // doze -> sursa lor (doar daca au copii)
   dozas.forEach(z=>{ const child=devices.find(d=>d.source&&d.source.kind==='doza'&&d.source.id===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=z.route||child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
