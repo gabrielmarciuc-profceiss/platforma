@@ -428,7 +428,7 @@ function init3D(){
   camera=new THREE.PerspectiveCamera(52, 1, 0.01, 200);   // near mic: nu taie cand te apropii de piesa
   renderer=new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true, alpha:true}); renderer.setClearColor(0x000000,0); renderer.setPixelRatio(devicePixelRatio);
   $('canvaswrap').appendChild(renderer.domElement); renderer.domElement.id='glCanvas'; renderer.domElement.style.display='none';
-  controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=false; controls.zoomToCursor=true; controls.minDistance=0.05; controls.maxDistance=60;   // zoom spre cursor + apropiere mare de piese
+  controls=new OrbitControls(camera, renderer.domElement); controls.enableDamping=false; controls.enableZoom=true; controls.zoomSpeed=1.15; controls.minDistance=0.05; controls.maxDistance=60;   // zoom scroll activ + apropiere mare de piese
   scene.add(new THREE.HemisphereLight(0xffffff,0xc8d4e2,1.25));
   const dir=new THREE.DirectionalLight(0xffffff,0.85); dir.position.set(4,8,6); scene.add(dir);
   scene.add(new THREE.AmbientLight(0xffffff,0.35));
@@ -545,9 +545,10 @@ function editFurniture(id){ const pr=props.find(p=>p.id===id); if(!pr||!pr.dim) 
   openModal(`<button class="close" id="mClose">✕</button><h2>Editeaza ${pr.label}</h2><label class="fld">Latime (cm)</label><input id="fW" type="number" value="${Math.round(d.w*100)}"><label class="fld" style="margin-top:8px">Inaltime (cm)</label><input id="fH" type="number" value="${Math.round(d.h*100)}"><label class="fld" style="margin-top:8px">Adancime (cm)</label><input id="fD" type="number" value="${Math.round(d.d*100)}"><div class="dl"><button class="btn act" id="fApply">Aplica</button></div>`);
   $('mClose').onclick=closeModal;
   $('fApply').onclick=()=>{ d.w=Math.max(0.05,(parseInt($('fW').value,10)||50)/100); d.h=Math.max(0.05,(parseInt($('fH').value,10)||50)/100); d.d=Math.max(0.05,(parseInt($('fD').value,10)||50)/100); const keep=pr.mesh.position.clone(); keep.y=d.h/2; pr.mesh.geometry.dispose(); pr.mesh.geometry=new THREE.BoxGeometry(d.w,d.h,d.d); pr.mesh.position.copy(keep); closeModal(); }; }
-function placeDoza(hit){ const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03));
-  const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); scene.add(g);
-  const dz={id:uid++,n,pos:p.clone(),mesh:g,source:{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); renderLists(); renderWires(); pushHistory(()=>removeDoza(dz.id)); }
+function orientDoza(g,onWall,normal){ if(onWall&&normal){ g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), normal.clone().normalize()); } else { g.quaternion.identity(); } }   // pe perete: disc vertical spre camera; pe podea: disc orizontal
+function placeDoza(hit){ const ud=hit.object.userData; const onWall=ud.kind==='wall'&&ud.normal; const p=hit.point.clone(); if(onWall) p.add(ud.normal.clone().multiplyScalar(0.03));
+  const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); orientDoza(g,onWall,onWall?ud.normal:null); scene.add(g);
+  const dz={id:uid++,n,pos:p.clone(),mesh:g,source:{kind:'panel'},surf:onWall?'wall':(ud.kind||'floor'),normal:onWall?ud.normal.clone():null}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); renderLists(); renderWires(); pushHistory(()=>removeDoza(dz.id)); }
 function removeDoza(id){ const i=dozas.findIndex(d=>d.id===id); if(i<0) return; const fb=dozas[i].source||{kind:'panel'}; scene.remove(dozas[i].mesh); dozas.splice(i,1); devices.forEach(d=>{ if(d.doza===id) d.doza=null; if(d.source&&d.source.kind==='doza'&&d.source.id===id) d.source={...fb}; }); renderRoomList(); renderLists(); renderWires(); recordState(); }
 /* ===== selectie + mutare (drag) ===== */
 let selectedEl=null, dragging=null, wireTO=null, orthoOn=false, dragOrig=null;
@@ -570,7 +571,7 @@ function moveElementTo(el,kind,h){ const ud=h.object.userData; const SN=0.05;   
   const snapWall=(pt,n)=>{ if(!orthoOn) return; if(Math.abs(n.x)>=Math.abs(n.z)) pt.z=Math.round(pt.z/SN)*SN; else pt.x=Math.round(pt.x/SN)*SN; pt.y=Math.round(pt.y/SN)*SN; };   // snap pe planul peretelui (nu pe normala) + inaltime
   const snapXZ=pt=>{ if(!orthoOn) return; pt.x=Math.round(pt.x/SN)*SN; pt.z=Math.round(pt.z/SN)*SN; };
   if(kind==='dev'){ if(ud.kind==='wall'){ const n=ud.normal.clone(); const pt=h.point.clone(); snapWall(pt,n); const pos=pt.add(n.clone().multiplyScalar(0.03)); pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); el.pos.copy(pos); el.normal=n; el.surf='wall'; el.mesh.position.copy(pos); el.mesh.lookAt(pos.clone().add(n)); } else if(ud.kind==='ceiling'){ const pos=h.point.clone(); snapXZ(pos); pos.y=H-0.02; el.pos.copy(pos); el.mesh.position.copy(pos); } else { const pos=h.point.clone(); snapXZ(pos); el.pos.copy(pos); el.mesh.position.copy(pos); } }
-  else if(kind==='doza'){ const pos=h.point.clone(); if(ud.kind==='wall'&&ud.normal){ snapWall(pos,ud.normal); pos.add(ud.normal.clone().multiplyScalar(0.03)); } else snapXZ(pos); el.pos.copy(pos); el.mesh.position.copy(pos); }
+  else if(kind==='doza'){ const onWall=ud.kind==='wall'&&ud.normal; const pos=h.point.clone(); if(onWall){ snapWall(pos,ud.normal); pos.add(ud.normal.clone().multiplyScalar(0.03)); el.normal=ud.normal.clone(); el.surf='wall'; } else { snapXZ(pos); el.normal=null; el.surf=ud.kind||'floor'; } el.pos.copy(pos); el.mesh.position.copy(pos); orientDoza(el.mesh,onWall,onWall?ud.normal:null); }
   else { const pos=h.point.clone(); snapXZ(pos); if(ud.kind==='floor') pos.y=el.mesh.position.y; el.mesh.position.copy(pos); } }
 function renderWiresThrottled(){ if(wireTO) return; wireTO=setTimeout(()=>{ wireTO=null; renderWires(); },70); }
 function segDist(px,pz,x1,z1,x2,z2){ const dx=x2-x1,dz=z2-z1; const L2=dx*dx+dz*dz||1; let t=((px-x1)*dx+(pz-z1)*dz)/L2; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-(x1+t*dx),pz-(z1+t*dz)); }
@@ -823,7 +824,7 @@ function serializeProject(){
     plan:{ points:plan.points.map(p=>({x:p.x,z:p.z})), closed:plan.closed, openings:plan.openings.map(o=>({...o})) },
     circuits:circuits.map(c=>({...c})),
     devices:devices.map(d=>({ id:d.id,type:d.type,circuit:d.circuit,doza:d.doza,source:d.source?{...d.source}:{kind:'panel'},sub:d.sub,route:d.route,power:d.power,name:d.name,surf:d.surf, pos:{x:d.pos.x,y:d.pos.y,z:d.pos.z}, normal:d.normal?{x:d.normal.x,y:d.normal.y,z:d.normal.z}:null })),
-    dozas:dozas.map(z=>({ id:z.id,n:z.n,route:z.route||'sus',source:z.source?{...z.source}:{kind:'panel'}, pos:{x:z.pos.x,y:z.pos.y,z:z.pos.z} })),
+    dozas:dozas.map(z=>({ id:z.id,n:z.n,route:z.route||'sus',surf:z.surf||'floor',normal:z.normal?{x:z.normal.x,y:z.normal.y,z:z.normal.z}:null,source:z.source?{...z.source}:{kind:'panel'}, pos:{x:z.pos.x,y:z.pos.y,z:z.pos.z} })),
     props:props.map(p=>({ id:p.id,type:p.type,label:p.label,dim:{...p.dim}, pos:{x:p.mesh.position.x,y:p.mesh.position.y,z:p.mesh.position.z} })),
     uid, cuid };
 }
@@ -843,7 +844,7 @@ function applyProject(o){
     buildRoom3D();
     (o.devices||[]).forEach(dd=>{ const mesh=buildDeviceMesh(dd.type,dd.circuit); const pos=new THREE.Vector3(dd.pos.x,dd.pos.y,dd.pos.z); mesh.position.copy(pos); const normal=dd.normal?new THREE.Vector3(dd.normal.x,dd.normal.y,dd.normal.z):null; if(dd.surf==='wall'&&normal) mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
       const dev={ id:dd.id,type:dd.type,circuit:dd.circuit,doza:dd.doza,source:dd.source||{kind:'panel'},sub:dd.sub,route:dd.route||'sus',power:dd.power||0,pos,mesh,normal,surf:dd.surf,name:dd.name }; mesh.userData={el:'dev',id:dev.id}; devices.push(dev); updateDevLabel(dev); });
-    (o.dozas||[]).forEach(zz=>{ const g=makeDozaMesh('Doza '+zz.n); const pos=new THREE.Vector3(zz.pos.x,zz.pos.y,zz.pos.z); g.position.copy(pos); scene.add(g); const dz={id:zz.id,n:zz.n,route:zz.route||'sus',pos,mesh:g,source:zz.source||{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); });
+    (o.dozas||[]).forEach(zz=>{ const g=makeDozaMesh('Doza '+zz.n); const pos=new THREE.Vector3(zz.pos.x,zz.pos.y,zz.pos.z); g.position.copy(pos); const nrm=zz.normal?new THREE.Vector3(zz.normal.x,zz.normal.y,zz.normal.z):null; orientDoza(g, zz.surf==='wall'&&nrm, nrm); scene.add(g); const dz={id:zz.id,n:zz.n,route:zz.route||'sus',surf:zz.surf||'floor',normal:nrm,pos,mesh:g,source:zz.source||{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); });
     (o.props||[]).forEach(pp=>{ const f=FURN[pp.type]||{color:0x8a6d3b}; const m=new THREE.Mesh(new THREE.BoxGeometry(pp.dim.w,pp.dim.h,pp.dim.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); m.position.set(pp.pos.x,pp.pos.y,pp.pos.z); scene.add(m); const pr={id:pp.id,type:pp.type,mesh:m,label:pp.label,kind:'prop',dim:{...pp.dim}}; m.userData={el:'prop',id:pr.id}; props.push(pr); });
     renderWires();
   }
@@ -982,10 +983,11 @@ function setView(dir){ if(state.mode!=='3d'||!camera||!controls) return; const b
 window.setView=setView;
 // rotire camera din ViewCube (drag)
 function vcOrbitBy(dAz,dEl){ if(!camera||!controls) return; const t=controls.target; const off=camera.position.clone().sub(t); const sph=new THREE.Spherical().setFromVector3(off); sph.theta-=dAz; sph.phi=Math.max(0.08,Math.min(Math.PI-0.08,sph.phi-dEl)); off.setFromSpherical(sph); camera.position.copy(t).add(off); controls.update(); }
-(function(){ const cube=document.getElementById('vcCube'); if(!cube) return; let down=false,sx=0,sy=0,moved=false,pid=null;
-  cube.addEventListener('pointerdown',e=>{ down=true; moved=false; sx=e.clientX; sy=e.clientY; pid=e.pointerId; try{cube.setPointerCapture(pid);}catch(_){ } e.preventDefault(); e.stopPropagation(); });
+(function(){ const cube=document.getElementById('vcCube'); if(!cube) return; let down=false,sx=0,sy=0,moved=false,pid=null,downFace=null;
+  cube.addEventListener('pointerdown',e=>{ down=true; moved=false; sx=e.clientX; sy=e.clientY; pid=e.pointerId; downFace=(e.target&&e.target.dataset)?e.target.dataset.view:null; try{cube.setPointerCapture(pid);}catch(_){ } e.preventDefault(); e.stopPropagation(); });
   cube.addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!moved && Math.hypot(dx,dy)>4) moved=true; if(moved){ vcOrbitBy(dx*0.012, dy*0.012); sx=e.clientX; sy=e.clientY; } });
-  const end=e=>{ if(!down) return; down=false; try{cube.releasePointerCapture(pid);}catch(_){ } if(!moved){ const v=e.target&&e.target.dataset?e.target.dataset.view:null; if(v) setView(v); } };
+  const end=e=>{ if(!down) return; down=false; try{cube.releasePointerCapture(pid);}catch(_){ }
+    if(!moved){ let v=downFace; if(!v){ const el=document.elementFromPoint(e.clientX,e.clientY); v=el&&el.dataset?el.dataset.view:null; } if(v) setView(v); } };
   cube.addEventListener('pointerup',end); cube.addEventListener('pointercancel',end);
 })();
 async function exportPDF(){
