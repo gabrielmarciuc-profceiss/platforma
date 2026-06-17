@@ -122,7 +122,7 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
     <canvas id="planCanvas"></canvas>
     <div class="hud" id="mode">Defineste peretii in dreapta (lungime in cm + cotitura). Apasa <b>Ridica 3D</b> cand e gata.</div>
     <div class="hud hidden" id="measure" style="top:10px;right:10px;text-align:right;max-width:60%"></div>
-    <div class="hud hidden" id="legend"><b>Fire:</b><span><i style="background:#e23b3b"></i>faza</span><span><i style="background:#2f6fd0"></i>nul</span><span><i style="background:#e6d200"></i>impamantare</span><span><i style="background:#9aa3ad"></i>comutata</span><span style="opacity:.7">· 3~ L1/L2/L3:</span><span><i style="background:#e23b3b"></i></span><span><i style="background:#8a5a2b"></i></span><span><i style="background:#9aa3ad"></i></span></div>
+    <div class="hud hidden" id="legend"><b>Fire:</b><span><i style="background:#e23b3b"></i>faza (orice faza, inclusiv comutata)</span><span><i style="background:#2f6fd0"></i>nul</span><span><i style="background:#e6d200"></i>impamantare</span></div>
     <div id="wmark">PROFCEISS</div>
     <div id="viewcube" class="hidden">
       <div class="vc-cube" id="vcCube" title="Trage ca sa rotesti · click pe o fata = vedere">
@@ -238,8 +238,8 @@ const U=230, COLORS=['#ffb020','#46b4ff','#34d399','#f87171','#a78bfa','#fb7185'
 const STD=[10,16,20,25,32,40], MAINSTD=[16,20,25,32,40,50,63];
 const SECT={10:'1,5',16:'2,5',20:'2,5',25:'4',32:'6',40:'10'};
 const AMP={'1,5':16,'2,5':20,'4':25,'6':32,'10':50}; const SECTIONS=['1,5','2,5','4','6','10'];
-const COND={ L:'#e23b3b', N:'#2f6fd0', PE:'#e6d200', SW:'#9aa3ad' };  // faza rosu, nul albastru, impamantare galben, comutata gri
-const PHASE_COL={ L1:'#e23b3b', L2:'#8a5a2b', L3:'#9aa3ad' };          // trifazat: rosu / maro / gri
+const COND={ L:'#e23b3b', N:'#2f6fd0', PE:'#e6d200', SW:'#e23b3b' };  // orice faza rosie (inclusiv comutata), nul albastru, impamantare galben
+const PHASE_COL={ L1:'#e23b3b', L2:'#e23b3b', L3:'#e23b3b' };          // orice faza = rosu (se intelege usor)
 const $=id=>document.getElementById(id);
 
 /* ===== stare ===== */
@@ -517,7 +517,8 @@ async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.use
   const subName = type==='intrerupator' ? ({simplu:'Intrerupator',scara:'Cap-scara',cruce:'Cap-cruce'}[addSub]||'Intrerupator') : ADD[type].label;
   const dev={id:uid++,type,circuit,doza,source,sub:(type==='intrerupator'?addSub:undefined),route:'sus',power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind,name:subName+' '+(devices.filter(x=>x.type===type).length+1)}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
   updateDevLabel(dev);
-  renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id)); }
+  renderWires(); renderLists(); pushHistory(()=>removeDevice(dev.id));
+  if(type==='bec'){ const hasDoza=dozas.some(z=> devices.some(x=>x.doza===z.id && x.circuit===dev.circuit)); const ai=$('addInfo'); if(ai && !hasDoza) ai.innerHTML='⚠ Pentru un circuit optim, monteaza o <b>doza</b> (pe tavan, langa intrerupator). Acum becul isi ia nulul si impamantarea direct de la tablou.'; } }
 function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit); const col=cc?new THREE.Color(cc.color):new THREE.Color(0xcfd6df); const g=new THREE.Group();
   if(type==='tablou'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34,0.46,0.11),new THREE.MeshStandardMaterial({color:0xdfe3e8,metalness:.3,roughness:.6}))); const d=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.012),new THREE.MeshStandardMaterial({color:0xf2f4f6})); d.position.z=0.06; g.add(d); }
   else if(type==='intrerupator'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.035),new THREE.MeshStandardMaterial({color:0xf0f0f0}))); const t=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.02),new THREE.MeshStandardMaterial({color:col})); t.position.z=0.025; g.add(t); }
@@ -739,6 +740,14 @@ function autoLinkBecs(){ devices.filter(d=>d.type==='bec').forEach(b=>{
   if(src && src.kind==='dev'){ const s=devices.find(x=>x.id===src.id); if(s && (s.type==='intrerupator'||s.type==='bec')) linkedToSwOrBec=true; }
   if(!linkedToSwOrBec){ const sw=devices.find(d=>d.type==='intrerupator' && d.circuit===b.circuit); if(sw) b.source={kind:'dev',id:sw.id}; }   // leaga becul de intrerupator (daca exista pe circuit)
 }); }
+// Becul isi ia nul+impamantare din cea mai apropiata doza de pe ACELASI circuit (nu de la tablou/intrerupator)
+function becNeutralSource(d){
+  if(d.doza){ const z=dozas.find(x=>x.id===d.doza); if(z) return z.pos; }   // doza asignata becului
+  let cand=dozas.filter(z=> devices.some(x=>x.doza===z.id && x.circuit===d.circuit));   // doze care deservesc circuitul becului
+  if(!cand.length) cand=dozas.slice();                                                   // altfel orice doza
+  let best=null,bd=1e9; cand.forEach(z=>{ const dd=z.pos.distanceTo(d.pos); if(dd<bd){bd=dd;best=z;} });
+  return best?best.pos:null;
+}
 function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases(); autoLinkBecs();
   const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
   // doze -> sursa lor (doar daca au copii)
@@ -749,8 +758,9 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
     const sd=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const str=(rm==='direct')&&samePlane(d,sd);
     if(d.type==='priza'){ drawConductor(d.pos,sp,Lc,0,rm,rd,str); drawConductor(d.pos,sp,COND.N,1,rm,rd,str); drawConductor(d.pos,sp,COND.PE,2,rm,rd,str); }
     else if(d.type==='bec'){ const src=d.source; const swDev=(src&&src.kind==='dev')?devices.find(x=>x.id===src.id):null;
-      if(swDev && swDev.type==='intrerupator'){ const np=srcPos(swDev.source); drawConductor(d.pos,swDev.pos,COND.SW,0,rm,rd,samePlane(d,swDev)&&rm==='direct'); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); }
-      else { drawConductor(d.pos,sp,COND.SW,0,rm,rd,str); drawConductor(d.pos,sp,COND.N,1,rm,rd,str); drawConductor(d.pos,sp,COND.PE,2,rm,rd,str); } }
+      const np=becNeutralSource(d) || srcPos(swDev?swDev.source:d.source);   // nul+impamantare din cea mai apropiata doza de pe acelasi circuit
+      if(swDev && swDev.type==='intrerupator'){ drawConductor(d.pos,swDev.pos,COND.SW,0,rm,rd,samePlane(d,swDev)&&rm==='direct'); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); }
+      else { drawConductor(d.pos,sp,COND.SW,0,rm,rd,str); drawConductor(d.pos,np,COND.N,1,rm,rd); drawConductor(d.pos,np,COND.PE,2,rm,rd); } }
     else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
       if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ const s2=(rm==='direct')&&samePlane(d,srcDev); drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd,s2); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd,s2); }
       else { drawConductor(d.pos,sp,Lc,0,rm,rd,str); drawConductor(d.pos,sp,COND.SW,1,rm,rd,str); } }
@@ -1019,6 +1029,8 @@ function genCheck(){
     else if(sz.I>sz.breaker*0.8) add('warn',`C${c.n}: esti la ${sz.I.toFixed(1)}A din ${sz.breaker}A (peste 80%). Lasa rezerva sau mai adauga un circuit.`);
     if(c.kind==='prize' && np>10) add('warn',`C${c.n}: ${np} prize pe un circuit. Recomand maxim ~8-10 prize pe un circuit de 16A.`);
     if(c.kind==='lumina' && nb>12) add('info',`C${c.n}: ${nb} corpuri de iluminat pe un circuit — verifica puterea totala.`);
+    // sugestie doza pentru circuitele de iluminat fara doza (becul ia nul/PE din doza, nu din tablou)
+    if(c.kind==='lumina' && nb>0){ const hasDoza=dozas.some(z=> devs.some(x=>x.doza===z.id)); if(!hasDoza){ const sw=devs.find(d=>d.type==='intrerupator'); const poz=sw?'pe tavan, deasupra intrerupatorului':'pe tavan, in centrul grupului de becuri'; add('warn',`C${c.n}: pentru un circuit optim, monteaza o <b>doza</b> (${poz}). Acum becurile isi iau nulul si impamantarea direct de la tablou — o doza scurteaza traseele si grupeaza nulul/PE corect.`); } }
   });
   if(state.system==='tri' && circuits.length){ assignPhases(); const acc={L1:0,L2:0,L3:0}; circuits.forEach(c=>acc[c.phase]+=circPower(c)); const vals=[acc.L1,acc.L2,acc.L3]; const mx=Math.max(...vals),mn=Math.min(...vals),avg=(vals.reduce((a,b)=>a+b,0)/3)||1;
     if(mx-mn>avg*0.35 && mx>0){ const big=acc.L1===mx?'L1':acc.L2===mx?'L2':'L3', small=acc.L1===mn?'L1':acc.L2===mn?'L2':'L3'; add('warn',`Faze dezechilibrate: L1 ${Math.round(acc.L1)}W · L2 ${Math.round(acc.L2)}W · L3 ${Math.round(acc.L3)}W. Muta un circuit de pe ${big} pe ${small} ca sa echilibrezi.`); }
