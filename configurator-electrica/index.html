@@ -858,7 +858,13 @@ function renderLists(){ const cl=$('circuitList');
     const myKind=ADD[d.type].kind; const srcSel=d.source||{kind:'panel'};
     const circOpts=circuits.filter(x=>x.kind===myKind).map(x=>`<option value="${x.id}" ${x.id===d.circuit?'selected':''}>C${x.n}</option>`).join('')||'<option value="">—</option>';
     const dozOk=dozas.filter(z=>{ const k=dozaKind(z); return k===null||k===myKind; });
-    const srcOpts=`<option value="panel" ${srcSel.kind==='panel'?'selected':''}>Tablou</option>`+dozOk.map(z=>`<option value="doza:${z.id}" ${(srcSel.kind==='doza'&&srcSel.id===z.id)?'selected':''}>Doza ${z.n}</option>`).join('')+devices.filter(x=>x.id!==d.id&&x.type!=='tablou'&&ADD[x.type].kind===myKind).map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${(x.name||ADD[x.type].label).replace(/"/g,'&quot;')}</option>`).join('');
+    let srcOpts;
+    if(d.type==='ventilator'){   // electrocasnic: sursa = doar o PRIZA
+      const prize=devices.filter(x=>x.type==='priza');
+      srcOpts = prize.length ? prize.map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${(x.name||'Priza').replace(/"/g,'&quot;')}</option>`).join('') : `<option value="panel">— pune o priza —</option>`;
+    } else {
+      srcOpts=`<option value="panel" ${srcSel.kind==='panel'?'selected':''}>Tablou</option>`+dozOk.map(z=>`<option value="doza:${z.id}" ${(srcSel.kind==='doza'&&srcSel.id===z.id)?'selected':''}>Doza ${z.n}</option>`).join('')+devices.filter(x=>x.id!==d.id&&x.type!=='tablou'&&ADD[x.type].kind===myKind).map(x=>`<option value="dev:${x.id}" ${(srcSel.kind==='dev'&&srcSel.id===x.id)?'selected':''}>${(x.name||ADD[x.type].label).replace(/"/g,'&quot;')}</option>`).join('');
+    }
     const load=(d.type==='bec'||d.type==='priza'||d.type==='ventilator');
     el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
       +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursa</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="sus" ${(d.route||'sus')==='sus'?'selected':''}>pe sus</option><option value="podea" ${d.route==='podea'?'selected':''}>pe podea</option><option value="direct" ${d.route==='direct'?'selected':''}>punte directa</option><option value="orto" ${d.route==='orto'?'selected':''}>punte orto</option></select>`
