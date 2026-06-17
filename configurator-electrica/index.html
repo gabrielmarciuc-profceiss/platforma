@@ -522,8 +522,14 @@ function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit
   return g; }
 
 /* ===== elemente camera · doze manuale · undo ===== */
-function pushHistory(fn){ history.push(fn); }
-function undo(){ const f=history.pop(); if(f) f(); }
+function pushHistory(fn){ history.push(fn); recordState(); }
+// ===== Undo / Redo pe snapshot-uri complete (Ctrl+Z / Ctrl+Y) =====
+let undoStates=[], undoIdx=-1, restoringState=false;
+function snapState(){ try{ return JSON.stringify(serializeProject()); }catch(e){ return null; } }
+function recordState(){ if(restoringState) return; const s=snapState(); if(s==null) return; if(undoIdx>=0 && undoStates[undoIdx]===s) return; undoStates=undoStates.slice(0,undoIdx+1); undoStates.push(s); if(undoStates.length>80){ undoStates.shift(); } undoIdx=undoStates.length-1; }
+function applySnap(s){ restoringState=true; try{ applyProject(JSON.parse(s)); if(state.mode==='3d'){ if(typeof buildRoom3D==='function') buildRoom3D(); renderWires(); } if(typeof renderLists==='function') renderLists(); if(typeof renderRoomList==='function') renderRoomList(); if(state.mode==='plan' && typeof refreshPlan==='function') refreshPlan(); }catch(e){} restoringState=false; }
+function undo(){ if(undoIdx>0){ undoIdx--; applySnap(undoStates[undoIdx]); } }
+function redo(){ if(undoIdx<undoStates.length-1){ undoIdx++; applySnap(undoStates[undoIdx]); } }
 function makeDozaMesh(text){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.03,20),new THREE.MeshStandardMaterial({color:0xf2c14e,metalness:.1,roughness:.6}))); const r=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.008,8,24),new THREE.MeshStandardMaterial({color:0x6b4a10})); r.rotation.x=Math.PI/2; g.add(r); const lab=makeLabel(text||'doza','#f2c14e'); g.add(lab); lab.position.set(0,0.13,0); return g; }
 function addOpeningAt(type,hit){ const ud=hit.object.userData; if(ud.kind!=='wall'){ alert('Click pe un perete pentru usa/fereastra/gol.'); return; }
   const e=edges().out[ud.wall]; if(!e) return; const p1=new THREE.Vector3(e.p1.x,0,e.p1.z); const dir=new THREE.Vector3(e.p2.x-e.p1.x,0,e.p2.z-e.p1.z); const L=dir.length(); dir.normalize();
@@ -538,9 +544,9 @@ function editFurniture(id){ const pr=props.find(p=>p.id===id); if(!pr||!pr.dim) 
 function placeDoza(hit){ const p=hit.point.clone(); if(hit.object.userData.kind==='wall'&&hit.object.userData.normal) p.add(hit.object.userData.normal.clone().multiplyScalar(0.03));
   const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); scene.add(g);
   const dz={id:uid++,n,pos:p.clone(),mesh:g,source:{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); renderLists(); renderWires(); pushHistory(()=>removeDoza(dz.id)); }
-function removeDoza(id){ const i=dozas.findIndex(d=>d.id===id); if(i<0) return; const fb=dozas[i].source||{kind:'panel'}; scene.remove(dozas[i].mesh); dozas.splice(i,1); devices.forEach(d=>{ if(d.doza===id) d.doza=null; if(d.source&&d.source.kind==='doza'&&d.source.id===id) d.source={...fb}; }); renderRoomList(); renderLists(); renderWires(); }
+function removeDoza(id){ const i=dozas.findIndex(d=>d.id===id); if(i<0) return; const fb=dozas[i].source||{kind:'panel'}; scene.remove(dozas[i].mesh); dozas.splice(i,1); devices.forEach(d=>{ if(d.doza===id) d.doza=null; if(d.source&&d.source.kind==='doza'&&d.source.id===id) d.source={...fb}; }); renderRoomList(); renderLists(); renderWires(); recordState(); }
 /* ===== selectie + mutare (drag) ===== */
-let selectedEl=null, dragging=null, wireTO=null, orthoOn=false;
+let selectedEl=null, dragging=null, wireTO=null, orthoOn=false, dragOrig=null;
 function elObj(sel){ return sel.kind==='dev'?devices.find(d=>d.id===sel.id):(sel.kind==='prop'?props.find(p=>p.id===sel.id):dozas.find(d=>d.id===sel.id)); }
 function elPos(el){ return el.pos?el.pos:el.mesh.position; }
 function elLabel(el){ return el.name||el.label||(el.n!=null?('Doza '+el.n):'')||(ADD[el.type]&&ADD[el.type].label)||'Element'; }
@@ -548,14 +554,14 @@ function pickSelectable(e){ const r=renderer.domElement.getBoundingClientRect();
   const roots=[...devices.map(d=>d.mesh),...props.map(p=>p.mesh),...dozas.map(d=>d.mesh)]; const hits=raycaster.intersectObjects(roots,true); if(!hits.length) return null; let o=hits[0].object; while(o&&!o.userData.el) o=o.parent; if(!o) return null; return {kind:o.userData.el,id:o.userData.id}; }
 function selectEl(sel){ selectedEl=sel; const m=$('measure'); if(!sel){ m.classList.add('hidden'); return; } const el=elObj(sel); if(!el){ m.classList.add('hidden'); return; } updateMeasure(el); m.classList.remove('hidden'); }
 function onPointerDown(e){ if(state.mode!=='3d') return; if(addType){ controls.enabled=false; onPick(e); return; }
-  if(dragging){ dragging=null; controls.enabled=true; renderWires(); return; }   // eram in mutare armata (buton Muta) -> click = fixeaza piesa
+  if(dragging){ dragging=null; dragOrig=null; controls.enabled=true; renderWires(); recordState(); return; }   // eram in mutare armata (buton Muta) -> click = fixeaza piesa
   const sel=pickSelectable(e); if(sel){ selectEl(sel); controls.enabled=true; } else { selectEl(null); controls.enabled=true; } }   // click = doar selecteaza; piesele raman fixe (orbit liber). Mutarea se face din butonul Muta
 function onPointerMove(e){ if(!dragging) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera);
   const el=elObj(dragging); if(!el){ dragging=null; controls.enabled=true; return; }
   let want; if(dragging.kind==='dev') want= el.type==='bec'?'ceiling':'wall'; else if(dragging.kind==='doza') want=null; else want= el.type==='doza'?null:'floor';
   const hits=raycaster.intersectObjects(surfaces,true); if(!hits.length) return; const h=want?(hits.find(x=>x.object.userData.kind===want)||null):hits[0]; if(!h) return;
   moveElementTo(el,dragging.kind,h); updateMeasure(el); renderWiresThrottled(); }
-function onPointerUp(){ if(dragging){ dragging=null; renderWires(); } controls.enabled=true; }
+function onPointerUp(){ if(dragging){ dragging=null; dragOrig=null; renderWires(); recordState(); } controls.enabled=true; }
 function moveElementTo(el,kind,h){ const ud=h.object.userData; const SN=0.05;   // Ortho: aliniere la grila de 5 cm
   const snapWall=(pt,n)=>{ if(!orthoOn) return; if(Math.abs(n.x)>=Math.abs(n.z)) pt.z=Math.round(pt.z/SN)*SN; else pt.x=Math.round(pt.x/SN)*SN; pt.y=Math.round(pt.y/SN)*SN; };   // snap pe planul peretelui (nu pe normala) + inaltime
   const snapXZ=pt=>{ if(!orthoOn) return; pt.x=Math.round(pt.x/SN)*SN; pt.z=Math.round(pt.z/SN)*SN; };
@@ -572,7 +578,7 @@ function updateMeasure(el){ const p=elPos(el); const dw=Math.round(distToWalls(p
     `<span style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;justify-content:flex-end"><span style="font-size:11px">podea</span><input id="mFloor" type="number" value="${Math.round(p.y*100)}" style="${inp}"><span style="font-size:11px">tavan</span><input id="mCeil" type="number" value="${Math.round((H-p.y)*100)}" style="${inp}"></span>`+
     `<div style="display:flex;gap:6px;margin-top:7px;justify-content:flex-end"><button id="mMove" style="${bst};background:#2f6fd0;color:#fff;border-color:#2f6fd0">✥ Muta</button><button id="mOrtho" style="${bst};background:${orthoOn?'#1d9e75':'var(--panel2)'};color:${orthoOn?'#fff':'var(--ink)'}">Ortho: ${orthoOn?'ON':'OFF'}</button></div>`;
   const f=$('mFloor'), c=$('mCeil'); if(f) f.onchange=()=>setElY(el,(parseInt(f.value,10)||0)/100); if(c) c.onchange=()=>setElY(el,H-(parseInt(c.value,10)||0)/100);
-  const mv=$('mMove'); if(mv) mv.onclick=()=>{ if(!selectedEl) return; dragging=selectedEl; controls.enabled=false; mv.textContent='✥ Misca mouse-ul, click ca sa fixezi'; };
+  const mv=$('mMove'); if(mv) mv.onclick=()=>{ if(!selectedEl) return; const eo2=elObj(selectedEl); dragOrig=eo2?{mesh:eo2.mesh.position.clone(),pos:eo2.pos?eo2.pos.clone():null,normal:eo2.normal?eo2.normal.clone():null}:null; dragging=selectedEl; controls.enabled=false; mv.textContent='✥ Misca, click=fixezi · Esc=anuleaza'; };
   const ot=$('mOrtho'); if(ot) ot.onclick=()=>{ orthoOn=!orthoOn; ot.textContent='Ortho: '+(orthoOn?'ON':'OFF'); ot.style.background=orthoOn?'#1d9e75':'var(--panel2)'; ot.style.color=orthoOn?'#fff':'var(--ink)'; }; }
 function setElY(el,y){ y=Math.max(0,Math.min(H,y)); if(el.pos) el.pos.y=y; el.mesh.position.y=y; renderWires(); updateMeasure(el); }
 /* editeaza dimensiuni gol */
@@ -585,7 +591,7 @@ function editOpening(idx){ const o=plan.openings[idx]; if(!o) return; const win=
    <div class="dl"><button class="btn act" id="eApply">Aplica</button></div>`);
   $('mClose').onclick=closeModal;
   $('eApply').onclick=()=>{ o.w=Math.max(0.2,(parseInt($('eW').value,10)||90)/100); const hh=Math.max(0.2,(parseInt($('eH').value,10)||205)/100); o.sill=win?Math.max(0,(parseInt($('eS').value,10)||90)/100):0; o.head=Math.min(H,o.sill+hh); o.pos=Math.max(0,(parseInt($('eP').value,10)||0)/100); closeModal(); buildRoom3D(); renderWires(); renderRoomList(); }; }
-function removeProp(id){ const i=props.findIndex(p=>p.id===id); if(i<0) return; scene.remove(props[i].mesh); props.splice(i,1); renderRoomList(); }
+function removeProp(id){ const i=props.findIndex(p=>p.id===id); if(i<0) return; scene.remove(props[i].mesh); props.splice(i,1); renderRoomList(); recordState(); }
 function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[...dozas.map(z=>({k:'doza',id:z.id,label:'Doza '+z.n,col:'#f2c14e'})), ...props.map(p=>({k:'prop',id:p.id,label:p.label,col:'#7c93b3'})), ...plan.openings.map((o,i)=>({k:'op',idx:i,label:OPEN_DEF[o.type].label+' (P'+(o.wall+1)+')',col:'#7c93b3'}))];
   if(!items.length){ el.innerHTML='<p class="muted">Nimic.</p>'; return; } el.innerHTML='';
   items.forEach(it=>{ const d=document.createElement('div'); d.className='row'; let btns='';
@@ -632,6 +638,16 @@ function chooseDoza(kind){ return new Promise(resolve=>{ const done=v=>{ closeMo
 async function chooseAssignment(kind){ const circuit=await chooseCircuit(kind); if(circuit==null) return null; const doza=await chooseDoza(kind); if(doza===false) return null; return { circuit, doza }; }
 function openModal(html){ $('modalBody').innerHTML=html; $('modal').classList.add('on'); }
 function closeModal(){ $('modal').classList.remove('on'); $('modal').onclick=null; }
+// Anuleaza comanda in curs (regula generala). Returneaza true daca a avut ce anula.
+function cancelCurrent(){
+  if($('modal') && $('modal').classList.contains('on')){ closeModal(); return true; }
+  if(dragging){ const el=elObj(dragging); if(el && dragOrig){ el.mesh.position.copy(dragOrig.mesh); if(el.pos&&dragOrig.pos) el.pos.copy(dragOrig.pos); if(el.normal&&dragOrig.normal){ el.normal.copy(dragOrig.normal); el.mesh.lookAt(el.mesh.position.clone().add(el.normal)); } }
+    dragging=null; dragOrig=null; if(controls) controls.enabled=true; renderWires(); const s=selectedEl?elObj(selectedEl):null; if(s) updateMeasure(s); return true; }
+  if(addType){ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); const ai=$('addInfo'); if(ai) ai.textContent='Comanda anulata (Esc).'; if(controls) controls.enabled=true; return true; }
+  if(state.mode==='plan' && typeof planMode!=='undefined' && planMode==='draw'){ planMode='edit'; if(typeof setPlanModeUI==='function') setPlanModeUI(); if(typeof refreshPlan==='function') refreshPlan(); return true; }
+  return false;
+}
+window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if(cancelCurrent()) e.preventDefault(); } });
 
 /* ===== cablare cu doze ===== */
 function panelDev(){ return devices.find(d=>d.type==='tablou'); }
@@ -725,7 +741,7 @@ function renderLists(){ const cl=$('circuitList');
     else if(sz.I>sz.breaker*0.8) warn=`ℹ Aproape de limita: ${sz.I.toFixed(1)}A din ${sz.breaker}A.`;
     if(warn) el.innerHTML+=`<div style="flex-basis:100%;margin-top:4px;font-size:11px;line-height:1.4;color:${warn[0]==='⚠'?'#f87171':'#ffb020'}">${warn}</div>`;
     cl.appendChild(el); }); }
-  cl.querySelectorAll('[data-ph]').forEach(sel=> sel.onchange=()=>{ const c=circuits.find(x=>x.id===parseInt(sel.dataset.ph,10)); if(c){ c.phase=sel.value; c.phaseManual=true; renderWires(); renderLists(); } });   // muta circuitul pe alta faza (rebalansare L1/L2/L3)
+  cl.querySelectorAll('[data-ph]').forEach(sel=> sel.onchange=()=>{ const c=circuits.find(x=>x.id===parseInt(sel.dataset.ph,10)); if(c){ c.phase=sel.value; c.phaseManual=true; renderWires(); renderLists(); recordState(); } });   // muta circuitul pe alta faza (rebalansare L1/L2/L3)
   const dl=$('devList'); if(!devices.length){ dl.innerHTML='<p class="muted">Nimic plasat.</p>'; return; }
   dl.innerHTML='';
   const buildRow=(d)=>{ const c=circuits.find(x=>x.id===d.circuit); const el=document.createElement('div'); el.className='row'; el.style.flexWrap='wrap';
@@ -746,7 +762,7 @@ function renderLists(){ const cl=$('circuitList');
   dl.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>removeDevice(parseInt(b.dataset.del,10)));
   dl.querySelectorAll('[data-nm]').forEach(inp=> inp.oninput=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.nm,10)); if(d){ d.name=inp.value; updateDevLabel(d); } });
   dl.querySelectorAll('[data-pw]').forEach(inp=> inp.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(inp.dataset.pw,10)); if(d){ d.power=Math.max(0,parseInt(inp.value,10)||0); renderLists(); } });
-  dl.querySelectorAll('[data-c]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.c,10)); if(d){ d.circuit=parseInt(sel.value,10); updateDevLabel(d); renderWires(); renderLists(); } });
+  dl.querySelectorAll('[data-c]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.c,10)); if(d){ d.circuit=parseInt(sel.value,10); updateDevLabel(d); renderWires(); renderLists(); recordState(); } });
   dl.querySelectorAll('[data-s]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.s,10)); if(!d) return; const v=sel.value;
     if(v==='panel') d.source={kind:'panel'};
     else if(v.startsWith('doza:')) d.source={kind:'doza',id:parseInt(v.slice(5),10)};
@@ -754,9 +770,9 @@ function renderLists(){ const cl=$('circuitList');
       if(sd && sd.circuit!==d.circuit){ const cn=circuits.find(c=>c.id===d.circuit), scn=circuits.find(c=>c.id===sd.circuit);
         if(!confirm(`Atentie: „${d.name}" e pe circuit C${cn?cn.n:'?'}, iar sursa „${sd.name}" e pe C${scn?scn.n:'?'}.\nPuntea le leaga electric — trebuie sa fie pe ACELASI circuit.\n\nOK = le pun pe C${scn?scn.n:'?'} (al sursei).\nAnuleaza = nu fac puntea.`)){ renderLists(); return; } }
       d.source={kind:'dev',id:did}; if(sd) d.circuit=sd.circuit; }
-    updateDevLabel(d); renderWires(); renderLists(); });
-  dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.route=sel.value; renderWires(); } }); }
-function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; const fb=devices[i].source||{kind:'panel'}; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); devices.forEach(d=>{ if(d.source&&d.source.kind==='dev'&&d.source.id===id) d.source={...fb}; }); renderWires(); renderLists(); }
+    updateDevLabel(d); renderWires(); renderLists(); recordState(); });
+  dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.route=sel.value; renderWires(); recordState(); } }); }
+function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; const fb=devices[i].source||{kind:'panel'}; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); devices.forEach(d=>{ if(d.source&&d.source.kind==='dev'&&d.source.id===id) d.source={...fb}; }); renderWires(); renderLists(); recordState(); }
 
 /* ===== salvare / incarcare proiecte ===== */
 const PKEY='pce_projects', AKEY='pce_autosave';
