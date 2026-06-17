@@ -444,7 +444,7 @@ function init3D(){
 function sizeRenderer(){ const w=$('canvaswrap').clientWidth, h=$('canvaswrap').clientHeight; renderer.setSize(w,h); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); }
 let _vcEl=null;
 function animate(){ requestAnimationFrame(animate); if(controls) controls.update();
-  if(state.mode==='3d'){ devices.forEach(d=>{ if(d.type==='ventilator' && d._spin && d.mesh){ d.mesh.traverse(o=>{ if(o.userData&&o.userData.fan) o.rotation.y+=0.28; }); } }); }   // roteste paletele ventilatoarelor alimentate
+  if(state.mode==='3d'){ devices.forEach(d=>{ if(d.type==='ventilator' && d._spin && d.mesh){ d.mesh.traverse(o=>{ if(o.userData&&o.userData.fan) o.rotation.z+=0.32; }); } }); }   // roteste paletele ventilatoarelor alimentate
   if(renderer&&state.mode==='3d') renderer.render(scene,camera);
   if(state.mode==='3d' && camera && controls){ if(!_vcEl) _vcEl=document.getElementById('vcCube'); if(_vcEl){ const off=camera.position.clone().sub(controls.target); const sph=new THREE.Spherical().setFromVector3(off); const azDeg=-sph.theta*180/Math.PI, elDeg=(sph.phi-Math.PI/2)*180/Math.PI; _vcEl.style.transform=`rotateX(${elDeg.toFixed(1)}deg) rotateY(${azDeg.toFixed(1)}deg)`; } } }
 
@@ -543,7 +543,7 @@ function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit
     head.add(blades); g.add(head); }
   return g; }
 // Roteste paletele ventilatoarelor alimentate (tablou prezent + circuit live: fie nu are intrerupator, fie un intrerupator de pe circuit e pornit)
-function updateFans(){ const hasPanel=!!panelDev(); devices.filter(d=>d.type==='ventilator').forEach(v=>{ const sw=devices.filter(s=>s.type==='intrerupator'&&s.circuit===v.circuit); v._spin = hasPanel && (sw.length? sw.some(s=>s.on) : true); }); }
+function updateFans(){ devices.filter(d=>d.type==='ventilator').forEach(v=>{ v._spin = reachesPanel(v); }); }   // se invarte daca priza in care e bagat e sub tensiune (drum complet pana la tablou)
 // Exista drum de faza pana la tablou prin lantul de surse? (intrerupator -> doza -> tablou, sau direct)
 function reachesPanel(start){ let cur=start, guard=0; while(cur && guard++<50){ const src=cur.source||{kind:'panel'}; if(src.kind==='panel') return !!panelDev(); if(src.kind==='doza'){ const z=dozas.find(x=>x.id===src.id); const zs=z?(z.source||{kind:'panel'}):{kind:'panel'}; return zs.kind==='panel' && !!panelDev(); } if(src.kind==='dev'){ cur=devices.find(x=>x.id===src.id); } else return false; } return false; }
 // Becul se aprinde DOAR daca circuitul de faza e complet: tablou + un intrerupator de pe circuit PORNIT si legat (faza ajunge la el), care comanda becul
