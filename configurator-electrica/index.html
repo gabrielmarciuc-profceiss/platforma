@@ -906,43 +906,61 @@ function genCheck(){
   msgs.forEach(m=> h+=`<p style="color:${col[m.sev]};margin:7px 0;line-height:1.5">${icon[m.sev]} ${m.t}</p>`);
   h+=`</div>`; openModal(h); $('mClose').onclick=closeModal;
 }
+// Construieste un fisier DXF R12 valid (HEADER mm + limite, TABLES LTYPE/LAYER/STYLE, ENTITIES) cu terminatii CRLF (cerinta AutoCAD)
+function dxfWrap(e, layers, ext){
+  let layTab=`0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n`;   // stratul 0 obligatoriu
+  layers.forEach(l=>{ layTab+=`0\nLAYER\n2\n${l[0]}\n70\n0\n62\n${l[1]}\n6\nCONTINUOUS\n`; });
+  const z0=(ext.minZ||0), z1=(ext.maxZ||0);
+  const dxf=
+    `0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n4\n`+
+    `9\n$EXTMIN\n10\n${ext.minX.toFixed(2)}\n20\n${ext.minY.toFixed(2)}\n30\n${z0.toFixed(2)}\n`+
+    `9\n$EXTMAX\n10\n${ext.maxX.toFixed(2)}\n20\n${ext.maxY.toFixed(2)}\n30\n${z1.toFixed(2)}\n`+
+    `0\nENDSEC\n`+
+    `0\nSECTION\n2\nTABLES\n`+
+    `0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n0\nENDTAB\n`+
+    `0\nTABLE\n2\nLAYER\n70\n${layers.length+1}\n${layTab}0\nENDTAB\n`+
+    `0\nTABLE\n2\nSTYLE\n70\n1\n0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\ntxt\n0\nENDTAB\n`+
+    `0\nENDSEC\n`+
+    `0\nSECTION\n2\nENTITIES\n${e}0\nENDSEC\n`+
+    `0\nEOF\n`;
+  return dxf.replace(/\n/g,'\r\n');
+}
+// Export DXF: in modul 3D scoate modelul 3D (fete 3DFACE), in 2D scoate planul plat
 function genDXF(){
+  if(state.mode==='3d' && typeof scene!=='undefined' && scene){ return genDXF3D(); }
   const S=1000; let e=''; const eo=edges().out;   // S: metri -> milimetri
   let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
   const X=v=>{ const r=v*S; if(r<minX)minX=r; if(r>maxX)maxX=r; return r.toFixed(2); };
-  const Y=v=>{ const r=-v*S; if(r<minY)minY=r; if(r>maxY)maxY=r; return r.toFixed(2); };   // Y inversat: desenul apare la fel ca pe ecran
+  const Y=v=>{ const r=-v*S; if(r<minY)minY=r; if(r>maxY)maxY=r; return r.toFixed(2); };
   const line=(x1,y1,x2,y2,layer)=>{ e+=`0\nLINE\n8\n${layer}\n10\n${X(x1)}\n20\n${Y(y1)}\n30\n0.0\n11\n${X(x2)}\n21\n${Y(y2)}\n31\n0.0\n`; };
   const circle=(x,y,r,layer)=>{ e+=`0\nCIRCLE\n8\n${layer}\n10\n${X(x)}\n20\n${Y(y)}\n30\n0.0\n40\n${(r*S).toFixed(2)}\n`; };
   const text=(x,y,h,s,layer)=>{ e+=`0\nTEXT\n8\n${layer}\n10\n${X(x)}\n20\n${Y(y)}\n30\n0.0\n40\n${(h*S).toFixed(2)}\n1\n${String(s).replace(/[\n\r]/g,' ')}\n7\nSTANDARD\n`; };
-  // ENTITATI
   eo.forEach(g=> line(g.p1.x,g.p1.z,g.p2.x,g.p2.z,'PERETI'));
   plan.openings.forEach(o=>{ const g=eo[o.wall]; if(!g) return; const dx=g.p2.x-g.p1.x,dz=g.p2.z-g.p1.z; const L=Math.hypot(dx,dz)||1; const ux=dx/L,uz=dz/L; const a={x:g.p1.x+ux*o.pos,z:g.p1.z+uz*o.pos}, b={x:g.p1.x+ux*(o.pos+o.w),z:g.p1.z+uz*(o.pos+o.w)}; line(a.x,a.z,b.x,b.z, o.type.includes('fereastra')?'FERESTRE':'USI'); });
   const lay={tablou:'TABLOU',intrerupator:'INTRERUPATOARE',bec:'BECURI',priza:'PRIZE'};
   devices.forEach(d=>{ const lr=lay[d.type]||'APARATAJ'; circle(d.pos.x,d.pos.z,d.type==='tablou'?0.1:0.05,lr); text(d.pos.x+0.07,d.pos.z,0.08,(d.name||d.type),lr); });
   dozas.forEach(z=>{ circle(z.pos.x,z.pos.z,0.06,'DOZE'); text(z.pos.x+0.07,z.pos.z,0.08,'Doza '+z.n,'DOZE'); });
   devices.filter(d=>d.type!=='tablou').forEach(d=>{ const sp=srcPos(d.source); line(d.pos.x,d.pos.z,sp.x,sp.z,'TRASEE'); });
-  if(minX>maxX){ minX=0;minY=0;maxX=1000;maxY=1000; }   // fallback daca nu exista nimic
-  // STRATURI (nume + culoare AutoCAD: 1rosu 2galben 3verde 4cyan 5albastru 6magenta 7alb/negru)
+  if(minX>maxX){ minX=0;minY=0;maxX=1000;maxY=1000; }
   const LAYERS=[['PERETI',7],['USI',3],['FERESTRE',5],['TABLOU',1],['INTRERUPATOARE',2],['BECURI',2],['PRIZE',4],['DOZE',6],['TRASEE',30],['APARATAJ',7]];
-  let layTab=`0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n`;   // stratul 0 obligatoriu
-  LAYERS.forEach(l=>{ layTab+=`0\nLAYER\n2\n${l[0]}\n70\n0\n62\n${l[1]}\n6\nCONTINUOUS\n`; });
-  // DXF R12 complet: HEADER (unitati mm + limite desen) + TABLES (LTYPE + LAYER + STYLE) + ENTITIES
-  const dxf=
-    `0\nSECTION\n2\nHEADER\n`+
-    `9\n$ACADVER\n1\nAC1009\n`+
-    `9\n$INSUNITS\n70\n4\n`+
-    `9\n$EXTMIN\n10\n${minX.toFixed(2)}\n20\n${minY.toFixed(2)}\n30\n0.0\n`+
-    `9\n$EXTMAX\n10\n${maxX.toFixed(2)}\n20\n${maxY.toFixed(2)}\n30\n0.0\n`+
-    `0\nENDSEC\n`+
-    `0\nSECTION\n2\nTABLES\n`+
-    `0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n0\nENDTAB\n`+
-    `0\nTABLE\n2\nLAYER\n70\n${LAYERS.length+1}\n${layTab}0\nENDTAB\n`+
-    `0\nTABLE\n2\nSTYLE\n70\n1\n0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\ntxt\n4\n\n0\nENDTAB\n`+
-    `0\nENDSEC\n`+
-    `0\nSECTION\n2\nENTITIES\n${e}0\nENDSEC\n`+
-    `0\nEOF\n`;
-  // AutoCAD asteapta terminatii de linie CRLF; fara ele deschide fisierul gol
-  download('plan-instalatie.dxf', dxf.replace(/\n/g,'\r\n'));
+  download('plan-instalatie.dxf', dxfWrap(e, LAYERS, {minX,minY,maxX,maxY}));
+}
+// Export 3D: traverseaza scena Three.js si scrie fiecare triunghi ca 3DFACE (AutoCAD il citeste ca geometrie 3D). Inaltimea (y) devine axa Z in CAD.
+function genDXF3D(){
+  const S=1000; let e=''; const a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  let minX=1e9,minY=1e9,minZ=1e9,maxX=-1e9,maxY=-1e9,maxZ=-1e9;
+  const upd=(X,Y,Z)=>{ if(X<minX)minX=X;if(X>maxX)maxX=X;if(Y<minY)minY=Y;if(Y>maxY)maxY=Y;if(Z<minZ)minZ=Z;if(Z>maxZ)maxZ=Z; };
+  scene.traverse(o=>{ if(!o.isMesh||!o.geometry) return; const g=o.geometry; const pos=g.attributes.position; if(!pos) return; o.updateWorldMatrix(true,false); const m=o.matrixWorld; const idx=g.index;
+    const layer=(o.userData&&o.userData.el==='dev')?'APARATAJ':'MODEL3D';
+    const face=(i0,i1,i2)=>{ a.fromBufferAttribute(pos,i0).applyMatrix4(m); b.fromBufferAttribute(pos,i1).applyMatrix4(m); c.fromBufferAttribute(pos,i2).applyMatrix4(m);
+      const ax=a.x*S,ay=-a.z*S,az=a.y*S, bx=b.x*S,by=-b.z*S,bz=b.y*S, cx=c.x*S,cy=-c.z*S,cz=c.y*S;   // y(sus) -> Z(sus) in CAD
+      upd(ax,ay,az);upd(bx,by,bz);upd(cx,cy,cz);
+      e+=`0\n3DFACE\n8\n${layer}\n10\n${ax.toFixed(2)}\n20\n${ay.toFixed(2)}\n30\n${az.toFixed(2)}\n11\n${bx.toFixed(2)}\n21\n${by.toFixed(2)}\n31\n${bz.toFixed(2)}\n12\n${cx.toFixed(2)}\n22\n${cy.toFixed(2)}\n32\n${cz.toFixed(2)}\n13\n${cx.toFixed(2)}\n23\n${cy.toFixed(2)}\n33\n${cz.toFixed(2)}\n`; };
+    if(idx){ for(let i=0;i<idx.count;i+=3) face(idx.getX(i),idx.getX(i+1),idx.getX(i+2)); } else { for(let i=0;i<pos.count;i+=3) face(i,i+1,i+2); }
+  });
+  if(minX>maxX){ minX=0;minY=0;minZ=0;maxX=1000;maxY=1000;maxZ=1000; }
+  const LAYERS=[['MODEL3D',7],['APARATAJ',5]];
+  download('model-instalatie-3d.dxf', dxfWrap(e, LAYERS, {minX,minY,minZ,maxX,maxY,maxZ}));
 }
 function genSTL(){
   if(state.mode!=='3d'||!scene){ alert('Ridica intai planul in 3D, apoi exporta STL.'); return; }
