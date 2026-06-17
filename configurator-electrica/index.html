@@ -531,8 +531,12 @@ function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit
   return g; }
 // Roteste paletele ventilatoarelor alimentate (tablou prezent + circuit live: fie nu are intrerupator, fie un intrerupator de pe circuit e pornit)
 function updateFans(){ const hasPanel=!!panelDev(); devices.filter(d=>d.type==='ventilator').forEach(v=>{ const sw=devices.filter(s=>s.type==='intrerupator'&&s.circuit===v.circuit); v._spin = hasPanel && (sw.length? sw.some(s=>s.on) : true); }); }
-// Aprinde/stinge becurile dupa starea intrerupatoarelor (intrerupator 'on' + tablou prezent + bec pe acelasi circuit = aprins)
-function updateLamps(){ const hasPanel=!!panelDev(); devices.filter(d=>d.type==='bec').forEach(b=>{ const lit = hasPanel && devices.some(s=>s.type==='intrerupator' && s.circuit===b.circuit && s.on); if(b.mesh){ b.mesh.traverse(o=>{ if(o.userData&&o.userData.bulb&&o.material) o.material.emissiveIntensity=lit?1.5:0; if(o.userData&&o.userData.bulbLight) o.intensity=lit?2.2:0; }); } }); }
+// Exista drum de faza pana la tablou prin lantul de surse? (intrerupator -> doza -> tablou, sau direct)
+function reachesPanel(start){ let cur=start, guard=0; while(cur && guard++<50){ const src=cur.source||{kind:'panel'}; if(src.kind==='panel') return !!panelDev(); if(src.kind==='doza'){ const z=dozas.find(x=>x.id===src.id); const zs=z?(z.source||{kind:'panel'}):{kind:'panel'}; return zs.kind==='panel' && !!panelDev(); } if(src.kind==='dev'){ cur=devices.find(x=>x.id===src.id); } else return false; } return false; }
+// Becul se aprinde DOAR daca circuitul de faza e complet: tablou + un intrerupator de pe circuit PORNIT si legat (faza ajunge la el), care comanda becul
+function updateLamps(){ const hasPanel=!!panelDev(); devices.filter(d=>d.type==='bec').forEach(b=>{
+  const lit = hasPanel && devices.some(s=> s.type==='intrerupator' && s.circuit===b.circuit && s.on && reachesPanel(s));
+  if(b.mesh){ b.mesh.traverse(o=>{ if(o.userData&&o.userData.bulb&&o.material) o.material.emissiveIntensity=lit?1.5:0; if(o.userData&&o.userData.bulbLight) o.intensity=lit?2.2:0; }); } }); }
 
 /* ===== elemente camera · doze manuale · undo ===== */
 function pushHistory(fn){ history.push(fn); recordState(); }
