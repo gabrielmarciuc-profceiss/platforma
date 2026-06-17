@@ -28,17 +28,20 @@ header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-
 #wmark{position:absolute;right:16px;bottom:12px;z-index:1;pointer-events:none;font-family:"Chakra Petch";font-weight:700;letter-spacing:.2em;font-size:24px;color:rgba(27,42,68,.08)}
 .canvaswrap canvas{display:block;width:100%;height:100%}
 /* ViewCube 3D (vederi standard) */
-#viewcube{position:absolute;right:14px;bottom:14px;z-index:7;display:flex;flex-direction:column;align-items:center;gap:7px;user-select:none}
+#viewcube{position:absolute;right:14px;bottom:14px;z-index:7;display:flex;flex-direction:column;align-items:center;gap:7px;user-select:none;perspective:360px}
 #viewcube.hidden{display:none}
-.vc-cube{width:86px;height:86px;position:relative;transform-style:preserve-3d;transform:rotateX(-26deg) rotateY(-38deg)}
-.vc-face{position:absolute;left:16px;top:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.5px;color:#fff;background:rgba(38,66,104,.88);border:1px solid rgba(255,255,255,.55);cursor:pointer;transition:.12s}
+.vc-cube{width:86px;height:86px;position:relative;transform-style:preserve-3d;transform:rotateX(-26deg) rotateY(-38deg);cursor:grab;touch-action:none}
+.vc-cube:active{cursor:grabbing}
+.vc-face{position:absolute;left:16px;top:16px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.5px;color:#fff;background:rgba(38,66,104,.86);border:1px solid rgba(255,255,255,.55);backface-visibility:visible;transition:background .12s}
 .vc-face:hover{background:rgba(60,116,180,.96)}
 .vc-top{transform:rotateX(90deg) translateZ(27px)}
+.vc-bottom{transform:rotateX(-90deg) translateZ(27px)}
 .vc-front{transform:translateZ(27px)}
+.vc-back{transform:rotateY(180deg) translateZ(27px)}
 .vc-right{transform:rotateY(90deg) translateZ(27px)}
-.vc-btns{display:flex;gap:4px}
-.vc-btns button{font-size:11px;font-weight:600;font-family:inherit;color:#fff;background:rgba(38,66,104,.85);border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:4px 8px;cursor:pointer}
-.vc-btns button:hover{background:rgba(60,116,180,.96)}
+.vc-left{transform:rotateY(-90deg) translateZ(27px)}
+.vc-iso{font-size:11px;font-weight:600;font-family:inherit;color:#fff;background:rgba(38,66,104,.85);border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:4px 10px;cursor:pointer}
+.vc-iso:hover{background:rgba(60,116,180,.96)}
 #planCanvas{background:transparent}
 .hud{position:absolute;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12px;color:var(--muted);backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(40,60,90,.08)}
 #mode{top:10px;left:10px;max-width:70%}
@@ -122,16 +125,15 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
     <div class="hud hidden" id="legend"><b>Fire:</b><span><i style="background:#e23b3b"></i>faza</span><span><i style="background:#2f6fd0"></i>nul</span><span><i style="background:#e6d200"></i>impamantare</span><span><i style="background:#9aa3ad"></i>comutata</span><span style="opacity:.7">· 3~ L1/L2/L3:</span><span><i style="background:#e23b3b"></i></span><span><i style="background:#8a5a2b"></i></span><span><i style="background:#9aa3ad"></i></span></div>
     <div id="wmark">PROFCEISS</div>
     <div id="viewcube" class="hidden">
-      <div class="vc-cube">
-        <div class="vc-face vc-top" onclick="setView('top')">SUS</div>
-        <div class="vc-face vc-front" onclick="setView('front')">FATA</div>
-        <div class="vc-face vc-right" onclick="setView('right')">DR</div>
+      <div class="vc-cube" id="vcCube" title="Trage ca sa rotesti · click pe o fata = vedere">
+        <div class="vc-face vc-top" data-view="top">SUS</div>
+        <div class="vc-face vc-bottom" data-view="bottom">JOS</div>
+        <div class="vc-face vc-front" data-view="front">FATA</div>
+        <div class="vc-face vc-back" data-view="back">SPATE</div>
+        <div class="vc-face vc-right" data-view="right">DR</div>
+        <div class="vc-face vc-left" data-view="left">STG</div>
       </div>
-      <div class="vc-btns">
-        <button type="button" onclick="setView('iso')">Izo</button>
-        <button type="button" onclick="setView('left')">Stg</button>
-        <button type="button" onclick="setView('back')">Spate</button>
-      </div>
+      <button class="vc-iso" type="button" onclick="setView('iso')">Izometric</button>
     </div>
   </div>
 
@@ -439,7 +441,9 @@ function init3D(){
   animate();
 }
 function sizeRenderer(){ const w=$('canvaswrap').clientWidth, h=$('canvaswrap').clientHeight; renderer.setSize(w,h); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); }
-function animate(){ requestAnimationFrame(animate); if(controls) controls.update(); if(renderer&&state.mode==='3d') renderer.render(scene,camera); }
+let _vcEl=null;
+function animate(){ requestAnimationFrame(animate); if(controls) controls.update(); if(renderer&&state.mode==='3d') renderer.render(scene,camera);
+  if(state.mode==='3d' && camera && controls){ if(!_vcEl) _vcEl=document.getElementById('vcCube'); if(_vcEl){ const off=camera.position.clone().sub(controls.target); const sph=new THREE.Spherical().setFromVector3(off); const azDeg=-sph.theta*180/Math.PI, elDeg=(sph.phi-Math.PI/2)*180/Math.PI; _vcEl.style.transform=`rotateX(${elDeg.toFixed(1)}deg) rotateY(${azDeg.toFixed(1)}deg)`; } } }
 
 function buildRoom3D(){
   while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]); surfaces.length=0;
@@ -938,6 +942,7 @@ function roomBBox(){ const p=plan.points; let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9;
 function setView(dir){ if(state.mode!=='3d'||!camera||!controls) return; const bb=roomBBox(); const cx=bb.cx, cz=bb.cz, cy=H*0.45, R=bb.span*1.7+1.2; let p;
   switch(dir){
     case 'top':   p=[cx, H+R*1.5, cz+0.0001]; break;
+    case 'bottom':p=[cx, -R*1.2, cz+0.0001]; break;
     case 'front': p=[cx, cy, cz+R]; break;
     case 'back':  p=[cx, cy, cz-R]; break;
     case 'right': p=[cx+R, cy, cz]; break;
@@ -946,6 +951,14 @@ function setView(dir){ if(state.mode!=='3d'||!camera||!controls) return; const b
   }
   camera.position.set(p[0],p[1],p[2]); controls.target.set(cx,cy,cz); controls.update(); }
 window.setView=setView;
+// rotire camera din ViewCube (drag)
+function vcOrbitBy(dAz,dEl){ if(!camera||!controls) return; const t=controls.target; const off=camera.position.clone().sub(t); const sph=new THREE.Spherical().setFromVector3(off); sph.theta-=dAz; sph.phi=Math.max(0.08,Math.min(Math.PI-0.08,sph.phi-dEl)); off.setFromSpherical(sph); camera.position.copy(t).add(off); controls.update(); }
+(function(){ const cube=document.getElementById('vcCube'); if(!cube) return; let down=false,sx=0,sy=0,moved=false,pid=null;
+  cube.addEventListener('pointerdown',e=>{ down=true; moved=false; sx=e.clientX; sy=e.clientY; pid=e.pointerId; try{cube.setPointerCapture(pid);}catch(_){ } e.preventDefault(); e.stopPropagation(); });
+  cube.addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!moved && Math.hypot(dx,dy)>4) moved=true; if(moved){ vcOrbitBy(dx*0.012, dy*0.012); sx=e.clientX; sy=e.clientY; } });
+  const end=e=>{ if(!down) return; down=false; try{cube.releasePointerCapture(pid);}catch(_){ } if(!moved){ const v=e.target&&e.target.dataset?e.target.dataset.view:null; if(v) setView(v); } };
+  cube.addEventListener('pointerup',end); cube.addEventListener('pointercancel',end);
+})();
 async function exportPDF(){
   if(state.mode!=='3d'){ alert('Ridica intai planul in 3D (butonul ⬆ sau ⇆ 2D/3D), apoi exporta.'); return; }
   let lib; try{ lib=await loadJsPDF(); }catch(e){ alert('Nu am putut incarca libraria PDF (verifica internetul).'); return; }
