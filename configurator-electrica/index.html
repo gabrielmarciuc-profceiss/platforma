@@ -696,7 +696,7 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
   rmode=rmode||'standard'; let pts=null;
   if(straight){ const off=idx*0.014; pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
   else if(rmode==='direct'){ // PUNTE DIRECTA = geodezica pe suprafete (pereti + tavan), nimic prin aer
-    const off=idx*0.012; const lvl=H-off; const aCeil=a.y>H*0.7, bCeil=b.y>H*0.7;
+    const off=idx*0.028; const lvl=H-off; const aCeil=a.y>H*0.7, bCeil=b.y>H*0.7;
     if(aCeil && bCeil){ pts=[new THREE.Vector3(a.x,lvl,a.z), new THREE.Vector3(b.x,lvl,b.z)]; }   // ambele pe tavan: diagonala pe tavan
     else if(aCeil!==bCeil){ // perete <-> tavan: desfasor peretele+tavanul, linie dreapta, punct de trecere pe muchia perete-tavan
       const Wd=aCeil?b:a, C=aCeil?a:b; const pw=projPerim(Wd); let T=null,nrm=null;
@@ -710,7 +710,7 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
     }
   }
   else if(rmode==='orto'){ // traseu ortogonal estetic (numai unghiuri drepte) pe perete + tavan
-    const off=idx*0.012; const aCeil=a.y>H*0.7, bCeil=b.y>H*0.7;
+    const off=idx*0.028; const aCeil=a.y>H*0.7, bCeil=b.y>H*0.7;
     if(aCeil!==bCeil){ // perete -> tavan: perpendicular in sus pana la coltul perete-tavan, apoi direct (diagonala) pe tavan in bec
       const W=aCeil?b:a, C=aCeil?a:b; const lvl=H-off;
       const P1=new THREE.Vector3(W.x, lvl, W.z);   // coltul perete-tavan, deasupra intrerupatorului
