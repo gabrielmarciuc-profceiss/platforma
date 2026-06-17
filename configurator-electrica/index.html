@@ -941,7 +941,8 @@ function genDXF(){
     `0\nENDSEC\n`+
     `0\nSECTION\n2\nENTITIES\n${e}0\nENDSEC\n`+
     `0\nEOF\n`;
-  download('plan-instalatie.dxf', dxf);
+  // AutoCAD asteapta terminatii de linie CRLF; fara ele deschide fisierul gol
+  download('plan-instalatie.dxf', dxf.replace(/\n/g,'\r\n'));
 }
 function genSTL(){
   if(state.mode!=='3d'||!scene){ alert('Ridica intai planul in 3D, apoi exporta STL.'); return; }
