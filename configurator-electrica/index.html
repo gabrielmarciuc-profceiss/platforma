@@ -643,15 +643,15 @@ function chooseCircuit(kind){ return new Promise(resolve=>{ const existing=circu
     $('modal').onclick=e=>{ if(e.target===$('modal')) done(null); };
   }
   step1(); }); }
+function createAutoDoza(){ const bb=roomBBox(); const p=new THREE.Vector3(bb.cx, H-0.05, bb.cz); const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); orientDoza(g,false,null); if(scene) scene.add(g); const dz={id:uid++,n,pos:p.clone(),mesh:g,source:{kind:'panel'},surf:'ceiling',normal:null}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); return dz.id; }
 function chooseDoza(kind){ return new Promise(resolve=>{ const done=v=>{ closeModal(); resolve(v); };
   const avail=dozas.filter(z=>{ const k=dozaKind(z); return k===null||k===kind; });
-  let html=`<button class="close" id="mClose">✕</button><h2>Pe ce doza te legi?</h2>`;
-  if(!avail.length) html+=`<p class="muted">Nu ai doze libere pentru <b>${kind==='lumina'?'iluminat':'prize'}</b>. Pune o doza noua, sau leaga direct la tablou. (Dozele de prize si de iluminat nu se amesteca.)</p>`;
-  html+=`<div class="cbtns">`;
+  let html=`<button class="close" id="mClose">✕</button><h2>De unde isi ia ${kind==='lumina'?'becul':'priza'} nulul si impamantarea?</h2><p class="muted">${kind==='lumina'?'Faza vine automat prin intrerupator. Recomandat: o <b>doza</b> (nod) pe tavan.':'Recomandat: o <b>doza</b> sau lant (punte) intre prize.'} (Dozele de prize si de iluminat nu se amesteca.)</p><div class="cbtns">`;
   avail.forEach(d=>{ const k=dozaKind(d); html+=`<button class="btn" data-dz="${d.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#f2c14e;margin-right:8px"></span>Doza ${d.n}${k?(' · '+(k==='lumina'?'iluminat':'prize')):' · libera'}</button>`; });
+  html+=`<button class="btn act" data-dz="new">➕ Doza noua (automat, pe tavan) — recomandat</button>`;
   html+=`<button class="btn" data-dz="0">Direct la tablou (fara doza)</button></div>`;
   openModal(html); $('mClose').onclick=()=>done(false);
-  $('modalBody').querySelectorAll('[data-dz]').forEach(b=> b.onclick=()=>{ const v=parseInt(b.dataset.dz,10); done(v===0?null:v); });
+  $('modalBody').querySelectorAll('[data-dz]').forEach(b=> b.onclick=()=>{ const v=b.dataset.dz; if(v==='new') done(createAutoDoza()); else { const n=parseInt(v,10); done(n===0?null:n); } });
   $('modal').onclick=e=>{ if(e.target===$('modal')) done(false); }; }); }
 async function chooseAssignment(kind){ const circuit=await chooseCircuit(kind); if(circuit==null) return null; const doza=await chooseDoza(kind); if(doza===false) return null; return { circuit, doza }; }
 function openModal(html){ $('modalBody').innerHTML=html; $('modal').classList.add('on'); }
@@ -691,12 +691,19 @@ function routeLen(a,b,rmode){ if(!PERIM) buildPerim(); const direct=rmode==='dir
 function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
   rmode=rmode||'standard'; let pts=null;
   if(straight){ const off=idx*0.014; pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
-  else if(rmode==='direct'){ // drumul cel mai scurt PE SUPRAFETE: drept pe aceeasi latura, prin colt pe laterale diferite
-    const ceilBoth = a.y>H*0.7 && b.y>H*0.7;
-    let sameWall=false; if(!ceilBoth){ const pa=projPerim(a), pb=projPerim(b); sameWall=(pa.edge!=null && pa.edge===pb.edge); }
-    if(ceilBoth){ const lvl=Math.max(a.y,b.y)-idx*0.012; const dx=b.x-a.x,dz=b.z-a.z; const ln=Math.hypot(dx,dz)||1; const ox=-dz/ln*(idx*0.02), oz=dx/ln*(idx*0.02); pts=[a.clone(), new THREE.Vector3(a.x+ox,lvl,a.z+oz), new THREE.Vector3(b.x+ox,lvl,b.z+oz), b.clone()]; }
-    else if(sameWall){ const off=idx*0.014; pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
-    else { pts=surfaceRoute(a,b); for(let i=1;i<pts.length-1;i++) pts[i].y-=idx*0.012; }
+  else if(rmode==='direct'){ // PUNTE DIRECTA = geodezica pe suprafete (pereti + tavan), nimic prin aer
+    const off=idx*0.012; const lvl=H-off; const aCeil=a.y>H*0.7, bCeil=b.y>H*0.7;
+    if(aCeil && bCeil){ pts=[new THREE.Vector3(a.x,lvl,a.z), new THREE.Vector3(b.x,lvl,b.z)]; }   // ambele pe tavan: diagonala pe tavan
+    else if(aCeil!==bCeil){ // perete <-> tavan: desfasor peretele+tavanul, linie dreapta, punct de trecere pe muchia perete-tavan
+      const Wd=aCeil?b:a, C=aCeil?a:b; const pw=projPerim(Wd); let T=null,nrm=null;
+      if(PERIM && pw.edge!=null){ const A=PERIM.pts[pw.edge], B=PERIM.pts[(pw.edge+1)%PERIM.m]; const dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; T={x:dx/L,z:dz/L}; nrm={x:-T.z,z:T.x}; const c=centroidXZ(); if((Wd.x-c.x)*nrm.x+(Wd.z-c.z)*nrm.z<0){ nrm.x=-nrm.x; nrm.z=-nrm.z; } }
+      if(T){ const uC=(C.x-Wd.x)*T.x+(C.z-Wd.z)*T.z; const w=Math.max(0.03,(C.x-Wd.x)*nrm.x+(C.z-Wd.z)*nrm.z); const denom=(H+w-Wd.y)||1; const uCross=uC*(H-Wd.y)/denom; const Pe=new THREE.Vector3(Wd.x+T.x*uCross, lvl, Wd.z+T.z*uCross); pts=[new THREE.Vector3(Wd.x,Wd.y+off,Wd.z), Pe, new THREE.Vector3(C.x,C.y-off,C.z)]; if(aCeil) pts.reverse(); }
+      else { pts=[new THREE.Vector3(Wd.x,Wd.y,Wd.z), new THREE.Vector3(Wd.x,lvl,Wd.z), new THREE.Vector3(C.x,lvl,C.z), C.clone()]; if(aCeil) pts.reverse(); }
+    } else { // ambele pe perete
+      const pa=projPerim(a), pb=projPerim(b);
+      if(pa.edge!=null && pa.edge===pb.edge){ pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }   // acelasi perete: linie dreapta pe perete
+      else { pts=[a.clone(), new THREE.Vector3(a.x,lvl,a.z), new THREE.Vector3(b.x,lvl,b.z), b.clone()]; }   // pereti diferiti: urca pe tavan, diagonala pe tavan, coboara
+    }
   }
   else if(rmode==='orto'){ // traseu ortogonal estetic (numai unghiuri drepte) pe perete + tavan
     const off=idx*0.012; const aCeil=a.y>H*0.7, bCeil=b.y>H*0.7;
@@ -767,7 +774,7 @@ function becNeutralSource(d){
 function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases(); autoLinkBecs();
   const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
   // doze -> sursa lor (doar daca au copii)
-  dozas.forEach(z=>{ const child=devices.find(d=>(d.source&&d.source.kind==='doza'&&d.source.id===z.id) || d.doza===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const rm=z.route||child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
+  dozas.forEach(z=>{ const child=devices.find(d=>(d.source&&d.source.kind==='doza'&&d.source.id===z.id) || d.doza===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const cb=devices.find(x=>x.type==='bec' && (x.doza===z.id || x.circuit===child.circuit)); const rm=z.route||(cb?cb.route:null)||child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
   // dispozitive -> sursa lor (lant pana la tablou)
   const samePlane=(d,o)=> d&&o&&d.normal&&o.normal && d.normal.dot(o.normal)>0.95;
   devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=d.route||'sus';
@@ -782,7 +789,7 @@ function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGr
     // INTRERUPATOR: 2 conductoare spre doza — faza (dus) si faza comutata (intors). Intrerupatorul taie doar faza.
     else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
       if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ const s2=(rm==='direct')&&samePlane(d,srcDev); drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd,s2); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd,s2); }
-      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; drawConductor(d.pos,tgt,Lc,0,rm,rd); drawConductor(d.pos,tgt,COND.SW,1,rm,rd); } }   // faza dus-intors prin doza (sau direct la sursa daca nu exista doza)
+      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; const cb=devices.find(x=>x.type==='bec'&&x.circuit===d.circuit); const rmL=cb?(cb.route||'sus'):rm; drawConductor(d.pos,tgt,Lc,0,rmL,rd); drawConductor(d.pos,tgt,COND.SW,1,rmL,rd); } }   // faza dus-intors prin doza; acelasi mod de traseu ca becul comandat
   });
   updateLamps(); updateFans(); }
 
