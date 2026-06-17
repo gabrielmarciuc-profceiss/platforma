@@ -726,6 +726,8 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
   }
   if(!pts){ const level=(rmode==='podea'?0.08:(H-0.06))-idx*0.014; const way=routeWaypoints(a,b); pts=[a.clone()]; way.forEach(w=>pts.push(new THREE.Vector3(w.x,level,w.z))); pts.push(b.clone()); }
   pts=avoidOpenings(pts);   // ocoleste usile/ferestrele/golurile (ridica firul peste pragul de sus)
+  // elimina punctele (aproape) coincidente — altfel CatmullRom produce NaN si tubul devine invizibil (ex. intrerupator + doza pe acelasi perete)
+  { const dd=[pts[0]]; for(let i=1;i<pts.length;i++){ if(pts[i].distanceTo(dd[dd.length-1])>0.006) dd.push(pts[i]); } pts = dd.length>=2 ? dd : [pts[0], pts[pts.length-1].clone().add(new THREE.Vector3(0,0.02,0))]; }
   const curve=new THREE.CatmullRomCurve3(pts,false,'catmullrom',0.0); const geo=new THREE.TubeGeometry(curve, Math.max(8,pts.length*6), rad||0.006, 7, false);
   wireGroup.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:new THREE.Color(colorHex), roughness:.55, metalness:.1}))); }
 // Ocolirea golurilor: pe segmentele orizontale de fir, daca firul ar trece prin dreptul unei usi/ferestre la inaltimea lui, il ridica peste pragul de sus al golului
