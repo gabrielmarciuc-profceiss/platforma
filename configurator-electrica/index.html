@@ -502,7 +502,7 @@ function updateDevLabel(dev){ if(dev.lab){ dev.mesh.remove(dev.lab); dev.lab=nul
 document.querySelectorAll('[data-add]').forEach(b=> b.onclick=()=>{ addType=b.dataset.add; addSub=b.dataset.sub||'simplu'; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); $('addInfo').innerHTML=addType==='bec'?'Click pe <b>tavan</b>.':'Click pe un <b>perete</b>.'; });
 $('cancelAdd').onclick=()=>{ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); $('addInfo').textContent=''; };
 function onPick(e){ if(state.mode!=='3d'||!addType) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera); const hits=raycaster.intersectObjects(surfaces,false); if(!hits.length) return;
-  const want=(ROOMEL[addType]==='furniture')?'floor':((addType==='bec'||addType==='ventilator')?'ceiling':(addType==='doza'?null:'wall'));
+  const want=(ROOMEL[addType]==='furniture'||addType==='ventilator')?'floor':(addType==='bec'?'ceiling':(addType==='doza'?null:'wall'));
   const h=want?(hits.find(x=>x.object.userData.kind===want)||hits[0]):hits[0];
   if(ROOMEL[addType]==='opening'){ addOpeningAt(addType,h); clearAddTool(); }
   else if(ROOMEL[addType]==='furniture'){ placeFurniture(addType,h); clearAddTool(); }
@@ -513,9 +513,14 @@ function clearAddTool(){ addType=null; document.querySelectorAll('[data-add]').f
 async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.userData; let pos=hit.point.clone(); let normal=ud.normal?ud.normal.clone():new THREE.Vector3(0,-1,0);
   if(ud.kind==='wall'){ pos.add(normal.clone().multiplyScalar(0.03)); if(a.h!=null) pos.y=a.h; pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); } else if(ud.kind==='ceiling'){ pos.y=H-0.02; }
   if(type==='tablou'&&devices.some(d=>d.type==='tablou')){ alert('Exista deja un tablou.'); return; }
-  let circuit=null, doza=null; if(a.kind){ const asg=await chooseAssignment(a.kind); if(!asg) return; circuit=asg.circuit; doza=asg.doza; }
-  let source={kind:'panel'};
-  if(doza){ if(route.mode==='chain' && (type==='priza'||type==='bec')){ const sib=devices.filter(x=>x.type===type&&x.doza===doza&&x.circuit===circuit); source=sib.length?{kind:'dev',id:sib[sib.length-1].id}:{kind:'doza',id:doza}; } else source={kind:'doza',id:doza}; }
+  let circuit=null, doza=null; let source={kind:'panel'};
+  if(type==='ventilator'){   // electrocasnic: se baga in cea mai apropiata priza (sursa = Priza X)
+    const prize=devices.filter(x=>x.type==='priza'); if(!prize.length){ alert('Pune intai o priza, apoi conecteaza ventilatorul in ea.'); return; }
+    let best=null,bd=1e9; prize.forEach(p=>{ const dd=p.pos.distanceTo(pos); if(dd<bd){bd=dd;best=p;} });
+    source={kind:'dev',id:best.id}; circuit=best.circuit; doza=best.doza||null;
+  } else if(a.kind){ const asg=await chooseAssignment(a.kind); if(!asg) return; circuit=asg.circuit; doza=asg.doza;
+    if(doza){ if(route.mode==='chain' && (type==='priza'||type==='bec')){ const sib=devices.filter(x=>x.type===type&&x.doza===doza&&x.circuit===circuit); source=sib.length?{kind:'dev',id:sib[sib.length-1].id}:{kind:'doza',id:doza}; } else source={kind:'doza',id:doza}; }
+  }
   const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
   const subName = type==='intrerupator' ? ({simplu:'Intrerupator',scara:'Cap-scara',cruce:'Cap-cruce'}[addSub]||'Intrerupator') : ADD[type].label;
   const dev={id:uid++,type,circuit,doza,source,sub:(type==='intrerupator'?addSub:undefined),route:'sus',power:DEF_POWER[type]||0,pos,mesh,normal:(ud.kind==='wall'?normal.clone():null),surf:ud.kind,name:subName+' '+(devices.filter(x=>x.type===type).length+1)}; devices.push(dev); mesh.userData={el:'dev',id:dev.id};
@@ -527,7 +532,15 @@ function buildDeviceMesh(type,circuit){ const cc=circuits.find(c=>c.id===circuit
   else if(type==='intrerupator'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.035),new THREE.MeshStandardMaterial({color:0xf0f0f0}))); const t=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.02),new THREE.MeshStandardMaterial({color:col})); t.position.z=0.025; g.add(t); }
   else if(type==='priza'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.085,0.085,0.035),new THREE.MeshStandardMaterial({color:0xf0f0f0}))); const t=new THREE.Mesh(new THREE.TorusGeometry(0.025,0.006,8,16),new THREE.MeshStandardMaterial({color:col})); t.position.z=0.025; g.add(t); }
   else if(type==='bec'){ g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.02,16),new THREE.MeshStandardMaterial({color:0xdddddf}))); const b=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,12),new THREE.MeshStandardMaterial({color:0xfff2b0,emissive:0xffd24d,emissiveIntensity:0})); b.position.y=-0.08; b.userData.bulb=true; g.add(b); const pl=new THREE.PointLight(0xffe6a0,0,3.5,2); pl.position.y=-0.08; pl.userData.bulbLight=true; g.add(pl); }
-  else if(type==='ventilator'){ g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.06,16),new THREE.MeshStandardMaterial({color:0xdddddf,metalness:.3,roughness:.6}))); const blades=new THREE.Group(); blades.userData.fan=true; [0,Math.PI/2].forEach(a=>{ const bl=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.01,0.07),new THREE.MeshStandardMaterial({color:col,roughness:.5})); bl.rotation.y=a; blades.add(bl); }); blades.position.y=-0.05; g.add(blades); }
+  else if(type==='ventilator'){ const grey=new THREE.MeshStandardMaterial({color:0xc4ccd6,metalness:.3,roughness:.6});
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.15,0.04,18),grey));                 // baza pe podea
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.45,10),grey); pole.position.y=0.24; g.add(pole);   // picior
+    const head=new THREE.Group(); head.position.y=0.5;                                          // cap ventilator, fata spre +Z
+    head.add(new THREE.Mesh(new THREE.TorusGeometry(0.17,0.012,8,24),new THREE.MeshStandardMaterial({color:0x9aa6b3})));   // grilaj
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.05,12),grey); hub.rotation.x=Math.PI/2; head.add(hub); // butuc, axa pe Z
+    const blades=new THREE.Group(); blades.userData.fan=true; blades.position.z=0.02;
+    for(let i=0;i<5;i++){ const bl=new THREE.Mesh(new THREE.BoxGeometry(0.035,0.15,0.006),new THREE.MeshStandardMaterial({color:col,roughness:.5})); bl.position.y=0.075; const sub=new THREE.Group(); sub.add(bl); sub.rotation.z=i*Math.PI*2/5; blades.add(sub); }
+    head.add(blades); g.add(head); }
   return g; }
 // Roteste paletele ventilatoarelor alimentate (tablou prezent + circuit live: fie nu are intrerupator, fie un intrerupator de pe circuit e pornit)
 function updateFans(){ const hasPanel=!!panelDev(); devices.filter(d=>d.type==='ventilator').forEach(v=>{ const sw=devices.filter(s=>s.type==='intrerupator'&&s.circuit===v.circuit); v._spin = hasPanel && (sw.length? sw.some(s=>s.on) : true); }); }
@@ -578,7 +591,7 @@ function onPointerDown(e){ if(state.mode!=='3d') return; if(addType){ controls.e
   } else { selectEl(null); controls.enabled=true; } }   // click = doar selecteaza; piesele raman fixe. Mutarea se face din butonul Muta
 function onPointerMove(e){ if(!dragging) return; const r=renderer.domElement.getBoundingClientRect(); pointer.x=((e.clientX-r.left)/r.width)*2-1; pointer.y=-((e.clientY-r.top)/r.height)*2+1; raycaster.setFromCamera(pointer,camera);
   const el=elObj(dragging); if(!el){ dragging=null; controls.enabled=true; return; }
-  let want; if(dragging.kind==='dev') want= (el.type==='bec'||el.type==='ventilator')?'ceiling':'wall'; else if(dragging.kind==='doza') want=null; else want= el.type==='doza'?null:'floor';
+  let want; if(dragging.kind==='dev') want= el.type==='bec'?'ceiling':(el.type==='ventilator'?'floor':'wall'); else if(dragging.kind==='doza') want=null; else want= el.type==='doza'?null:'floor';
   const hits=raycaster.intersectObjects(surfaces,true); if(!hits.length) return; const h=want?(hits.find(x=>x.object.userData.kind===want)||null):hits[0]; if(!h) return;
   moveElementTo(el,dragging.kind,h); updateMeasure(el); renderWiresThrottled(); }
 function onPointerUp(){ if(dragging){ dragging=null; dragOrig=null; renderWires(); recordState(); } controls.enabled=true; }
