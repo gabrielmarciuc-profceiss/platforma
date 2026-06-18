@@ -57,9 +57,11 @@
   .elems .erow .enm{flex:1;font-weight:600}
   .elems .erow input{width:46px;padding:2px 3px;font-size:11px}
   .elems .erow .xb{border:1px solid #e6b8b8;background:#fdecec;color:#c0392b;border-radius:6px;padding:1px 7px;font-weight:700;cursor:pointer}
-  .dims{display:flex;gap:10px;flex-wrap:wrap;padding:8px;border-top:1px solid var(--line);align-items:center;font-size:12px;color:var(--muted)}
-  .dims label{display:flex;align-items:center;gap:5px}
-  .dims input{width:64px}
+  .dims{display:flex;gap:10px;flex-wrap:wrap;padding:8px;border-top:1px solid var(--line);align-items:center;font-size:12px;color:var(--muted);max-width:100%}
+  .dims label{display:flex;align-items:center;gap:5px;max-width:100%}
+  .dims input{width:64px;max-width:100%}
+  .dims select,.dims input[type=file]{max-width:140px}
+  .left>*{max-width:100%}
   .hint{position:absolute;top:10px;left:10px;right:10px;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:11.5px;color:var(--muted);line-height:1.45;pointer-events:none}
   .vhint{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--muted)}
   .views{position:absolute;top:10px;left:10px;display:flex;gap:4px;flex-wrap:wrap;z-index:5}
@@ -72,7 +74,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R90 (PV: umplere automata panouri pe fiecare apa, inclusiv acoperis T/L)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R91 (camp inaltime per coama la T/L + panou dreapta fara depasire pe orizontala)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -152,7 +154,8 @@
     <div class="elems" id="elemList"></div>
     <div class="dims" id="dimsCasa">
       <label>Inaltime pereti <input id="wallH" type="number" min="180" max="600" step="10" value="300"> cm</label>
-      <label>Coama <input id="ridgeH" type="number" min="0" max="400" step="10" value="160"> cm</label>
+      <label id="ridgeHLbl">Coama <input id="ridgeH" type="number" min="0" max="400" step="10" value="160"> cm</label>
+      <span id="ridgeFields" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"></span>
       <label>Streasina <input id="eaveH" type="number" min="0" max="300" step="5" value="40"> cm</label>
       <label>Apa <select id="roofLogic" style="width:auto"><option value="auto">Coama reglabila (buline)</option><option value="manual">Coame manuale (desen)</option></select></label>
       <label>Acoperis <select id="roofType" style="width:auto"><option value="tigla">Tigla</option><option value="tabla">Tabla cutata</option><option value="tabla_tigla">Tabla tip tigla</option><option value="terasa">Terasa (membrana)</option></select></label>
@@ -313,7 +316,7 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
   // X pe goluri (usa/fereastra)
   openings.forEach(o=>{ const A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) return; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2),cx=SX(mx),cy=SY(mz);
     px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+10,cy-10,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('x',cx+10,cy-10); });
-  renderWalls();
+  renderWalls(); renderRidgeFields();
 }
 
 /* ===== elevatie 2D pe fatade ===== */
@@ -739,6 +742,15 @@ if($('pvTemplate')) $('pvTemplate').onclick=downloadPvTemplate;
   try{ const r=await fetch('catalog_componente.xlsx?v='+Date.now(),{cache:'no-store'}); if(r.ok){ applyWorkbook(XLSX.read(await r.arrayBuffer(),{type:'array'})); } else pvStatus('Dimensiuni implicite. Apasa "Descarca model" ca sa creezi catalogul editabil.'); }
   catch(e){ pvStatus('Dimensiuni implicite. Apasa "Descarca model" ca sa creezi catalogul editabil.'); } })();
 function wallLen(i){ const A=foot[i],B=foot[(i+1)%foot.length]; return Math.hypot(B.x-A.x,B.z-A.z); }
+// cate un camp de inaltime pentru FIECARE coama (la T/L); la casa dreptunghiulara ramane campul global "Coama"
+function renderRidgeFields(){ const host=$('ridgeFields'), lbl=$('ridgeHLbl'); if(!host) return;
+  if(host.contains(document.activeElement)) return;   // nu intrerupe scrisul
+  const complex=(roofLogic==='auto' && footClosed && foot.length>=3 && ridgeRaise>0.02 && isComplexFoot());
+  if(!complex){ if(lbl) lbl.style.display=''; host.innerHTML=''; return; }
+  if(lbl) lbl.style.display='none';
+  const rects=footRects(); syncAutoRidges(rects.length);
+  host.innerHTML=rects.map((r,i)=>`<label>Coama A${i+1} <input data-rh="${i}" type="number" min="0" max="400" step="10" value="${Math.round((getAR(i).rh!=null?getAR(i).rh:ridgeRaise)*100)}"> cm</label>`).join('');
+  host.querySelectorAll('[data-rh]').forEach(inp=> inp.onchange=()=>{ const i=+inp.dataset.rh; getAR(i).rh=Math.max(0,(parseInt(inp.value,10)||0)/100); drawPlan(); build3D(); commit(); }); }
 function renderWalls(){ const host=$('wallList'); if(!host) return;
   if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#wallList')) return; // nu intrerupe scrisul
   if(!footClosed||foot.length<3){ host.innerHTML=''; return; }
