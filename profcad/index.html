@@ -61,7 +61,16 @@
   .dims label{display:flex;align-items:center;gap:5px;max-width:100%}
   .dims input{width:64px;max-width:100%}
   .dims select,.dims input[type=file]{max-width:140px}
+  .left{overflow-x:hidden}
   .left>*{max-width:100%}
+  .left *{min-width:0}
+  .tools{flex-wrap:wrap;max-width:100%}
+  .tools>*{max-width:100%}
+  #toolsPv>*{max-width:100%}
+  .pvgrid{max-width:100%}
+  .pvbtn{overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+  .cats{max-width:100%}
+  #bom *{max-width:100%;overflow:hidden;text-overflow:ellipsis}
   .hint{position:absolute;top:10px;left:10px;right:10px;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:11.5px;color:var(--muted);line-height:1.45;pointer-events:none}
   .vhint{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--muted)}
   .views{position:absolute;top:10px;left:10px;display:flex;gap:4px;flex-wrap:wrap;z-index:5}
@@ -74,7 +83,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R91 (camp inaltime per coama la T/L + panou dreapta fara depasire pe orizontala)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R92 (fix panou dreapta: continut care nu mai depaseste/taie pe orizontala)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
