@@ -704,12 +704,15 @@ function perimMids(sA,sB){ if(!PERIM) return []; const Lt=PERIM.Ltot; const fwdD
 function routeWaypoints(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [{x:a.x,z:a.z},{x:b.x,z:b.z}]; return [{x:pa.x,z:pa.z}, ...perimMids(pa.s,pb.s), {x:pb.x,z:pb.z}]; }
 // Traseu pe SUPRAFETE la un nivel (sus=tavan / jos=podea): de la punct -> peretele cel mai apropiat (pe tavan/podea), coboara/urca pe perete la nivel, merge pe perimetru, apoi urca la destinatie. Nimic prin aer.
 function levelRoute(a,b,level){ if(!PERIM) buildPerim(); if(!PERIM) return [a.clone(), b.clone()]; const pa=projPerim(a), pb=projPerim(b);
+  const c=centroidXZ(); const IN=0.04;   // impinge firul ~4 cm spre interiorul camerei, ca sa nu fie coplanar cu peretele (altfel e ascuns in perete)
+  const inw=(x,z)=>{ const dx=c.x-x, dz=c.z-z, L=Math.hypot(dx,dz)||1; return new THREE.Vector3(x+dx/L*IN, 0, z+dz/L*IN); };
+  const PA=inw(pa.x,pa.z), PB=inw(pb.x,pb.z);
   const out=[a.clone()];
-  out.push(new THREE.Vector3(pa.x, a.y, pa.z));      // pe tavan/podea, pana la perete (la inaltimea lui a)
-  out.push(new THREE.Vector3(pa.x, level, pa.z));    // pe perete, pana la nivel
-  perimMids(pa.s, pb.s).forEach(w=> out.push(new THREE.Vector3(w.x, level, w.z)));   // pe pereti, prin colturi, la nivel
-  out.push(new THREE.Vector3(pb.x, level, pb.z));    // langa destinatie, la nivel
-  out.push(new THREE.Vector3(pb.x, b.y, pb.z));      // pe perete, pana la inaltimea lui b
+  out.push(new THREE.Vector3(PA.x, a.y, PA.z));      // de la a la perete (in fata peretelui), la inaltimea lui a
+  out.push(new THREE.Vector3(PA.x, level, PA.z));    // pe perete (in fata), pana la nivel
+  perimMids(pa.s, pb.s).forEach(w=>{ const W=inw(w.x,w.z); out.push(new THREE.Vector3(W.x, level, W.z)); });   // pe pereti, prin colturi, la nivel
+  out.push(new THREE.Vector3(PB.x, level, PB.z));    // langa destinatie, la nivel
+  out.push(new THREE.Vector3(PB.x, b.y, PB.z));      // pe perete (in fata), pana la inaltimea lui b
   out.push(b.clone()); return out; }
 // traseu pe suprafete, pe drumul cel mai scurt prin colturi (inaltime interpolata) — fara fire prin aer/exterior
 function surfaceRoute(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [a.clone(),b.clone()];
