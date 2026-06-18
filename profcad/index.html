@@ -72,7 +72,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R87 (acoperis L/T pe dreptunghiuri: coame drepte, aceeasi inaltime)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R88 (coame L/T editabile: cate o coama pe fiecare aripa, trageti cu mouse-ul)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -211,9 +211,9 @@ let planView='sus', elevMap={s:30,ox:0,oy:0};   // Sus = plan; fata/spate/stanga
 let curCat='casa';   // categoria activa: 'casa' (editezi constructia) sau 'pv' (doar amplasezi sistem fotovoltaic)
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
 function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
-function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,orientationDeg,roofType,wallColorHex,roofColorHex}); }
+function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,autoRidges,orientationDeg,roofType,wallColorHex,roofColorHex}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
-function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; if(o.ridgeA0!=null)ridgeA0=o.ridgeA0; if(o.ridgeA1!=null)ridgeA1=o.ridgeA1; if(o.ridgeOffFrac!=null)ridgeOffFrac=o.ridgeOffFrac; orientationDeg=o.orientationDeg; roofType=o.roofType; wallColorHex=o.wallColorHex||'#eef1f4'; roofColorHex=o.roofColorHex||'';
+function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; if(o.ridgeA0!=null)ridgeA0=o.ridgeA0; if(o.ridgeA1!=null)ridgeA1=o.ridgeA1; if(o.ridgeOffFrac!=null)ridgeOffFrac=o.ridgeOffFrac; autoRidges=Array.isArray(o.autoRidges)?o.autoRidges.map(r=>({a0:r.a0,a1:r.a1,off:r.off})):[]; orientationDeg=o.orientationDeg; roofType=o.roofType; wallColorHex=o.wallColorHex||'#eef1f4'; roofColorHex=o.roofColorHex||'';
   $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; if($('wallColor'))$('wallColor').value=wallColorHex; if($('roofColor')&&roofColorHex)$('roofColor').value=roofColorHex; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); renderElemList(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
@@ -263,11 +263,13 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
   // streasina (conturul acoperisului, mai mare ca amprenta)
   if(footClosed && foot.length>=3 && eaveOverhang>0.01){ const rf=offsetFootprint(eaveOverhang); px.strokeStyle='#b9a25a'; px.lineWidth=1.5; px.setLineDash([6,4]); px.beginPath(); rf.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); px.closePath(); px.stroke(); px.setLineDash([]); }
   // coama (segment cu buline): capete = alungire/scurtare, mijloc = mutare
-  if(footClosed && foot.length>=3 && ridgeRaise>0.02 && roofLogic==='auto'){ const rs=ridgeSeg(); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2;
-    px.strokeStyle='#a64a32'; px.lineWidth=3; px.setLineDash([7,4]); px.beginPath(); px.moveTo(SX(rs.a.x),SY(rs.a.z)); px.lineTo(SX(rs.b.x),SY(rs.b.z)); px.stroke(); px.setLineDash([]);
-    [rs.a,rs.b].forEach(p=>{ px.fillStyle='#a64a32'; px.beginPath(); px.arc(SX(p.x),SY(p.z),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); });
-    px.fillStyle='#d98200'; px.beginPath(); px.arc(SX(mx),SY(mz),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke();
-    roofSlopes().forEach(s=>{ px.fillStyle='rgba(166,74,50,.85)'; px.font='800 13px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('A'+s.id, SX(s.cx), SY(s.cz)); }); }
+  if(footClosed && foot.length>=3 && ridgeRaise>0.02 && roofLogic==='auto'){
+    const drawRidge=(rs)=>{ const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2;
+      px.strokeStyle='#a64a32'; px.lineWidth=3; px.setLineDash([7,4]); px.beginPath(); px.moveTo(SX(rs.a.x),SY(rs.a.z)); px.lineTo(SX(rs.b.x),SY(rs.b.z)); px.stroke(); px.setLineDash([]);
+      [rs.a,rs.b].forEach(p=>{ px.fillStyle='#a64a32'; px.beginPath(); px.arc(SX(p.x),SY(p.z),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); });
+      px.fillStyle='#d98200'; px.beginPath(); px.arc(SX(mx),SY(mz),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); };
+    if(isComplexFoot()){ const rects=footRects(); syncAutoRidges(rects.length); rects.forEach((r,i)=> drawRidge(rectRidgeSeg(r,getAR(i)))); }   // T/L: cate o coama editabila pe fiecare aripa
+    else { drawRidge(ridgeSeg()); roofSlopes().forEach(s=>{ px.fillStyle='rgba(166,74,50,.85)'; px.font='800 13px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('A'+s.id, SX(s.cx), SY(s.cz)); }); } }
   // contur
   if(foot.length){ px.strokeStyle='#1c7bd6'; px.lineWidth=4; px.lineJoin='round'; px.beginPath(); foot.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); if(footClosed) px.closePath(); px.stroke();
     // goluri (usi/ferestre) pe pereti
@@ -452,10 +454,16 @@ pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev
       if(Math.hypot(sp.x-(cx+10),sp.y-(cy-10))<12){ openings.splice(i,1); drawPlan(); build3D(); renderElemList(true); commit(); return; }
       if(Math.hypot(sp.x-cx,sp.y-cy)<11){ drag={kind:'opening',i}; return; } } }
   // buline coama in plan: capete (alungire) + mijloc (mutare)
-  if(footClosed && foot.length>=3 && ridgeRaise>0.02 && roofLogic==='auto'){ const sp=screenPt(ev); const rs=ridgeSeg(); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2;
-    if(Math.hypot(sp.x-SX(rs.a.x),sp.y-SY(rs.a.z))<13){ drag={kind:'rdgEnd',end:'a'}; return; }
-    if(Math.hypot(sp.x-SX(rs.b.x),sp.y-SY(rs.b.z))<13){ drag={kind:'rdgEnd',end:'b'}; return; }
-    if(Math.hypot(sp.x-SX(mx),sp.y-SY(mz))<13){ drag={kind:'rdgMid',lx:w.x,lz:w.z}; return; } }
+  if(footClosed && foot.length>=3 && ridgeRaise>0.02 && roofLogic==='auto'){ const sp=screenPt(ev);
+    if(isComplexFoot()){ const rects=footRects(); syncAutoRidges(rects.length);   // T/L: cate o coama editabila pe fiecare dreptunghi
+      for(let i=0;i<rects.length;i++){ const rs=rectRidgeSeg(rects[i],getAR(i)); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2;
+        if(Math.hypot(sp.x-SX(rs.a.x),sp.y-SY(rs.a.z))<13){ drag={kind:'srdgEnd',ri:i,end:'a'}; return; }
+        if(Math.hypot(sp.x-SX(rs.b.x),sp.y-SY(rs.b.z))<13){ drag={kind:'srdgEnd',ri:i,end:'b'}; return; }
+        if(Math.hypot(sp.x-SX(mx),sp.y-SY(mz))<13){ drag={kind:'srdgMid',ri:i,lx:w.x,lz:w.z}; return; } } }
+    else { const rs=ridgeSeg(); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2;
+      if(Math.hypot(sp.x-SX(rs.a.x),sp.y-SY(rs.a.z))<13){ drag={kind:'rdgEnd',end:'a'}; return; }
+      if(Math.hypot(sp.x-SX(rs.b.x),sp.y-SY(rs.b.z))<13){ drag={kind:'rdgEnd',end:'b'}; return; }
+      if(Math.hypot(sp.x-SX(mx),sp.y-SY(mz))<13){ drag={kind:'rdgMid',lx:w.x,lz:w.z}; return; } } }
   if(mode==='addwall'){ const hit=nearestWall(w); if(hit){ const A=foot[hit.wall],B=foot[(hit.wall+1)%foot.length]; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; foot.splice(hit.wall+1,0,{x:snap(A.x+ux/L*hit.pos),z:snap(A.z+uz/L*hit.pos)}); openings=openings.filter(o=>o.wall!==hit.wall); openings.forEach(o=>{ if(o.wall>hit.wall) o.wall++; }); mode='edit'; setTools(); drawPlan(); build3D(); } return; }
   if(mode==='del'){ delElement(w); return; }
   if(mode==='edit'){ const i=nearest(foot,w,0.35); if(i>=0){ drag={kind:'foot',i}; return; }
@@ -496,6 +504,8 @@ pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev
   else if(drag.kind==='opening'){ const o=openings[drag.i]; const hit=nearestWall(w); if(o&&hit){ o.wall=hit.wall; const L=wallLen(hit.wall); o.pos=Math.max(0,Math.min(L-o.w,hit.pos-o.w/2)); } }
   else if(drag.kind==='rdgEnd'){ const b=roofBBox(),axX=ridgeAxisX(); const aMn=axX?b.xmn:b.zmn,aMx=axX?b.xmx:b.zmx; let f=((axX?w.x:w.z)-aMn)/((aMx-aMn)||1); f=Math.max(0,Math.min(1,f)); if(drag.end==='a') ridgeA0=Math.min(f,ridgeA1-0.03); else ridgeA1=Math.max(f,ridgeA0+0.03); }
   else if(drag.kind==='rdgMid'){ const b=roofBBox(),axX=ridgeAxisX(); const aMn=axX?b.xmn:b.zmn,aMx=axX?b.xmx:b.zmx,pMn=axX?b.zmn:b.xmn,pMx=axX?b.zmx:b.xmx; const aL=(aMx-aMn)||1,pL=(pMx-pMn)||1; const len=ridgeA1-ridgeA0; let c=(ridgeA0+ridgeA1)/2+((axX?w.x:w.z)-(axX?drag.lx:drag.lz))/aL; c=Math.max(len/2,Math.min(1-len/2,c)); ridgeA0=c-len/2; ridgeA1=c+len/2; ridgeOffFrac=Math.max(-0.45,Math.min(0.45,((axX?w.z:w.x)-(pMn+pMx)/2)/pL)); drag.lx=w.x; drag.lz=w.z; }
+  else if(drag.kind==='srdgEnd'){ const r=footRects()[drag.ri], rp=getAR(drag.ri); if(r&&rp){ const axX=rectAxX(r); const aMn=axX?r.x0:r.z0,aMx=axX?r.x1:r.z1; let f=((axX?w.x:w.z)-aMn)/((aMx-aMn)||1); f=Math.max(0,Math.min(1,f)); if(drag.end==='a') rp.a0=Math.min(f,rp.a1-0.03); else rp.a1=Math.max(f,rp.a0+0.03); } }
+  else if(drag.kind==='srdgMid'){ const r=footRects()[drag.ri], rp=getAR(drag.ri); if(r&&rp){ const axX=rectAxX(r); const aMn=axX?r.x0:r.z0,aMx=axX?r.x1:r.z1,pMn=axX?r.z0:r.x0,pMx=axX?r.z1:r.x1; const aL=(aMx-aMn)||1,pL=(pMx-pMn)||1; const len=rp.a1-rp.a0; let c=(rp.a0+rp.a1)/2+((axX?w.x:w.z)-(axX?drag.lx:drag.lz))/aL; c=Math.max(len/2,Math.min(1-len/2,c)); rp.a0=c-len/2; rp.a1=c+len/2; rp.off=Math.max(-0.45,Math.min(0.45,((axX?w.z:w.x)-(pMn+pMx)/2)/pL)); drag.lx=w.x; drag.lz=w.z; } }
   drawPlan(); build3D(); renderElemList(); });
 pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){ mouseW=snapRidgePoint(world(ev)); drawPlan(); } });
 window.addEventListener('pointerup',()=>{ drag=null; commit(); });
@@ -905,9 +915,21 @@ function footRects(){
   if(!rects.length) rects.push({x0:xmn-E,x1:xmx+E,z0:zmn-E,z1:zmx+E});
   _rectsCache=rects; return rects;
 }
-// inaltimea unui acoperis in 4 ape pe un dreptunghi, cu COAMA la aceeasi inaltime (wallH+ridgeRaise)
-function hipRectH(r,x,z){ const Wx=r.x1-r.x0, Wz=r.z1-r.z0; const dx=Math.min(x-r.x0,r.x1-x), dz=Math.min(z-r.z0,r.z1-z); if(dx<-0.001||dz<-0.001) return -1; const half=Math.max(0.2,Math.min(Wx,Wz)/2); return wallH + ridgeRaise*Math.min(1, Math.max(0,Math.min(dx,dz))/half); }
-function roofSkelY(x,z){ const rects=footRects(); let h=-1; for(const r of rects){ const v=hipRectH(r,x,z); if(v>h) h=v; } return h<0?wallH:h; }
+// === coame EDITABILE per dreptunghi (bara + picior). Fiecare are {a0,a1,off} ca la acoperisul dreptunghiular ===
+let autoRidges=[];
+function defAR(){ return {a0:0.2,a1:0.8,off:0}; }
+function syncAutoRidges(nr){ while(autoRidges.length<nr) autoRidges.push(defAR()); if(autoRidges.length>nr) autoRidges.length=nr; }
+function getAR(i){ if(!autoRidges[i]) autoRidges[i]=defAR(); return autoRidges[i]; }
+function rectAxX(r){ return (r.x1-r.x0)>=(r.z1-r.z0); }   // coama pe latura lunga a dreptunghiului
+// inaltimea acoperisului in 4 ape pe un dreptunghi, cu coama reglabila (a0,a1 = lungime coama; off = pozitie perpendiculara)
+function rectRoofY(r,x,z,rp){ if(x<r.x0-0.001||x>r.x1+0.001||z<r.z0-0.001||z>r.z1+0.001) return -1;
+  const axX=rectAxX(r); const along=axX?x:z, perp=axX?z:x, aMn=axX?r.x0:r.z0,aMx=axX?r.x1:r.z1,pMn=axX?r.z0:r.x0,pMx=axX?r.z1:r.x1;
+  const a0=aMn+rp.a0*(aMx-aMn), a1=aMn+rp.a1*(aMx-aMn), pr=(pMn+pMx)/2+rp.off*(pMx-pMn);
+  let fz; if(perp<=pr) fz=(pr>pMn)?(perp-pMn)/(pr-pMn):1; else fz=(pMx>pr)?(pMx-perp)/(pMx-pr):1;
+  let gx; if(along>=a0&&along<=a1) gx=1; else if(along<a0) gx=(a0>aMn)?(along-aMn)/(a0-aMn):1; else gx=(aMx>a1)?(aMx-along)/(aMx-a1):1;
+  return wallH + ridgeRaise*Math.max(0,Math.min(fz,gx)); }
+function rectRidgeSeg(r,rp){ const axX=rectAxX(r); const aMn=axX?r.x0:r.z0,aMx=axX?r.x1:r.z1,pMn=axX?r.z0:r.x0,pMx=axX?r.z1:r.x1; const a0=aMn+rp.a0*(aMx-aMn), a1=aMn+rp.a1*(aMx-aMn), pr=(pMn+pMx)/2+rp.off*(pMx-pMn); return axX?{a:{x:a0,z:pr},b:{x:a1,z:pr}}:{a:{x:pr,z:a0},b:{x:pr,z:a1}}; }
+function roofSkelY(x,z){ const rects=footRects(); syncAutoRidges(rects.length); let h=-1; for(let i=0;i<rects.length;i++){ const v=rectRoofY(rects[i],x,z,getAR(i)); if(v>h) h=v; } return h<0?wallH:h; }
 function inAnyRect(x,z){ const rects=footRects(); for(const r of rects){ if(x>=r.x0-0.001&&x<=r.x1+0.001&&z>=r.z0-0.001&&z<=r.z1+0.001) return true; } return false; }
 function buildSkelRoof(rpos){
   if(!Delaunator) return; const rects=footRects();
@@ -915,8 +937,8 @@ function buildSkelRoof(rpos){
   const pts=[];
   // margini dreptunghiuri (streasina dreapta)
   rects.forEach(r=>{ const cs=[[r.x0,r.z0],[r.x1,r.z0],[r.x1,r.z1],[r.x0,r.z1]]; for(let i=0;i<4;i++){ const a=cs[i],b=cs[(i+1)%4]; const L=Math.hypot(b[0]-a[0],b[1]-a[1]); const st=Math.max(1,Math.round(L/0.3)); for(let s=0;s<st;s++) pts.push({x:a[0]+(b[0]-a[0])*s/st, z:a[1]+(b[1]-a[1])*s/st}); } });
-  // linia de coama a fiecarui dreptunghi (muchie dreapta exacta)
-  rects.forEach(r=>{ const cx=(r.x0+r.x1)/2, cz=(r.z0+r.z1)/2; if((r.x1-r.x0)>=(r.z1-r.z0)){ const st=Math.max(2,Math.round((r.x1-r.x0)/0.3)); for(let s=0;s<=st;s++) pts.push({x:r.x0+(r.x1-r.x0)*s/st, z:cz}); } else { const st=Math.max(2,Math.round((r.z1-r.z0)/0.3)); for(let s=0;s<=st;s++) pts.push({x:cx, z:r.z0+(r.z1-r.z0)*s/st}); } });
+  // linia de coama a fiecarui dreptunghi (dupa reglajul utilizatorului) - puncte exact pe coama => muchie dreapta
+  syncAutoRidges(rects.length); rects.forEach((r,i)=>{ const rs=rectRidgeSeg(r,getAR(i)); const L=Math.hypot(rs.b.x-rs.a.x,rs.b.z-rs.a.z); const st=Math.max(2,Math.round(L/0.3)); for(let s=0;s<=st;s++) pts.push({x:rs.a.x+(rs.b.x-rs.a.x)*s/st, z:rs.a.z+(rs.b.z-rs.a.z)*s/st}); });
   const step=0.3; for(let x=xmn+step*0.5;x<xmx;x+=step)for(let z=zmn+step*0.5;z<zmx;z+=step){ if(inAnyRect(x,z)) pts.push({x,z}); }
   const seen=new Set(), up=[]; pts.forEach(p=>{ const k=Math.round(p.x*40)+'_'+Math.round(p.z*40); if(!seen.has(k)){seen.add(k); up.push(p);} });
   let del; try{ del=Delaunator.from(up.map(p=>[p.x,p.z])); }catch(e){ return; } const tr=del.triangles;
@@ -1033,8 +1055,8 @@ if($('sunSlider')) $('sunSlider').oninput=()=>{ sunPlaying=false; if($('sunBtn')
 
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
-  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,orientationDeg,roofType}; },
-  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; veluxes=s.veluxes||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; if(s.ridgeA0!=null)ridgeA0=s.ridgeA0; if(s.ridgeA1!=null)ridgeA1=s.ridgeA1; if(s.ridgeOffFrac!=null)ridgeOffFrac=s.ridgeOffFrac; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
+  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,autoRidges,orientationDeg,roofType}; },
+  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; veluxes=s.veluxes||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; if(s.ridgeA0!=null)ridgeA0=s.ridgeA0; if(s.ridgeA1!=null)ridgeA1=s.ridgeA1; if(s.ridgeOffFrac!=null)ridgeOffFrac=s.ridgeOffFrac; autoRidges=Array.isArray(s.autoRidges)?s.autoRidges.map(r=>({a0:r.a0,a1:r.a1,off:r.off})):[]; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
     $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); renderElemList(); }
 };
 
