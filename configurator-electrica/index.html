@@ -704,7 +704,7 @@ function perimMids(sA,sB){ if(!PERIM) return []; const Lt=PERIM.Ltot; const fwdD
 function routeWaypoints(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=projPerim(b); if(!PERIM) return [{x:a.x,z:a.z},{x:b.x,z:b.z}]; return [{x:pa.x,z:pa.z}, ...perimMids(pa.s,pb.s), {x:pb.x,z:pb.z}]; }
 // Traseu pe SUPRAFETE la un nivel (sus=tavan / jos=podea): de la punct -> peretele cel mai apropiat (pe tavan/podea), coboara/urca pe perete la nivel, merge pe perimetru, apoi urca la destinatie. Nimic prin aer.
 function levelRoute(a,b,level){ if(!PERIM) buildPerim(); if(!PERIM) return [a.clone(), b.clone()]; const pa=projPerim(a), pb=projPerim(b);
-  const c=centroidXZ(); const IN=0.04;   // impinge firul ~4 cm spre interiorul camerei, ca sa nu fie coplanar cu peretele (altfel e ascuns in perete)
+  const c=centroid(); const IN=0.04;   // impinge firul ~4 cm spre interiorul camerei, ca sa nu fie coplanar cu peretele (altfel e ascuns in perete)
   const inw=(x,z)=>{ const dx=c.x-x, dz=c.z-z, L=Math.hypot(dx,dz)||1; return new THREE.Vector3(x+dx/L*IN, 0, z+dz/L*IN); };
   const PA=inw(pa.x,pa.z), PB=inw(pb.x,pb.z);
   const out=[a.clone()];
@@ -728,7 +728,7 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
     if(aCeil && bCeil){ pts=[new THREE.Vector3(a.x,lvl,a.z), new THREE.Vector3(b.x,lvl,b.z)]; }   // ambele pe tavan: diagonala pe tavan
     else if(aCeil!==bCeil){ // perete <-> tavan: desfasor peretele+tavanul, linie dreapta, punct de trecere pe muchia perete-tavan
       const Wd=aCeil?b:a, C=aCeil?a:b; const pw=projPerim(Wd); let T=null,nrm=null;
-      if(PERIM && pw.edge!=null){ const A=PERIM.pts[pw.edge], B=PERIM.pts[(pw.edge+1)%PERIM.m]; const dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; T={x:dx/L,z:dz/L}; nrm={x:-T.z,z:T.x}; const c=centroidXZ(); if((Wd.x-c.x)*nrm.x+(Wd.z-c.z)*nrm.z<0){ nrm.x=-nrm.x; nrm.z=-nrm.z; } }
+      if(PERIM && pw.edge!=null){ const A=PERIM.pts[pw.edge], B=PERIM.pts[(pw.edge+1)%PERIM.m]; const dx=B.x-A.x,dz=B.z-A.z,L=Math.hypot(dx,dz)||1; T={x:dx/L,z:dz/L}; nrm={x:-T.z,z:T.x}; const c=centroid(); if((Wd.x-c.x)*nrm.x+(Wd.z-c.z)*nrm.z<0){ nrm.x=-nrm.x; nrm.z=-nrm.z; } }
       if(T){ const uC=(C.x-Wd.x)*T.x+(C.z-Wd.z)*T.z; const w=Math.max(0.03,(C.x-Wd.x)*nrm.x+(C.z-Wd.z)*nrm.z); const denom=(H+w-Wd.y)||1; const uCross=uC*(H-Wd.y)/denom; const Pe=new THREE.Vector3(Wd.x+T.x*uCross, lvl, Wd.z+T.z*uCross); pts=[new THREE.Vector3(Wd.x,Wd.y+off,Wd.z), Pe, new THREE.Vector3(C.x,C.y-off,C.z)]; if(aCeil) pts.reverse(); }
       else { pts=[new THREE.Vector3(Wd.x,Wd.y,Wd.z), new THREE.Vector3(Wd.x,lvl,Wd.z), new THREE.Vector3(C.x,lvl,C.z), C.clone()]; if(aCeil) pts.reverse(); }
     } else { // ambele pe perete
