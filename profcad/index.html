@@ -72,7 +72,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R86 (acoperis pe amprenta L/T cu coame+vai corecte)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R87 (acoperis L/T pe dreptunghiuri: coame drepte, aceeasi inaltime)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -883,17 +883,41 @@ function roofY2(x,z){ if(ridgeRaise<=0.02) return wallH+0.05; if(roofLogic==='au
 // ===== ACOPERIS pe AMPRENTA REALA (L / T / orice forma): inaltime = distanta minima pana la pereti (coame + vai corecte) =====
 function _segDist2D(px,pz,x1,z1,x2,z2){ const dx=x2-x1,dz=z2-z1; const L2=dx*dx+dz*dz||1; let t=((px-x1)*dx+(pz-z1)*dz)/L2; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-(x1+t*dx),pz-(z1+t*dz)); }
 function distToFootEdge(x,z,rf){ let m=1e9; for(let i=0;i<rf.length;i++){ const a=rf[i], b=rf[(i+1)%rf.length]; m=Math.min(m,_segDist2D(x,z,a.x,a.z,b.x,b.z)); } return m; }
-// amprenta e complexa (L/T) daca poligonul umple sub 92% din dreptunghiul de incadrare (are colturi interioare)
-function isComplexFoot(){ const b=roofBBox(), rf=b.rf; const bboxA=(b.xmx-b.xmn)*(b.zmx-b.zmn); if(bboxA<=0) return false; let A=0; for(let i=0;i<rf.length;i++){ const a=rf[i],c=rf[(i+1)%rf.length]; A+=a.x*c.z-c.x*a.z; } A=Math.abs(A)/2; return A < bboxA*0.92; }
-let _skelMI=1, _skelKey='';
-function getSkelMI(){ const b=roofBBox(), rf=b.rf; const key=JSON.stringify(rf)+'|'+wallH; if(key===_skelKey) return _skelMI; _skelKey=key; let mx=0.3; const N=26; for(let i=0;i<=N;i++)for(let j=0;j<=N;j++){ const x=b.xmn+(b.xmx-b.xmn)*i/N, z=b.zmn+(b.zmx-b.zmn)*j/N; if(pointInPolyG(rf,x,z)){ const d=distToFootEdge(x,z,rf); if(d>mx) mx=d; } } _skelMI=mx; return mx; }
-function roofSkelY(x,z){ const rf=roofBBox().rf; const mi=getSkelMI(); const d=distToFootEdge(x,z,rf); return wallH + ridgeRaise*Math.min(1, d/(mi||1)); }
-function buildSkelRoof(rpos){ if(!Delaunator) return; const b=roofBBox(), rf=b.rf; const pts=[];
-  rf.forEach(p=>pts.push({x:p.x,z:p.z}));                                   // colturi
-  for(let i=0;i<rf.length;i++){ const a=rf[i],c=rf[(i+1)%rf.length]; const L=Math.hypot(c.x-a.x,c.z-a.z); const steps=Math.max(1,Math.round(L/0.4)); for(let s=1;s<steps;s++) pts.push({x:a.x+(c.x-a.x)*s/steps, z:a.z+(c.z-a.z)*s/steps}); }   // densificare margini
-  const step=0.4; for(let x=b.xmn+step*0.5;x<b.xmx;x+=step)for(let z=b.zmn+step*0.5;z<b.zmx;z+=step){ if(pointInPolyG(rf,x,z)) pts.push({x,z}); }   // grila interioara
-  let del; try{ del=Delaunator.from(pts.map(p=>[p.x,p.z])); }catch(e){ return; } const tr=del.triangles;
-  for(let i=0;i<tr.length;i+=3){ const A=pts[tr[i]],B=pts[tr[i+1]],C=pts[tr[i+2]]; const cx=(A.x+B.x+C.x)/3, cz=(A.z+B.z+C.z)/3; if(!pointInPolyG(rf,cx,cz)) continue;   // pastreaza doar triunghiurile din interiorul amprentei (concavitati)
+// amprenta e complexa (L/T) daca AMPRENTA REALA (peretii desenati) umple sub 92% din dreptunghiul ei de incadrare (are colturi interioare)
+function isComplexFoot(){ if(!foot||foot.length<5) return false; let xmn=1e9,xmx=-1e9,zmn=1e9,zmx=-1e9; foot.forEach(p=>{xmn=Math.min(xmn,p.x);xmx=Math.max(xmx,p.x);zmn=Math.min(zmn,p.z);zmx=Math.max(zmx,p.z);}); const bboxA=(xmx-xmn)*(zmx-zmn); if(bboxA<=0) return false; let A=0; for(let i=0;i<foot.length;i++){ const a=foot[i],c=foot[(i+1)%foot.length]; A+=a.x*c.z-c.x*a.z; } A=Math.abs(A)/2; return A < bboxA*0.92; }
+// === Descompune amprenta T/L in dreptunghiurile naturale (banda full-latime + banda full-inaltime), extinse cu streasina ===
+let _rectsCache=null, _rectsKey='';
+function footRects(){
+  const key=JSON.stringify(foot)+'|'+eaveOverhang;
+  if(key===_rectsKey && _rectsCache) return _rectsCache; _rectsKey=key;
+  let xmn=1e9,xmx=-1e9,zmn=1e9,zmx=-1e9; foot.forEach(p=>{if(p.x<xmn)xmn=p.x;if(p.x>xmx)xmx=p.x;if(p.z<zmn)zmn=p.z;if(p.z>zmx)zmx=p.z;});
+  const fullW=xmx-xmn, fullH=zmx-zmn, n=foot.length; const eps=Math.max(0.08,Math.min(fullW,fullH)*0.04);
+  function spanX(z){ let lo=1e9,hi=-1e9; for(let i=0;i<n;i++){ const a=foot[i],b=foot[(i+1)%n]; if((a.z<=z&&b.z>z)||(b.z<=z&&a.z>z)){ const t=(z-a.z)/((b.z-a.z)||1e-9); const x=a.x+(b.x-a.x)*t; if(x<lo)lo=x; if(x>hi)hi=x; } } return hi>lo?[lo,hi]:null; }
+  function spanZ(x){ let lo=1e9,hi=-1e9; for(let i=0;i<n;i++){ const a=foot[i],b=foot[(i+1)%n]; if((a.x<=x&&b.x>x)||(b.x<=x&&a.x>x)){ const t=(x-a.x)/((b.x-a.x)||1e-9); const z=a.z+(b.z-a.z)*t; if(z<lo)lo=z; if(z>hi)hi=z; } } return hi>lo?[lo,hi]:null; }
+  let hz0=null,hz1=null; for(let k=0;k<=120;k++){ const z=zmn+fullH*k/120; const s=spanX(z); if(s&&(s[1]-s[0])>=fullW-eps){ if(hz0==null)hz0=z; hz1=z; } }
+  let vx0=null,vx1=null; for(let k=0;k<=120;k++){ const x=xmn+fullW*k/120; const s=spanZ(x); if(s&&(s[1]-s[0])>=fullH-eps){ if(vx0==null)vx0=x; vx1=x; } }
+  const E=eaveOverhang, rects=[];
+  if(hz0!=null && (hz1-hz0)>0.05) rects.push({x0:xmn-E,x1:xmx+E,z0:hz0-E,z1:hz1+E});
+  if(vx0!=null && (vx1-vx0)>0.05) rects.push({x0:vx0-E,x1:vx1+E,z0:zmn-E,z1:zmx+E});
+  if(!rects.length) rects.push({x0:xmn-E,x1:xmx+E,z0:zmn-E,z1:zmx+E});
+  _rectsCache=rects; return rects;
+}
+// inaltimea unui acoperis in 4 ape pe un dreptunghi, cu COAMA la aceeasi inaltime (wallH+ridgeRaise)
+function hipRectH(r,x,z){ const Wx=r.x1-r.x0, Wz=r.z1-r.z0; const dx=Math.min(x-r.x0,r.x1-x), dz=Math.min(z-r.z0,r.z1-z); if(dx<-0.001||dz<-0.001) return -1; const half=Math.max(0.2,Math.min(Wx,Wz)/2); return wallH + ridgeRaise*Math.min(1, Math.max(0,Math.min(dx,dz))/half); }
+function roofSkelY(x,z){ const rects=footRects(); let h=-1; for(const r of rects){ const v=hipRectH(r,x,z); if(v>h) h=v; } return h<0?wallH:h; }
+function inAnyRect(x,z){ const rects=footRects(); for(const r of rects){ if(x>=r.x0-0.001&&x<=r.x1+0.001&&z>=r.z0-0.001&&z<=r.z1+0.001) return true; } return false; }
+function buildSkelRoof(rpos){
+  if(!Delaunator) return; const rects=footRects();
+  let xmn=1e9,xmx=-1e9,zmn=1e9,zmx=-1e9; rects.forEach(r=>{xmn=Math.min(xmn,r.x0);xmx=Math.max(xmx,r.x1);zmn=Math.min(zmn,r.z0);zmx=Math.max(zmx,r.z1);});
+  const pts=[];
+  // margini dreptunghiuri (streasina dreapta)
+  rects.forEach(r=>{ const cs=[[r.x0,r.z0],[r.x1,r.z0],[r.x1,r.z1],[r.x0,r.z1]]; for(let i=0;i<4;i++){ const a=cs[i],b=cs[(i+1)%4]; const L=Math.hypot(b[0]-a[0],b[1]-a[1]); const st=Math.max(1,Math.round(L/0.3)); for(let s=0;s<st;s++) pts.push({x:a[0]+(b[0]-a[0])*s/st, z:a[1]+(b[1]-a[1])*s/st}); } });
+  // linia de coama a fiecarui dreptunghi (muchie dreapta exacta)
+  rects.forEach(r=>{ const cx=(r.x0+r.x1)/2, cz=(r.z0+r.z1)/2; if((r.x1-r.x0)>=(r.z1-r.z0)){ const st=Math.max(2,Math.round((r.x1-r.x0)/0.3)); for(let s=0;s<=st;s++) pts.push({x:r.x0+(r.x1-r.x0)*s/st, z:cz}); } else { const st=Math.max(2,Math.round((r.z1-r.z0)/0.3)); for(let s=0;s<=st;s++) pts.push({x:cx, z:r.z0+(r.z1-r.z0)*s/st}); } });
+  const step=0.3; for(let x=xmn+step*0.5;x<xmx;x+=step)for(let z=zmn+step*0.5;z<zmx;z+=step){ if(inAnyRect(x,z)) pts.push({x,z}); }
+  const seen=new Set(), up=[]; pts.forEach(p=>{ const k=Math.round(p.x*40)+'_'+Math.round(p.z*40); if(!seen.has(k)){seen.add(k); up.push(p);} });
+  let del; try{ del=Delaunator.from(up.map(p=>[p.x,p.z])); }catch(e){ return; } const tr=del.triangles;
+  for(let i=0;i<tr.length;i+=3){ const A=up[tr[i]],B=up[tr[i+1]],C=up[tr[i+2]]; const cx=(A.x+B.x+C.x)/3, cz=(A.z+B.z+C.z)/3; if(!inAnyRect(cx,cz)) continue;
     tri(rpos, V(A.x,roofSkelY(A.x,A.z),A.z), V(B.x,roofSkelY(B.x,B.z),B.z), V(C.x,roofSkelY(C.x,C.z),C.z)); } }
 // acoperis din FETE PLANE explicite (2 ape mari + 2 capete) - curat, fara distorsiuni (pentru amprenta dreptunghiulara)
 function buildHipRoof(rpos){ const b=roofBBox(); const xmn=b.xmn,xmx=b.xmx,zmn=b.zmn,zmx=b.zmx; if(!(xmx>xmn&&zmx>zmn)) return; const ry=wallH+ridgeRaise; const axX=ridgeAxisX(); const rs=ridgeSeg();

@@ -594,12 +594,23 @@ function onPointerMove(e){ if(!dragging) return; const r=renderer.domElement.get
   let want; if(dragging.kind==='dev') want= el.type==='bec'?'ceiling':(el.type==='ventilator'?'floor':'wall'); else if(dragging.kind==='doza') want=null; else want= el.type==='doza'?null:'floor';
   const hits=raycaster.intersectObjects(surfaces,true); if(!hits.length) return; const h=want?(hits.find(x=>x.object.userData.kind===want)||null):hits[0]; if(!h) return;
   moveElementTo(el,dragging.kind,h); updateMeasure(el); renderWiresThrottled(); }
-function onPointerUp(){ if(dragging){ dragging=null; dragOrig=null; renderWires(); recordState(); } controls.enabled=true; }
+function onPointerUp(){ if(dragging){ dragging=null; dragOrig=null; guideClear(); renderWires(); recordState(); } controls.enabled=true; }
+/* ===== Aliniere ORTO fata de alt dispozitiv (ghidaj vizual) =====
+   Cu Ortho ON, cand muti o piesa, daca pe o axa se apropie de pozitia altui dispozitiv (alta priza, intrerupator, doza)
+   se "lipeste" la aceeasi coordonata: aceeasi inaltime -> rand orizontal; aceeasi pozitie pe perete -> coloana verticala (ex. intrerupator fix sub doza).
+   Se traseaza o linie verde de ghidaj intre cele doua piese aliniate. */
+let guideGroup=null;
+function guideClear(){ if(guideGroup){ while(guideGroup.children.length) guideGroup.remove(guideGroup.children[0]); } }
+function guideAdd(a,b){ if(!guideGroup){ guideGroup=new THREE.Group(); scene.add(guideGroup); } const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,a.y,a.z), new THREE.Vector3(b.x,b.y,b.z)]); guideGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({color:0x1d9e75}))); }
+function alignToDevices(el,pos,axes){ if(!orthoOn) return; const TH=0.09;   // 9 cm prag de lipire
+  const others=[...devices, ...dozas].filter(o=>o!==el && o.pos);
+  axes.forEach(ax=>{ let best=null,bd=TH; others.forEach(o=>{ const d=Math.abs(pos[ax]-o.pos[ax]); if(d<bd){ bd=d; best=o; } }); if(best){ const tgt=best.pos[ax]; const a=pos.clone(); pos[ax]=tgt; const b=best.pos.clone(); guideAdd(a,b); } }); }
 function moveElementTo(el,kind,h){ const ud=h.object.userData; const SN=0.05;   // Ortho: aliniere la grila de 5 cm
   const snapWall=(pt,n)=>{ if(!orthoOn) return; if(Math.abs(n.x)>=Math.abs(n.z)) pt.z=Math.round(pt.z/SN)*SN; else pt.x=Math.round(pt.x/SN)*SN; pt.y=Math.round(pt.y/SN)*SN; };   // snap pe planul peretelui (nu pe normala) + inaltime
   const snapXZ=pt=>{ if(!orthoOn) return; pt.x=Math.round(pt.x/SN)*SN; pt.z=Math.round(pt.z/SN)*SN; };
-  if(kind==='dev'){ if(ud.kind==='wall'){ const n=ud.normal.clone(); const pt=h.point.clone(); snapWall(pt,n); const pos=pt.add(n.clone().multiplyScalar(0.03)); pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); el.pos.copy(pos); el.normal=n; el.surf='wall'; el.mesh.position.copy(pos); el.mesh.lookAt(pos.clone().add(n)); } else if(ud.kind==='ceiling'){ const pos=h.point.clone(); snapXZ(pos); pos.y=H-0.02; el.pos.copy(pos); el.mesh.position.copy(pos); } else { const pos=h.point.clone(); snapXZ(pos); el.pos.copy(pos); el.mesh.position.copy(pos); } }
-  else if(kind==='doza'){ const onWall=ud.kind==='wall'&&ud.normal; const pos=h.point.clone(); if(onWall){ snapWall(pos,ud.normal); pos.add(ud.normal.clone().multiplyScalar(0.03)); el.normal=ud.normal.clone(); el.surf='wall'; } else { snapXZ(pos); el.normal=null; el.surf=ud.kind||'floor'; } el.pos.copy(pos); el.mesh.position.copy(pos); orientDoza(el.mesh,onWall,onWall?ud.normal:null); }
+  guideClear();
+  if(kind==='dev'){ if(ud.kind==='wall'){ const n=ud.normal.clone(); const pt=h.point.clone(); snapWall(pt,n); const pos=pt.add(n.clone().multiplyScalar(0.03)); const alongAx=(Math.abs(n.x)>=Math.abs(n.z))?'z':'x'; alignToDevices(el,pos,[alongAx,'y']); pos.y=Math.max(0.05,Math.min(H-0.05,pos.y)); el.pos.copy(pos); el.normal=n; el.surf='wall'; el.mesh.position.copy(pos); el.mesh.lookAt(pos.clone().add(n)); } else if(ud.kind==='ceiling'){ const pos=h.point.clone(); snapXZ(pos); alignToDevices(el,pos,['x','z']); pos.y=H-0.02; el.pos.copy(pos); el.mesh.position.copy(pos); } else { const pos=h.point.clone(); snapXZ(pos); alignToDevices(el,pos,['x','z']); el.pos.copy(pos); el.mesh.position.copy(pos); } }
+  else if(kind==='doza'){ const onWall=ud.kind==='wall'&&ud.normal; const pos=h.point.clone(); if(onWall){ snapWall(pos,ud.normal); pos.add(ud.normal.clone().multiplyScalar(0.03)); const alongAx=(Math.abs(ud.normal.x)>=Math.abs(ud.normal.z))?'z':'x'; alignToDevices(el,pos,[alongAx,'y']); el.normal=ud.normal.clone(); el.surf='wall'; } else { snapXZ(pos); alignToDevices(el,pos,['x','z']); el.normal=null; el.surf=ud.kind||'floor'; } el.pos.copy(pos); el.mesh.position.copy(pos); orientDoza(el.mesh,onWall,onWall?ud.normal:null); }
   else { const pos=h.point.clone(); snapXZ(pos); if(ud.kind==='floor') pos.y=el.mesh.position.y; el.mesh.position.copy(pos); } }
 function renderWiresThrottled(){ if(wireTO) return; wireTO=setTimeout(()=>{ wireTO=null; renderWires(); },70); }
 function segDist(px,pz,x1,z1,x2,z2){ const dx=x2-x1,dz=z2-z1; const L2=dx*dx+dz*dz||1; let t=((px-x1)*dx+(pz-z1)*dz)/L2; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-(x1+t*dx),pz-(z1+t*dz)); }
@@ -632,10 +643,12 @@ function renderRoomList(){ const el=$('roomList'); if(!el) return; const items=[
     if(it.k==='prop') btns+=`<button class="editbtn" data-fe="${it.id}">✎ dim.</button>`;
     if(it.k==='doza'){ const z=dozas.find(x=>x.id===it.id); const rv=(z&&z.route)||'sus'; const ss=(z&&z.source)||{kind:'panel'}; const sst='background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:2px 4px;font-size:11px;margin-right:4px';
       btns+=`<select data-dz-src="${it.id}" style="${sst}"><option value="panel" ${ss.kind==='panel'?'selected':''}>Tablou</option>`+dozas.filter(o=>o.id!==it.id).map(o=>`<option value="doza:${o.id}" ${(ss.kind==='doza'&&ss.id===o.id)?'selected':''}>Doza ${o.n}</option>`).join('')+`</select>`;
-      btns+=`<select data-dz-rt="${it.id}" style="${sst}"><option value="sus" ${rv==='sus'?'selected':''}>pe sus</option><option value="podea" ${rv==='podea'?'selected':''}>pe podea</option><option value="direct" ${rv==='direct'?'selected':''}>punte directa</option><option value="orto" ${rv==='orto'?'selected':''}>punte orto</option></select>`; }
+      const zb=rBase(z); btns+=`<select data-dz-rt="${it.id}" style="${sst}"><option value="sus" ${zb==='sus'?'selected':''}>pe sus</option><option value="podea" ${zb==='podea'?'selected':''}>pe podea</option><option value="punte" ${zb==='punte'?'selected':''}>punte</option></select>`;
+      btns+=`<label style="font-size:11px;display:inline-flex;align-items:center;gap:3px;margin-right:4px"><input type="checkbox" data-dz-or="${it.id}" ${rOrto(z)?'checked':''}>orto</label>`; }
     btns+=`<button class="x" data-rk="${it.k}" data-ri="${it.k==='op'?it.idx:it.id}">✕</button>`;
     d.innerHTML=`<span class="dot" style="background:${it.col}"></span><span style="flex:1">${it.label}</span>${btns}`; el.appendChild(d); });
   el.querySelectorAll('[data-dz-rt]').forEach(sel=> sel.onchange=()=>{ const z=dozas.find(x=>x.id===parseInt(sel.dataset.dzRt,10)); if(z){ z.route=sel.value; renderWires(); recordState(); } });
+  el.querySelectorAll('[data-dz-or]').forEach(cb=> cb.onchange=()=>{ const z=dozas.find(x=>x.id===parseInt(cb.dataset.dzOr,10)); if(z){ z.orto=cb.checked; z.route=rBase(z); renderWires(); recordState(); } });
   el.querySelectorAll('[data-dz-src]').forEach(sel=> sel.onchange=()=>{ const z=dozas.find(x=>x.id===parseInt(sel.dataset.dzSrc,10)); if(!z) return; const v=sel.value; z.source = v==='panel'?{kind:'panel'}:{kind:'doza',id:parseInt(v.slice(5),10)}; renderWires(); recordState(); });
   el.querySelectorAll('[data-ek]').forEach(b=> b.onclick=()=>editOpening(parseInt(b.dataset.ek,10)));
   el.querySelectorAll('[data-fe]').forEach(b=> b.onclick=()=>editFurniture(parseInt(b.dataset.fe,10)));
@@ -681,7 +694,7 @@ function closeModal(){ $('modal').classList.remove('on'); $('modal').onclick=nul
 function cancelCurrent(){
   if($('modal') && $('modal').classList.contains('on')){ closeModal(); return true; }
   if(dragging){ const el=elObj(dragging); if(el && dragOrig){ el.mesh.position.copy(dragOrig.mesh); if(el.pos&&dragOrig.pos) el.pos.copy(dragOrig.pos); if(el.normal&&dragOrig.normal){ el.normal.copy(dragOrig.normal); el.mesh.lookAt(el.mesh.position.clone().add(el.normal)); } }
-    dragging=null; dragOrig=null; if(controls) controls.enabled=true; renderWires(); const s=selectedEl?elObj(selectedEl):null; if(s) updateMeasure(s); return true; }
+    dragging=null; dragOrig=null; guideClear(); if(controls) controls.enabled=true; renderWires(); const s=selectedEl?elObj(selectedEl):null; if(s) updateMeasure(s); return true; }
   if(addType){ addType=null; document.querySelectorAll('[data-add]').forEach(x=>x.classList.remove('on')); const ai=$('addInfo'); if(ai) ai.textContent='Comanda anulata (Esc).'; if(controls) controls.enabled=true; return true; }
   if(state.mode==='plan' && typeof planMode!=='undefined' && planMode==='draw'){ planMode='edit'; if(typeof setPlanModeUI==='function') setPlanModeUI(); if(typeof refreshPlan==='function') refreshPlan(); return true; }
   return false;
@@ -720,11 +733,24 @@ function surfaceRoute(a,b){ if(!PERIM) buildPerim(); const pa=projPerim(a), pb=p
   const startH=a.y>H*0.7?H:a.y, endH=b.y>H*0.7?H:b.y; const mids=perimMids(pa.s,pb.s);
   const xz=[{x:pa.x,z:pa.z}, ...mids, {x:pb.x,z:pb.z}]; const cum=[0]; for(let i=1;i<xz.length;i++) cum.push(cum[i-1]+Math.hypot(xz[i].x-xz[i-1].x,xz[i].z-xz[i-1].z)); const tot=cum[cum.length-1]||1;
   const path=[a.clone()]; xz.forEach((p,i)=> path.push(new THREE.Vector3(p.x, startH+(endH-startH)*(cum[i]/tot), p.z))); path.push(b.clone()); return path; }
-function routeLen(a,b,rmode){ if(!PERIM) buildPerim(); const direct=rmode==='direct'; const level=direct?a.y:(rmode==='podea'?0.08:(H-0.05)); const pa=projPerim(a), pb=projPerim(b); let horiz; if(PERIM){ const Lt=PERIM.Ltot; const fwd=((pb.s-pa.s)%Lt+Lt)%Lt; horiz=Math.min(fwd,Lt-fwd); } else horiz=Math.hypot(b.x-a.x,b.z-a.z); const dA=Math.abs(level-a.y)+Math.hypot(a.x-pa.x,a.z-pa.z); const dB=Math.abs(level-b.y)+Math.hypot(b.x-pb.x,b.z-pb.z); return horiz+dA+dB; }
-function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
-  rmode=rmode||'standard'; let pts=null;
+function routeLen(a,b,rmode){ if(!PERIM) buildPerim(); const direct=(rmode==='direct'||rmode==='punte'); const level=direct?a.y:(rmode==='podea'?0.08:(H-0.05)); const pa=projPerim(a), pb=projPerim(b); let horiz; if(PERIM){ const Lt=PERIM.Ltot; const fwd=((pb.s-pa.s)%Lt+Lt)%Lt; horiz=Math.min(fwd,Lt-fwd); } else horiz=Math.hypot(b.x-a.x,b.z-a.z); const dA=Math.abs(level-a.y)+Math.hypot(a.x-pa.x,a.z-pa.z); const dB=Math.abs(level-b.y)+Math.hypot(b.x-pb.x,b.z-pb.z); return horiz+dA+dB; }
+// Traseu pe PERETI in jurul coltului (geodezic, drumul cel mai scurt pe perimetru) — NU urca pe tavan.
+// fixedLevel=null -> inaltime interpolata (punte directa); fixedLevel=val -> orizontal la acel nivel apoi vertical (punte orto).
+function wallPath(a,b,fixedLevel){ if(!PERIM) buildPerim(); if(!PERIM) return [a.clone(),b.clone()]; const pa=projPerim(a), pb=projPerim(b);
+  const c=centroid(); const IN=0.04; const inw=(x,z)=>{ const dx=c.x-x,dz=c.z-z,L=Math.hypot(dx,dz)||1; return {x:x+dx/L*IN, z:z+dz/L*IN}; };
+  const mids=perimMids(pa.s,pb.s); const xz=[{x:pa.x,z:pa.z}, ...mids.map(m=>({x:m.x,z:m.z})), {x:pb.x,z:pb.z}];
+  const cum=[0]; for(let i=1;i<xz.length;i++) cum.push(cum[i-1]+Math.hypot(xz[i].x-xz[i-1].x, xz[i].z-xz[i-1].z)); const tot=cum[cum.length-1]||1;
+  const out=[a.clone()];
+  for(let i=0;i<xz.length;i++){ const p=inw(xz[i].x,xz[i].z); const y=(fixedLevel!=null)?fixedLevel:(a.y+(b.y-a.y)*(cum[i]/tot)); out.push(new THREE.Vector3(p.x,y,p.z)); }
+  out.push(b.clone()); return out; }
+// model traseu: baza ('sus' | 'podea' | 'punte') + bifa orto. Compat. cu vechile valori 'direct'/'orto'.
+function rBase(o){ const r=(o&&o.route)||'sus'; return (r==='direct'||r==='orto')?'punte':r; }
+function rOrto(o){ if(o&&o.route==='orto') return true; if(o&&o.route==='direct') return false; return !!(o&&o.orto); }
+function drawConductor(a,b,colorHex,idx,rmode,rad,straight,orto){
+  rmode=rmode||'sus'; if(rmode==='direct'){rmode='punte';orto=false;} else if(rmode==='orto'){rmode='punte';orto=true;}   // compat. cu modelul vechi
+  let pts=null;
   if(straight){ const off=idx*0.014; pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
-  else if(rmode==='direct'){ // PUNTE DIRECTA = geodezica pe suprafete (pereti + tavan), nimic prin aer
+  else if(rmode==='punte' && !orto){ // PUNTE (drum scurt) = geodezica pe suprafete (pereti + tavan), nimic prin aer
     const off=idx*0.028; const lvl=H-off; const aCeil=a.y>H*0.7, bCeil=b.y>H*0.7;
     if(aCeil && bCeil){ pts=[new THREE.Vector3(a.x,lvl,a.z), new THREE.Vector3(b.x,lvl,b.z)]; }   // ambele pe tavan: diagonala pe tavan
     else if(aCeil!==bCeil){ // perete <-> tavan: desfasor peretele+tavanul, linie dreapta, punct de trecere pe muchia perete-tavan
@@ -735,10 +761,10 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
     } else { // ambele pe perete
       const pa=projPerim(a), pb=projPerim(b);
       if(pa.edge!=null && pa.edge===pb.edge){ pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }   // acelasi perete: linie dreapta pe perete
-      else { pts=[a.clone(), new THREE.Vector3(a.x,lvl,a.z), new THREE.Vector3(b.x,lvl,b.z), b.clone()]; }   // pereti diferiti: urca pe tavan, diagonala pe tavan, coboara
+      else { pts=wallPath(a,b,null); }   // pereti diferiti: geodezic pe pereti, in jurul coltului (NU pe tavan)
     }
   }
-  else if(rmode==='orto'){ // traseu ortogonal estetic (numai unghiuri drepte) pe perete + tavan
+  else if(rmode==='punte'){ // PUNTE cu ORTO = numai unghiuri drepte pe perete + tavan
     const off=idx*0.028; const aCeil=a.y>H*0.7, bCeil=b.y>H*0.7;
     if(aCeil!==bCeil){ // perete -> tavan: perpendicular in sus pana la coltul perete-tavan, apoi direct (diagonala) pe tavan in bec
       const W=aCeil?b:a, C=aCeil?a:b; const lvl=H-off;
@@ -747,38 +773,59 @@ function drawConductor(a,b,colorHex,idx,rmode,rad,straight){
       if(aCeil) pts.reverse();
     } else if(aCeil && bCeil){ // tavan-tavan: L ortogonal
       const lvl=H-off; pts=[a.clone(), new THREE.Vector3(b.x,lvl,a.z), new THREE.Vector3(b.x,lvl,b.z), b.clone()];
-    } else { // perete-perete: urca, ortogonal pe muchie, coboara
+    } else { // perete-perete: numai unghiuri drepte
       const pa=projPerim(a), pb=projPerim(b);
-      if(PERIM && pa.edge!=null && pa.edge===pb.edge){ pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
-      else { const lvl=H-off; const mids=routeWaypoints(a,b).slice(1,-1); pts=[a.clone(), new THREE.Vector3(a.x,lvl,a.z), ...mids.map(w=>new THREE.Vector3(w.x,lvl,w.z)), new THREE.Vector3(b.x,lvl,b.z), b.clone()]; }
+      if(PERIM && pa.edge!=null && pa.edge===pb.edge){ // acelasi perete: capsa ortogonala (urca, traverseaza orizontal, coboara)
+        const railH=Math.max(a.y,b.y)+off;
+        pts=[new THREE.Vector3(a.x,a.y+off,a.z), new THREE.Vector3(a.x,railH,a.z), new THREE.Vector3(b.x,railH,b.z), new THREE.Vector3(b.x,b.y+off,b.z)]; }
+      else { pts=wallPath(a,b,Math.max(a.y,b.y)+off); }   // pereti diferiti: orizontal pe pereti in jurul coltului, apoi vertical (NU pe tavan)
     }
   }
-  if(!pts){ const level=(rmode==='podea'?0.08:(H-0.06))-idx*0.028; pts=levelRoute(a,b,level); }   // sus/jos pe suprafete (perete+tavan/podea), nimic prin aer
+  else if(rmode==='sus'||rmode==='podea'){   // SUS (tavan) / JOS (podea)
+    const off=idx*0.028; const level=(rmode==='podea'?0.08:(H-0.06))-off;
+    if(orto) pts=levelRoute(a,b,level);   // ORTO: pe pereti+tavan/podea, in jurul coltului (unghiuri drepte)
+    else pts=[a.clone(), new THREE.Vector3(a.x,level,a.z), new THREE.Vector3(b.x,level,b.z), b.clone()];   // direct: diagonala pe tavan/podea
+  }
+  if(!pts){ const level=(rmode==='podea'?0.08:(H-0.06))-idx*0.028; pts=levelRoute(a,b,level); }   // siguranta
   pts=avoidOpenings(pts);   // ocoleste usile/ferestrele/golurile (ridica firul peste pragul de sus)
   if(!pts || pts.length<2 || pts.some(p=> !p || !isFinite(p.x)||!isFinite(p.y)||!isFinite(p.z))) pts=[a.clone(), b.clone()];   // protectie: orice traseu invalid -> linie dreapta (firul nu dispare niciodata)
   // elimina punctele (aproape) coincidente — altfel CatmullRom produce NaN si tubul devine invizibil (ex. intrerupator + doza pe acelasi perete)
   { const dd=[pts[0]]; for(let i=1;i<pts.length;i++){ if(pts[i].distanceTo(dd[dd.length-1])>0.006) dd.push(pts[i]); } pts = dd.length>=2 ? dd : [a.clone(), b.clone()]; }
   const curve=new THREE.CatmullRomCurve3(pts,false,'catmullrom',0.0); const geo=new THREE.TubeGeometry(curve, Math.max(8,pts.length*6), rad||0.006, 7, false);
   wireGroup.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:new THREE.Color(colorHex), roughness:.55, metalness:.1}))); }
-// Ocolirea golurilor: pe segmentele orizontale de fir, daca firul ar trece prin dreptul unei usi/ferestre la inaltimea lui, il ridica peste pragul de sus al golului
+// Ocolirea golurilor (usa / gol usa / fereastra / gol fereastra): ORICE segment de fir care merge pe un perete
+// si ar intra in zona unui gol e re-rutat PESTE buiandrug, pastrand 20 cm fata de tocul golului. Functioneaza
+// pentru orice cale (sus/jos/punte directa/punte orto), nu doar pentru segmente orizontale.
+const OPEN_CLR=0.20;   // distanta minima fata de tocul golului (20 cm)
+function segHitsRect(x0,y0,x1,y1,rx0,ry0,rx1,ry1){   // intersectie segment (in plan u-h) cu dreptunghi axat (Liang-Barsky)
+  let t0=0,t1=1; const dx=x1-x0, dy=y1-y0; const p=[-dx,dx,-dy,dy], q=[x0-rx0,rx1-x0,y0-ry0,ry1-y0];
+  for(let i=0;i<4;i++){ if(Math.abs(p[i])<1e-9){ if(q[i]<0) return false; } else { const r=q[i]/p[i]; if(p[i]<0){ if(r>t1) return false; if(r>t0) t0=r; } else { if(r<t0) return false; if(r<t1) t1=r; } } }
+  return t1>=t0; }
+function rerouteSeg(A,B,eo,byWall){
+  // gaseste peretele care contine segmentul (ambele capete lateral aproape de acelasi perete)
+  let wi=-1,bestLat=0.40;
+  for(const k in byWall){ const g=eo[k]; if(!g) continue; const dx=g.p2.x-g.p1.x,dz=g.p2.z-g.p1.z,L=Math.hypot(dx,dz)||1; const px=-dz/L,pz=dx/L; const la=(A.x-g.p1.x)*px+(A.z-g.p1.z)*pz, lb=(B.x-g.p1.x)*px+(B.z-g.p1.z)*pz; const m=Math.max(Math.abs(la),Math.abs(lb)); if(m<bestLat){ bestLat=m; wi=+k; } }
+  if(wi<0) return [A,B];
+  const g=eo[wi]; const dx=g.p2.x-g.p1.x,dz=g.p2.z-g.p1.z,L=Math.hypot(dx,dz)||1; const ux=dx/L,uz=dz/L,px=-uz,pz=ux;
+  const uA=(A.x-g.p1.x)*ux+(A.z-g.p1.z)*uz, uB=(B.x-g.p1.x)*ux+(B.z-g.p1.z)*uz;
+  const latA=(A.x-g.p1.x)*px+(A.z-g.p1.z)*pz, latB=(B.x-g.p1.x)*px+(B.z-g.p1.z)*pz; const hA=A.y, hB=B.y;
+  const cr=byWall[wi].filter(o=> segHitsRect(uA,hA,uB,hB, o.u0-OPEN_CLR, o.sill-OPEN_CLR, o.u1+OPEN_CLR, o.head+OPEN_CLR));
+  if(!cr.length) return [A,B];
+  const railH=Math.min(H-0.03, Math.max.apply(null, cr.map(o=>o.head)) + OPEN_CLR);
+  const clearU=u=>{ for(const o of cr){ if(u>o.u0-OPEN_CLR && u<o.u1+OPEN_CLR) return (Math.abs(u-(o.u0-OPEN_CLR))<Math.abs(u-(o.u1+OPEN_CLR)))?o.u0-OPEN_CLR:o.u1+OPEN_CLR; } return u; };
+  const cuA=clearU(uA), cuB=clearU(uB);
+  const W=(u,h,lat)=> new THREE.Vector3(g.p1.x+ux*u+px*lat, h, g.p1.z+uz*u+pz*lat);
+  const out=[A.clone()];
+  if(Math.abs(cuA-uA)>1e-3) out.push(W(cuA,hA,latA));     // iesi lateral din dreptul golului (la inaltimea lui A)
+  out.push(W(cuA,railH,latA));                            // urca peste buiandrug, +20 cm
+  out.push(W(cuB,railH,latB));                            // traverseaza pe deasupra golului
+  if(Math.abs(cuB-uB)>1e-3) out.push(W(cuB,hB,latB));
+  out.push(B.clone()); return out; }
 function avoidOpenings(pts){ if(!plan.openings.length || pts.length<2) return pts; const eo=edges().out;
-  const ops=plan.openings.map(o=>{ const g=eo[o.wall]; if(!g) return null; const dx=g.p2.x-g.p1.x,dz=g.p2.z-g.p1.z; const L=Math.hypot(dx,dz)||1; const ux=dx/L,uz=dz/L; return { ax:g.p1.x+ux*o.pos, az:g.p1.z+uz*o.pos, bx:g.p1.x+ux*(o.pos+o.w), bz:g.p1.z+uz*(o.pos+o.w), ux, uz, sill:o.sill||0, head:Math.min(o.head||2.05,H) }; }).filter(Boolean);
-  if(!ops.length) return pts;
+  const byWall={}; plan.openings.forEach(o=>{ const g=eo[o.wall]; if(!g) return; (byWall[o.wall]=byWall[o.wall]||[]).push({u0:o.pos, u1:o.pos+o.w, sill:o.sill||0, head:Math.min(o.head||2.05,H)}); });
+  if(!Object.keys(byWall).length) return pts;
   const res=[pts[0]];
-  for(let i=1;i<pts.length;i++){ const A=pts[i-1], B=pts[i];
-    if(Math.abs(A.y-B.y)>0.03){ res.push(B); continue; }   // doar segmente orizontale (la nivel)
-    const level=A.y; let sdx=B.x-A.x, sdz=B.z-A.z; const SL=Math.hypot(sdx,sdz); if(SL<1e-3){ res.push(B); continue; } const sux=sdx/SL, suz=sdz/SL;
-    let hits=[];
-    ops.forEach(op=>{ if(level<op.sill-0.02 || level>op.head+0.02) return;                 // firul e sub prag sau peste buiandrug -> nu intersecteaza
-      if(Math.abs(op.ux*sux+op.uz*suz)<0.97) return;                                       // golul nu e pe directia segmentului
-      const lat=Math.abs((op.ax-A.x)*(-suz)+(op.az-A.z)*sux); if(lat>0.30) return;          // golul e pe alt perete (lateral)
-      let ta=(op.ax-A.x)*sux+(op.az-A.z)*suz, tb=(op.bx-A.x)*sux+(op.bz-A.z)*suz; let t0=Math.max(0,Math.min(ta,tb)-0.04), t1=Math.min(SL,Math.max(ta,tb)+0.04); if(t1-t0<0.03) return;
-      hits.push({t0,t1,lift:op.head+0.07}); });
-    if(!hits.length){ res.push(B); continue; }
-    hits.sort((a,b)=>a.t0-b.t0);
-    hits.forEach(h=>{ res.push(new THREE.Vector3(A.x+sux*h.t0, level, A.z+suz*h.t0)); res.push(new THREE.Vector3(A.x+sux*h.t0, h.lift, A.z+suz*h.t0)); res.push(new THREE.Vector3(A.x+sux*h.t1, h.lift, A.z+suz*h.t1)); res.push(new THREE.Vector3(A.x+sux*h.t1, level, A.z+suz*h.t1)); });
-    res.push(B);
-  }
+  for(let i=1;i<pts.length;i++){ const seg=rerouteSeg(pts[i-1], pts[i], eo, byWall); for(let k=1;k<seg.length;k++) res.push(seg[k]); }
   return res; }
 function addDoza(pos){ const g=makeDozaMesh(); g.position.copy(pos); g.position.y=H-0.03; g.position.x+=0.14; wireGroup.add(g); }
 function nearest(d,arr){ let best=null,bd=1e9; arr.forEach(a=>{const x=a.pos.distanceTo(d.pos); if(x<bd){bd=x;best=a;}}); return best; }
@@ -810,22 +857,22 @@ function becNeutralSource(d){
 function renderWires(){ while(wireGroup.children.length) wireGroup.remove(wireGroup.children[0]); buildPerim(); const panel=panelDev(); if(!panel) return; assignPhases(); autoLinkBecs();
   const Lcol=c=> (c&&state.system==='tri')?(PHASE_COL[c.phase]||COND.L):COND.L;
   // doze -> sursa lor (doar daca au copii)
-  dozas.forEach(z=>{ const child=devices.find(d=>(d.source&&d.source.kind==='doza'&&d.source.id===z.id) || d.doza===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const cb=devices.find(x=>x.type==='bec' && (x.doza===z.id || x.circuit===child.circuit)); const rm=z.route||(cb?cb.route:null)||child.route||'sus'; drawConductor(z.pos,sp,Lcol(c),0,rm,rd); drawConductor(z.pos,sp,COND.N,1,rm,rd); drawConductor(z.pos,sp,COND.PE,2,rm,rd); });
+  dozas.forEach(z=>{ const child=devices.find(d=>(d.source&&d.source.kind==='doza'&&d.source.id===z.id) || d.doza===z.id); if(!child) return; const c=circuits.find(x=>x.id===child.circuit); const rd=condRad(c); const sp=srcPos(z.source); const cb=devices.find(x=>x.type==='bec' && (x.doza===z.id || x.circuit===child.circuit)); const ref=(z&&(z.route||z.orto!=null))?z:(cb||child); const rm=rBase(ref), ro=rOrto(ref); drawConductor(z.pos,sp,Lcol(c),0,rm,rd,false,ro); drawConductor(z.pos,sp,COND.N,1,rm,rd,false,ro); drawConductor(z.pos,sp,COND.PE,2,rm,rd,false,ro); });
   // dispozitive -> sursa lor (lant pana la tablou)
   const samePlane=(d,o)=> d&&o&&d.normal&&o.normal && d.normal.dot(o.normal)>0.95;
-  devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=d.route||'sus';
-    const sd=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const str=(rm==='direct')&&samePlane(d,sd);
+  devices.filter(d=>d.type!=='tablou').forEach(d=>{ const cc=circuits.find(x=>x.id===d.circuit); const Lc=Lcol(cc); const rd=condRad(cc); const sp=srcPos(d.source); const rm=rBase(d), ro=rOrto(d);
+    const sd=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null; const str=(rm==='punte'&&!ro)&&samePlane(d,sd);
     // PRIZE / VENTILATOR: 3 conductoare (faza, nul, PE) in PUNTE (lant) de la sursa (doza sau priza anterioara) — bucla L+N+PE conform practicii
-    if(d.type==='priza'||d.type==='ventilator'){ const st2=(d.type==='ventilator')?true:str; drawConductor(d.pos,sp,Lc,0,rm,rd,st2); drawConductor(d.pos,sp,COND.N,1,rm,rd,st2); drawConductor(d.pos,sp,COND.PE,2,rm,rd,st2); }   // ventilator: cordon direct la priza
+    if(d.type==='priza'||d.type==='ventilator'){ const st2=(d.type==='ventilator')?true:str; drawConductor(d.pos,sp,Lc,0,rm,rd,st2,ro); drawConductor(d.pos,sp,COND.N,1,rm,rd,st2,ro); drawConductor(d.pos,sp,COND.PE,2,rm,rd,st2,ro); }   // ventilator: cordon direct la priza
     // BEC: ia toate 3 firele din DOZA (nod): faza comutata + nul + impamantare. (faza vine din doza, dupa ce a trecut prin intrerupator)
     else if(d.type==='bec'){ const zPos=becNeutralSource(d)||sp;
-      drawConductor(d.pos,zPos,COND.SW,0,rm,rd);   // faza comutata <- din doza
-      drawConductor(d.pos,zPos,COND.N,1,rm,rd);    // nul <- din doza
-      drawConductor(d.pos,zPos,COND.PE,2,rm,rd); } // impamantare <- din doza
+      drawConductor(d.pos,zPos,COND.SW,0,rm,rd,false,ro);   // faza comutata <- din doza
+      drawConductor(d.pos,zPos,COND.N,1,rm,rd,false,ro);    // nul <- din doza
+      drawConductor(d.pos,zPos,COND.PE,2,rm,rd,false,ro); } // impamantare <- din doza
     // INTRERUPATOR: 2 fire spre DOZA — faza (dus, din doza) si faza comutata (intors, in doza). Doza e doar legatura (nu se intrerupe).
     else if(d.type==='intrerupator'){ const sub=d.sub||'simplu'; const srcDev=(d.source&&d.source.kind==='dev')?devices.find(x=>x.id===d.source.id):null;
-      if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ const s2=(rm==='direct')&&samePlane(d,srcDev); drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd,s2); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd,s2); }
-      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; drawConductor(d.pos,tgt,Lc,0,rm,rd); drawConductor(d.pos,tgt,COND.SW,1,rm,rd); } }   // faza dus + faza comutata, ambele spre doza
+      if((sub==='scara'||sub==='cruce') && srcDev && srcDev.type==='intrerupator'){ const s2=(rm==='punte'&&!ro)&&samePlane(d,srcDev); drawConductor(d.pos,srcDev.pos,Lc,0,rm,rd,s2,ro); drawConductor(d.pos,srcDev.pos,COND.SW,1,rm,rd,s2,ro); }
+      else { const zPos=becNeutralSource(d); const tgt=zPos||sp; drawConductor(d.pos,tgt,Lc,0,rm,rd,false,ro); drawConductor(d.pos,tgt,COND.SW,1,rm,rd,false,ro); } }   // faza dus + faza comutata, ambele spre doza
   });
   updateLamps(); updateFans(); }
 
@@ -871,7 +918,7 @@ function renderLists(){ const cl=$('circuitList');
     }
     const load=(d.type==='bec'||d.type==='priza'||d.type==='ventilator');
     el.innerHTML=`<span class="dot" style="background:${c?c.color:'#7c93b3'}"></span><input data-nm="${d.id}" value="${(d.name||ADD[d.type].label).replace(/"/g,'&quot;')}" style="flex:1;background:#ffffff;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12px"><button class="x" data-del="${d.id}">✕</button>`
-      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursa</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="sus" ${(d.route||'sus')==='sus'?'selected':''}>pe sus</option><option value="podea" ${d.route==='podea'?'selected':''}>pe podea</option><option value="direct" ${d.route==='direct'?'selected':''}>punte directa</option><option value="orto" ${d.route==='orto'?'selected':''}>punte orto</option></select>`
+      +`<div style="flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap"><span class="muted">circ</span><select data-c="${d.id}" style="${ssty}">${circOpts}</select><span class="muted">sursa</span><select data-s="${d.id}" style="${ssty}">${srcOpts}</select><span class="muted">traseu</span><select data-rt="${d.id}" style="${ssty}"><option value="sus" ${rBase(d)==='sus'?'selected':''}>pe sus</option><option value="podea" ${rBase(d)==='podea'?'selected':''}>pe podea</option><option value="punte" ${rBase(d)==='punte'?'selected':''}>punte</option></select><label class="muted" style="display:inline-flex;align-items:center;gap:3px"><input type="checkbox" data-ro="${d.id}" ${rOrto(d)?'checked':''}>orto</label>`
       +(load?`<input class="pw" type="number" min="0" step="10" value="${d.power}" data-pw="${d.id}" style="margin-left:auto;width:54px"> W`:'')+`</div>`;
     return el; };
   [['tablou','Tablou'],['intrerupator','Intrerupatoare'],['bec','Becuri / spoturi'],['priza','Prize'],['ventilator','Ventilatoare']].forEach(([tp,tl])=>{ const list=devices.filter(d=>d.type===tp); if(!list.length) return; const open=listOpen[tp]!==false;
@@ -889,7 +936,8 @@ function renderLists(){ const cl=$('circuitList');
         if(!confirm(`Atentie: „${d.name}" e pe circuit C${cn?cn.n:'?'}, iar sursa „${sd.name}" e pe C${scn?scn.n:'?'}.\nPuntea le leaga electric — trebuie sa fie pe ACELASI circuit.\n\nOK = le pun pe C${scn?scn.n:'?'} (al sursei).\nAnuleaza = nu fac puntea.`)){ renderLists(); return; } }
       d.source={kind:'dev',id:did}; if(sd) d.circuit=sd.circuit; }
     updateDevLabel(d); renderWires(); renderLists(); recordState(); });
-  dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.route=sel.value; renderWires(); recordState(); } }); }
+  dl.querySelectorAll('[data-rt]').forEach(sel=> sel.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(sel.dataset.rt,10)); if(d){ d.route=sel.value; renderWires(); recordState(); } });
+  dl.querySelectorAll('[data-ro]').forEach(cb=> cb.onchange=()=>{ const d=devices.find(x=>x.id===parseInt(cb.dataset.ro,10)); if(d){ d.orto=cb.checked; d.route=rBase(d); renderWires(); recordState(); } }); }
 function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) return; const fb=devices[i].source||{kind:'panel'}; scene.remove(devices[i].mesh); const mi=deviceMeshes.indexOf(devices[i].mesh); if(mi>=0) deviceMeshes.splice(mi,1); devices.splice(i,1); devices.forEach(d=>{ if(d.source&&d.source.kind==='dev'&&d.source.id===id) d.source={...fb}; }); renderWires(); renderLists(); recordState(); }
 
 /* ===== salvare / incarcare proiecte ===== */
@@ -902,8 +950,8 @@ function serializeProject(){
     route:{...route},
     plan:{ points:plan.points.map(p=>({x:p.x,z:p.z})), closed:plan.closed, openings:plan.openings.map(o=>({...o})) },
     circuits:circuits.map(c=>({...c})),
-    devices:devices.map(d=>({ id:d.id,type:d.type,circuit:d.circuit,doza:d.doza,source:d.source?{...d.source}:{kind:'panel'},sub:d.sub,route:d.route,power:d.power,name:d.name,surf:d.surf,on:!!d.on, pos:{x:d.pos.x,y:d.pos.y,z:d.pos.z}, normal:d.normal?{x:d.normal.x,y:d.normal.y,z:d.normal.z}:null })),
-    dozas:dozas.map(z=>({ id:z.id,n:z.n,route:z.route||'sus',surf:z.surf||'floor',normal:z.normal?{x:z.normal.x,y:z.normal.y,z:z.normal.z}:null,source:z.source?{...z.source}:{kind:'panel'}, pos:{x:z.pos.x,y:z.pos.y,z:z.pos.z} })),
+    devices:devices.map(d=>({ id:d.id,type:d.type,circuit:d.circuit,doza:d.doza,source:d.source?{...d.source}:{kind:'panel'},sub:d.sub,route:d.route,orto:!!d.orto,power:d.power,name:d.name,surf:d.surf,on:!!d.on, pos:{x:d.pos.x,y:d.pos.y,z:d.pos.z}, normal:d.normal?{x:d.normal.x,y:d.normal.y,z:d.normal.z}:null })),
+    dozas:dozas.map(z=>({ id:z.id,n:z.n,route:z.route||'sus',orto:!!z.orto,surf:z.surf||'floor',normal:z.normal?{x:z.normal.x,y:z.normal.y,z:z.normal.z}:null,source:z.source?{...z.source}:{kind:'panel'}, pos:{x:z.pos.x,y:z.pos.y,z:z.pos.z} })),
     props:props.map(p=>({ id:p.id,type:p.type,label:p.label,dim:{...p.dim}, pos:{x:p.mesh.position.x,y:p.mesh.position.y,z:p.mesh.position.z} })),
     uid, cuid };
 }
@@ -922,8 +970,8 @@ function applyProject(o){
   if(scene){
     buildRoom3D();
     (o.devices||[]).forEach(dd=>{ const mesh=buildDeviceMesh(dd.type,dd.circuit); const pos=new THREE.Vector3(dd.pos.x,dd.pos.y,dd.pos.z); mesh.position.copy(pos); const normal=dd.normal?new THREE.Vector3(dd.normal.x,dd.normal.y,dd.normal.z):null; if(dd.surf==='wall'&&normal) mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
-      const dev={ id:dd.id,type:dd.type,circuit:dd.circuit,doza:dd.doza,source:dd.source||{kind:'panel'},sub:dd.sub,route:dd.route||'sus',power:dd.power||0,pos,mesh,normal,surf:dd.surf,name:dd.name,on:!!dd.on }; mesh.userData={el:'dev',id:dev.id}; devices.push(dev); updateDevLabel(dev); });
-    (o.dozas||[]).forEach(zz=>{ const g=makeDozaMesh('Doza '+zz.n); const pos=new THREE.Vector3(zz.pos.x,zz.pos.y,zz.pos.z); g.position.copy(pos); const nrm=zz.normal?new THREE.Vector3(zz.normal.x,zz.normal.y,zz.normal.z):null; orientDoza(g, zz.surf==='wall'&&nrm, nrm); scene.add(g); const dz={id:zz.id,n:zz.n,route:zz.route||'sus',surf:zz.surf||'floor',normal:nrm,pos,mesh:g,source:zz.source||{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); });
+      const dev={ id:dd.id,type:dd.type,circuit:dd.circuit,doza:dd.doza,source:dd.source||{kind:'panel'},sub:dd.sub,route:dd.route||'sus',orto:!!dd.orto,power:dd.power||0,pos,mesh,normal,surf:dd.surf,name:dd.name,on:!!dd.on }; mesh.userData={el:'dev',id:dev.id}; devices.push(dev); updateDevLabel(dev); });
+    (o.dozas||[]).forEach(zz=>{ const g=makeDozaMesh('Doza '+zz.n); const pos=new THREE.Vector3(zz.pos.x,zz.pos.y,zz.pos.z); g.position.copy(pos); const nrm=zz.normal?new THREE.Vector3(zz.normal.x,zz.normal.y,zz.normal.z):null; orientDoza(g, zz.surf==='wall'&&nrm, nrm); scene.add(g); const dz={id:zz.id,n:zz.n,route:zz.route||'sus',orto:!!zz.orto,surf:zz.surf||'floor',normal:nrm,pos,mesh:g,source:zz.source||{kind:'panel'}}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); });
     (o.props||[]).forEach(pp=>{ const f=FURN[pp.type]||{color:0x8a6d3b}; const m=new THREE.Mesh(new THREE.BoxGeometry(pp.dim.w,pp.dim.h,pp.dim.d),new THREE.MeshStandardMaterial({color:f.color,roughness:.85})); m.position.set(pp.pos.x,pp.pos.y,pp.pos.z); scene.add(m); const pr={id:pp.id,type:pp.type,mesh:m,label:pp.label,kind:'prop',dim:{...pp.dim}}; m.userData={el:'prop',id:pr.id}; props.push(pr); });
     renderWires();
   }
