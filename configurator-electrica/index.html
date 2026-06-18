@@ -668,7 +668,7 @@ function chooseDoza(kind){ return new Promise(resolve=>{ const done=v=>{ closeMo
   const avail=dozas.filter(z=>{ const k=dozaKind(z); return k===null||k===kind; });
   let html=`<button class="close" id="mClose">✕</button><h2>De unde isi ia ${kind==='lumina'?'becul':'priza'} nulul si impamantarea?</h2><p class="muted">${kind==='lumina'?'Faza vine automat prin intrerupator. Recomandat: o <b>doza</b> (nod) pe tavan.':'Recomandat: o <b>doza</b> sau lant (punte) intre prize.'} (Dozele de prize si de iluminat nu se amesteca.)</p><div class="cbtns">`;
   avail.forEach(d=>{ const k=dozaKind(d); html+=`<button class="btn" data-dz="${d.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#f2c14e;margin-right:8px"></span>Doza ${d.n}${k?(' · '+(k==='lumina'?'iluminat':'prize')):' · libera'}</button>`; });
-  html+=`<button class="btn act" data-dz="new">➕ Doza noua (automat, pe tavan) — recomandat</button>`;
+  html+=`<button class="btn act" data-dz="new">➕ Doza noua — recomandat — pe tavan (o poti muta pe perete ulterior)</button>`;
   html+=`<button class="btn" data-dz="0">Direct la tablou (fara doza)</button></div>`;
   openModal(html); $('mClose').onclick=()=>done(false);
   $('modalBody').querySelectorAll('[data-dz]').forEach(b=> b.onclick=()=>{ const v=b.dataset.dz; if(v==='new') done(createAutoDoza()); else { const n=parseInt(v,10); done(n===0?null:n); } });
