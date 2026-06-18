@@ -83,7 +83,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R92 (fix panou dreapta: continut care nu mai depaseste/taie pe orizontala)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R93 (fundal satelit Google Maps pt. trasare amprenta + fix soare dupa busola)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -104,6 +104,16 @@
       <button class="btn" id="tFit">⊡ Incadreaza</button>
       <button class="btn" id="tClose">⭙ Inchide</button>
       <button class="btn bad" id="tClearAll">Goleste tot</button>
+      <button class="btn" id="tGeoMaps" title="Deschide Google Maps satelit ca sa gasesti casa">📍 Google Maps</button>
+      <button class="btn" id="tMapLoad" title="Incarca un printscreen din satelit ca fundal de trasare">🛰 Satelit</button>
+      <input id="mapFile" type="file" accept="image/*" style="display:none">
+      <span id="mapCtl" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+        <button class="btn" id="tMapCalib" title="Click 2 puncte la o distanta cunoscuta, apoi metri">📐 Scara</button>
+        <button class="btn" id="tMapMove" title="Trage harta ca sa o pozitionezi">✥ Muta harta</button>
+        <label style="font-size:11px;color:var(--muted)">Transp <input id="mapOpacity" type="range" min="10" max="100" value="55" style="width:64px"></label>
+        <button class="btn bad" id="tMapClear" title="Scoate harta">✕</button>
+        <span id="mapMsg" style="font-size:11px;color:var(--solar);font-weight:600"></span>
+      </span>
     </div>
     <div class="tools" id="toolsPv" style="display:none">
       <div style="font-size:10.5px;color:var(--muted);font-weight:600">Adauga element (click, apoi pune-l pe casa):</div>
@@ -219,6 +229,7 @@ let veluxes=[];                // ferestre de mansarda {x,z,w,l (m)} pe acoperis
 let roofEdgesCache=[], roofScaleCache=1;   // pt inaltimea acoperisului intr-un punct (velux)
 let mode='edit', drag=null, planMap={s:30,ox:0,oy:0};   // implicit = Muta colturi (sigur), nu Contur (care sterge la click)
 let planZoom=1, planPan={x:0,y:0}, planFit=null; const history=[];
+let mapImg=null, mapPlace={cx:4,cz:3,mpp:0.05,op:0.55}, mapMode=null, mapCalibP=null;   // fundal satelit (Google Maps printscreen) pt. trasare amprenta
 let planView='sus', elevMap={s:30,ox:0,oy:0};   // Sus = plan; fata/spate/stanga/dreapta = elevatie 2D
 let curCat='casa';   // categoria activa: 'casa' (editezi constructia) sau 'pv' (doar amplasezi sistem fotovoltaic)
 const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05}, fereastra:{w:1.2,sill:0.9,head:2.1}, gol_fereastra:{w:1.2,sill:0.9,head:2.1} };
@@ -266,6 +277,7 @@ function snapRidgePoint(w){
 
 function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch(e){ const W=pc.clientWidth,H=pc.clientHeight; px.clearRect(0,0,W,H); px.fillStyle='#c0392b'; px.font='600 13px system-ui'; px.textAlign='left'; px.fillText('Eroare la elevatie: '+e.message,16,24); } return; }
   computeMap(); const W=pc.clientWidth,H=pc.clientHeight; px.clearRect(0,0,W,H);
+  if(mapImg){ const wpx=mapImg.width*mapPlace.mpp*planMap.s, hpx=mapImg.height*mapPlace.mpp*planMap.s; px.save(); px.globalAlpha=Math.max(0.1,Math.min(1,mapPlace.op)); px.drawImage(mapImg, SX(mapPlace.cx)-wpx/2, SY(mapPlace.cz)-hpx/2, wpx, hpx); px.restore(); }   // fundal satelit
   px.strokeStyle='#dce5f0'; px.lineWidth=1; const pts=allPts(); let mnx=1e9,mnz=1e9,mxx=-1e9,mxz=-1e9; pts.forEach(p=>{mnx=Math.min(mnx,p.x);mnz=Math.min(mnz,p.z);mxx=Math.max(mxx,p.x);mxz=Math.max(mxz,p.z);});
   for(let gx=Math.floor(mnx)-1;gx<=Math.ceil(mxx)+1;gx+=0.5){ px.beginPath(); px.moveTo(SX(gx),0); px.lineTo(SX(gx),H); px.stroke(); }
   for(let gz=Math.floor(mnz)-1;gz<=Math.ceil(mxz)+1;gz+=0.5){ px.beginPath(); px.moveTo(0,SY(gz)); px.lineTo(W,SY(gz)); px.stroke(); }
@@ -441,6 +453,10 @@ function nearest(list,w,maxd){ let bi=-1,bd=maxd; list.forEach((p,i)=>{ const d=
 function nearestWall(w){ let bi=-1,bd=0.6,bt=0; const n=foot.length; for(let i=0;i<n;i++){ const A=foot[i],B=foot[(i+1)%n]; const dx=B.x-A.x,dz=B.z-A.z,L2=dx*dx+dz*dz||1; let t=((w.x-A.x)*dx+(w.z-A.z)*dz)/L2; t=Math.max(0,Math.min(1,t)); const qx=A.x+t*dx,qz=A.z+t*dz; const d=Math.hypot(w.x-qx,w.z-qz); if(d<bd){bd=d;bi=i;bt=t*Math.sqrt(L2);} } return bi<0?null:{wall:bi,pos:bt}; }
 function screenPt(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
 pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev); return; } const w=world(ev);
+  // fundal satelit: calibrare scara / mutare harta (au prioritate cat sunt active)
+  if(mapMode==='calib' && mapImg){ if(!mapCalibP){ mapCalibP={x:w.x,z:w.z}; if($('mapMsg'))$('mapMsg').textContent='Acum click pe al 2-lea punct al distantei cunoscute.'; }
+    else { const d=Math.hypot(w.x-mapCalibP.x,w.z-mapCalibP.z); const r=prompt('Distanta reala intre cele 2 puncte (metri):',''); const R=parseFloat((r||'').replace(',','.')); if(R>0 && d>1e-4){ const f=R/d; mapPlace.mpp*=f; mapPlace.cx=mapCalibP.x+(mapPlace.cx-mapCalibP.x)*f; mapPlace.cz=mapCalibP.z+(mapPlace.cz-mapCalibP.z)*f; } mapMode=null; mapCalibP=null; if($('tMapCalib'))$('tMapCalib').classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent=''; drawPlan(); } return; }
+  if(mapMode==='move' && mapImg){ drag={kind:'map',lx:w.x,lz:w.z}; return; }
   /* ===== SISTEM FOTOVOLTAIC: doar plasare/mutare/stergere PV. NU se editeaza casa ===== */
   if(curCat==='pv'){
     const sp=screenPt(ev);
@@ -506,6 +522,7 @@ pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev
   foot.push({x:snap(w.x),z:snap(w.z)}); drawPlan(); build3D();
 });
 pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev) elevPointerMove(ev); return; } if(!drag) return; const w=world(ev);
+  if(drag.kind==='map'){ if(mapImg){ mapPlace.cx+=w.x-drag.lx; mapPlace.cz+=w.z-drag.lz; drag.lx=w.x; drag.lz=w.z; drawPlan(); } return; }
   if(drag.kind==='foot') foot[drag.i]={x:snap(w.x),z:snap(w.z)};
   else if(drag.kind==='ridge'){ const r=ridges[drag.ri]; if(r) r[drag.k]={x:snap(w.x),z:snap(w.z)}; }
   else if(drag.kind==='ridgemove'){ const r=ridges[drag.ri]; if(r){ const ddx=w.x-drag.lx, ddz=w.z-drag.lz; r.a.x=snap(r.a.x+ddx); r.a.z=snap(r.a.z+ddz); r.b.x=snap(r.b.x+ddx); r.b.z=snap(r.b.z+ddz); drag.lx=w.x; drag.lz=w.z; } }
@@ -791,6 +808,15 @@ $('tFit').onclick=()=>{ fitToContent(); drawPlan(); };
 window.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ const t=e.target.tagName; if(t==='INPUT'||t==='SELECT') return; e.preventDefault(); undo(); } });
 $('tClose').onclick=()=>{ if(foot.length>=3){ footClosed=true; mode='edit'; setTools(); drawPlan(); build3D(); commit(); } };
 $('tClearAll').onclick=()=>{ if(confirm('Golesti tot?')){ foot=[]; footClosed=false; ridges=[]; pendingRidge=null; openings=[]; chimneys=[]; veluxes=[]; pvItems=[]; planFit=null; mode='foot'; setTools(); drawPlan(); build3D(); renderElemList(); renderBom(); commit(); } };
+/* ===== Fundal satelit (Google Maps printscreen) pentru trasarea amprentei ===== */
+function showMapCtl(b){ const e=$('mapCtl'); if(e) e.style.display=b?'inline-flex':'none'; }
+if($('tGeoMaps')) $('tGeoMaps').onclick=()=>{ const a=prompt('Scrie adresa / localitatea casei (se deschide Google Maps satelit). Apoi fa un printscreen si incarca-l cu butonul "Satelit".',''); if(a===null) return; const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(a||'')+'&map_action=map&basemap=satellite'; window.open(url,'_blank','noopener'); };
+if($('tMapLoad')) $('tMapLoad').onclick=()=>{ const f=$('mapFile'); if(f) f.click(); };
+if($('mapFile')) $('mapFile').onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const img=new Image(); img.onload=()=>{ mapImg=img; const W=pc.clientWidth,H=pc.clientHeight; mapPlace.cx=(W/2-planMap.ox)/planMap.s; mapPlace.cz=(H/2-planMap.oy)/planMap.s; mapPlace.mpp=18/Math.max(1,img.width); mapPlace.op=0.55; const op=$('mapOpacity'); if(op) op.value=55; showMapCtl(true); if($('mapMsg'))$('mapMsg').textContent='Pozitioneaza cu "Muta harta", apoi "Scara" ca sa o calibrezi.'; drawPlan(); }; img.src=URL.createObjectURL(f); e.target.value=''; };
+if($('mapOpacity')) $('mapOpacity').oninput=()=>{ mapPlace.op=(parseInt($('mapOpacity').value,10)||55)/100; drawPlan(); };
+if($('tMapMove')) $('tMapMove').onclick=()=>{ mapMode=(mapMode==='move')?null:'move'; $('tMapMove').classList.toggle('on',mapMode==='move'); const c=$('tMapCalib'); if(c)c.classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent=mapMode==='move'?'Trage harta ca sa o pozitionezi peste contur.':''; };
+if($('tMapCalib')) $('tMapCalib').onclick=()=>{ if(!mapImg) return; mapMode=(mapMode==='calib')?null:'calib'; mapCalibP=null; $('tMapCalib').classList.toggle('on',mapMode==='calib'); const m=$('tMapMove'); if(m)m.classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent=mapMode==='calib'?'Click pe primul punct al unei distante cunoscute (ex. o latura de casa de pe imagine).':''; };
+if($('tMapClear')) $('tMapClear').onclick=()=>{ mapImg=null; mapMode=null; mapCalibP=null; showMapCtl(false); drawPlan(); };
 $('openType').onchange=()=>{ openType=$('openType').value; if(openType){ mode='open'; } else { mode='foot'; } setTools(); };
 $('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); if(planView!=='sus') drawPlan(); }; $('wallH').onchange=commit;
 $('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); if(planView!=='sus') drawPlan(); }; $('ridgeH').onchange=commit;
@@ -845,7 +871,9 @@ function updateSun(t){ const c=(foot.length>=3)?centroidXZ():{x:0,z:0};
   const span=Math.max(8,(foot.length>=3?(Math.max(...foot.map(p=>p.x))-Math.min(...foot.map(p=>p.x))+Math.max(...foot.map(p=>p.z))-Math.min(...foot.map(p=>p.z)))/2:10));
   const dist=span*2.2+18; const elevAng=Math.sin(Math.max(0,Math.min(1,t))*Math.PI)*(72*Math.PI/180);
   const compassDeg=90+t*180; const a=compassDeg*Math.PI/180; let hx=Math.sin(a), hz=-Math.cos(a);
-  const rx=hx, rz=hz;   // soarele e FIX in lume: rasare mereu de la est (+X), apune la vest (-X), indiferent de rotatia casei
+  // soarele urmeaza orientarea geografica: estul/vestul se rotesc odata cu Nordul din busola
+  const ph=orientationDeg*Math.PI/180, cph=Math.cos(ph), sph=Math.sin(ph);
+  const rx=hx*cph - hz*sph, rz=hx*sph + hz*cph;
   const ce=Math.cos(elevAng), se=Math.sin(elevAng); const dir={x:rx*ce,y:Math.max(0.03,se),z:rz*ce};
   sun.position.set(c.x+dir.x*dist, dir.y*dist, c.z+dir.z*dist); sun.target.position.set(c.x,0,c.z);
   sunMesh.position.copy(sun.position); sunGlow.position.copy(sun.position);
