@@ -518,7 +518,7 @@ async function placeDevice(type,hit){ const a=ADD[type]; const ud=hit.object.use
     const prize=devices.filter(x=>x.type==='priza'); if(!prize.length){ alert('Pune intai o priza, apoi conecteaza ventilatorul in ea.'); return; }
     let best=null,bd=1e9; prize.forEach(p=>{ const dd=p.pos.distanceTo(pos); if(dd<bd){bd=dd;best=p;} });
     source={kind:'dev',id:best.id}; circuit=best.circuit; doza=best.doza||null;
-  } else if(a.kind){ const asg=await chooseAssignment(a.kind); if(!asg) return; circuit=asg.circuit; doza=asg.doza;
+  } else if(a.kind){ const asg=await chooseAssignment(a.kind, {x:pos.x, z:pos.z}); if(!asg) return; circuit=asg.circuit; doza=asg.doza;
     if(doza){ if(route.mode==='chain' && (type==='priza'||type==='bec')){ const sib=devices.filter(x=>x.type===type&&x.doza===doza&&x.circuit===circuit); source=sib.length?{kind:'dev',id:sib[sib.length-1].id}:{kind:'doza',id:doza}; } else source={kind:'doza',id:doza}; }
   }
   const mesh=buildDeviceMesh(type,circuit); mesh.position.copy(pos); if(ud.kind==='wall') mesh.lookAt(pos.clone().add(normal)); scene.add(mesh); deviceMeshes.push(mesh);
@@ -663,17 +663,18 @@ function chooseCircuit(kind){ return new Promise(resolve=>{ const existing=circu
     $('modal').onclick=e=>{ if(e.target===$('modal')) done(null); };
   }
   step1(); }); }
-function createAutoDoza(){ const bb=roomBBox(); const p=new THREE.Vector3(bb.cx, H-0.05, bb.cz); const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); orientDoza(g,false,null); if(scene) scene.add(g); const dz={id:uid++,n,pos:p.clone(),mesh:g,source:{kind:'panel'},surf:'ceiling',normal:null}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); return dz.id; }
-function chooseDoza(kind){ return new Promise(resolve=>{ const done=v=>{ closeModal(); resolve(v); };
+// doza noua pe tavan, deasupra dispozitivului care a cerut-o (cablu minim) sau in centru daca nu se da pozitia
+function createAutoDoza(near){ const p = near ? new THREE.Vector3(near.x, H-0.05, near.z) : (()=>{ const bb=roomBBox(); return new THREE.Vector3(bb.cx, H-0.05, bb.cz); })(); const n=dozas.reduce((m,d)=>Math.max(m,d.n),0)+1; const g=makeDozaMesh('Doza '+n); g.position.copy(p); orientDoza(g,false,null); if(scene) scene.add(g); const dz={id:uid++,n,pos:p.clone(),mesh:g,source:{kind:'panel'},surf:'ceiling',normal:null}; g.userData={el:'doza',id:dz.id}; dozas.push(dz); renderRoomList(); return dz.id; }
+function chooseDoza(kind,near){ return new Promise(resolve=>{ const done=v=>{ closeModal(); resolve(v); };
   const avail=dozas.filter(z=>{ const k=dozaKind(z); return k===null||k===kind; });
   let html=`<button class="close" id="mClose">✕</button><h2>De unde isi ia ${kind==='lumina'?'becul':'priza'} nulul si impamantarea?</h2><p class="muted">${kind==='lumina'?'Faza vine automat prin intrerupator. Recomandat: o <b>doza</b> (nod) pe tavan.':'Recomandat: o <b>doza</b> sau lant (punte) intre prize.'} (Dozele de prize si de iluminat nu se amesteca.)</p><div class="cbtns">`;
   avail.forEach(d=>{ const k=dozaKind(d); html+=`<button class="btn" data-dz="${d.id}"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#f2c14e;margin-right:8px"></span>Doza ${d.n}${k?(' · '+(k==='lumina'?'iluminat':'prize')):' · libera'}</button>`; });
   html+=`<button class="btn act" data-dz="new">➕ Doza noua — recomandat — pe tavan (o poti muta pe perete ulterior)</button>`;
   html+=`<button class="btn" data-dz="0">Direct la tablou (fara doza)</button></div>`;
   openModal(html); $('mClose').onclick=()=>done(false);
-  $('modalBody').querySelectorAll('[data-dz]').forEach(b=> b.onclick=()=>{ const v=b.dataset.dz; if(v==='new') done(createAutoDoza()); else { const n=parseInt(v,10); done(n===0?null:n); } });
+  $('modalBody').querySelectorAll('[data-dz]').forEach(b=> b.onclick=()=>{ const v=b.dataset.dz; if(v==='new') done(createAutoDoza(near)); else { const n=parseInt(v,10); done(n===0?null:n); } });
   $('modal').onclick=e=>{ if(e.target===$('modal')) done(false); }; }); }
-async function chooseAssignment(kind){ const circuit=await chooseCircuit(kind); if(circuit==null) return null; const doza=await chooseDoza(kind); if(doza===false) return null; return { circuit, doza }; }
+async function chooseAssignment(kind,near){ const circuit=await chooseCircuit(kind); if(circuit==null) return null; const doza=await chooseDoza(kind,near); if(doza===false) return null; return { circuit, doza }; }
 function openModal(html){ $('modalBody').innerHTML=html; $('modal').classList.add('on'); }
 function closeModal(){ $('modal').classList.remove('on'); $('modal').onclick=null; }
 // Anuleaza comanda in curs (regula generala). Returneaza true daca a avut ce anula.
