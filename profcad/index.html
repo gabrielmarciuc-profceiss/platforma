@@ -72,7 +72,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R89 (coame L/T: pozitie+lungime cu mouse, inaltime separata prin dublu-click)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R90 (PV: umplere automata panouri pe fiecare apa, inclusiv acoperis T/L)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -268,7 +268,8 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
       px.strokeStyle='#a64a32'; px.lineWidth=3; px.setLineDash([7,4]); px.beginPath(); px.moveTo(SX(rs.a.x),SY(rs.a.z)); px.lineTo(SX(rs.b.x),SY(rs.b.z)); px.stroke(); px.setLineDash([]);
       [rs.a,rs.b].forEach(p=>{ px.fillStyle='#a64a32'; px.beginPath(); px.arc(SX(p.x),SY(p.z),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); });
       px.fillStyle='#d98200'; px.beginPath(); px.arc(SX(mx),SY(mz),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); };
-    if(isComplexFoot()){ const rects=footRects(); syncAutoRidges(rects.length); rects.forEach((r,i)=>{ const rp=getAR(i); const rs=rectRidgeSeg(r,rp); drawRidge(rs); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2; px.fillStyle='#a64a32'; px.font='700 11px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText(Math.round((rp.rh!=null?rp.rh:ridgeRaise)*100)+' cm', SX(mx), SY(mz)-12); }); }   // T/L: cate o coama editabila/aripa (dublu-click = inaltime)
+    if(isComplexFoot()){ const rects=footRects(); syncAutoRidges(rects.length); rects.forEach((r,i)=>{ const rp=getAR(i); const rs=rectRidgeSeg(r,rp); drawRidge(rs); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2; px.fillStyle='#a64a32'; px.font='700 11px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText(Math.round((rp.rh!=null?rp.rh:ridgeRaise)*100)+' cm', SX(mx), SY(mz)-12); });   // T/L: cate o coama editabila/aripa (dublu-click = inaltime)
+      roofSlopes().forEach(s=>{ px.fillStyle='rgba(166,74,50,.7)'; px.font='800 12px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('A'+s.id, SX(s.cx), SY(s.cz)); }); }   // apele numerotate
     else { drawRidge(ridgeSeg()); roofSlopes().forEach(s=>{ px.fillStyle='rgba(166,74,50,.85)'; px.font='800 13px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('A'+s.id, SX(s.cx), SY(s.cz)); }); } }
   // contur
   if(foot.length){ px.strokeStyle='#1c7bd6'; px.lineWidth=4; px.lineJoin='round'; px.beginPath(); foot.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); if(footClosed) px.closePath(); px.stroke();
@@ -584,7 +585,7 @@ function packSlope(s, w, l, gap, allowHoriz){
       const ncol=Math.floor((avail+gap)/(pu+gap)); if(ncol<1) continue; const dens=ncol/pv; if(!best||dens>best.dens){ best={pu,pv,rot,lo,hi,ncol,dens}; } }
     if(best){ const usedU=best.ncol*best.pu+(best.ncol-1)*gap, su=(best.lo+best.hi)/2-usedU/2+best.pu/2;
       const hx=horizU?best.pu/2:best.pv/2, hz=horizU?best.pv/2:best.pu/2;   // jumatate-dimensiuni in plan (x,z)
-      for(let c=0;c<best.ncol;c++){ const xz=toXZ(su+c*(best.pu+gap), v0+best.pv/2); if(!panelBlocked(xz.x,xz.z,hx,hz)) out.push({x:xz.x,z:xz.z,rot:best.rot}); }   // ocoleste horn/velux
+      for(let c=0;c<best.ncol;c++){ const xz=toXZ(su+c*(best.pu+gap), v0+best.pv/2); if(!panelBlocked(xz.x,xz.z,hx,hz) && (s.ri==null || slopeDominant(s.ri,xz.x,xz.z))) out.push({x:xz.x,z:xz.z,rot:best.rot}); }   // ocoleste horn/velux + vaile (apa altui dreptunghi)
       v0+=best.pv+gap; }
     else v0+=0.12; }
   return out; }
@@ -885,14 +886,26 @@ function ridgeSeg(){ const b=roofBBox(), axX=ridgeAxisX(); const aMn=axX?b.xmn:b
   const a0=aMn+ridgeA0*(aMx-aMn), a1=aMn+ridgeA1*(aMx-aMn), pr=(pMn+pMx)/2+ridgeOffFrac*(pMx-pMn);
   return axX ? {a:{x:a0,z:pr},b:{x:a1,z:pr},axX:true,bb:b} : {a:{x:pr,z:a0},b:{x:pr,z:a1},axX:false,bb:b}; }
 // apele acoperisului (poligoane in plan) - numerotate A1, A2... pentru selectie/umplere
-function roofSlopes(){ if(ridgeRaise<=0.02) return []; if(roofLogic==='auto' && isComplexFoot()) return []; const b=roofBBox(), axX=ridgeAxisX(), rs=ridgeSeg(), r0=rs.a, r1=rs.b;
+function roofSlopes(){ if(ridgeRaise<=0.02) return [];
+  if(roofLogic==='auto' && isComplexFoot()){ const rects=footRects(); syncAutoRidges(rects.length); const all=[]; rects.forEach((r,ri)=>{ rectSlopes(r,getAR(ri)).forEach(s=>{ s.ri=ri; all.push(s); }); }); all.forEach((s,i)=>{ s.id=i+1; let cx=0,cz=0; s.poly.forEach(p=>{cx+=p.x;cz+=p.z;}); s.cx=cx/s.poly.length; s.cz=cz/s.poly.length; }); return all; }
+  const b=roofBBox(), axX=ridgeAxisX(), rs=ridgeSeg(), r0=rs.a, r1=rs.b;
   const C00={x:b.xmn,z:b.zmn},C10={x:b.xmx,z:b.zmn},C11={x:b.xmx,z:b.zmx},C01={x:b.xmn,z:b.zmx}; const sl=[];
   if(axX){ sl.push({poly:[C00,C10,{x:r1.x,z:r1.z},{x:r0.x,z:r0.z}],dir:'fata'}); sl.push({poly:[C01,C11,{x:r1.x,z:r1.z},{x:r0.x,z:r0.z}],dir:'spate'});
     if(r0.x>b.xmn+0.05) sl.push({poly:[C00,{x:r0.x,z:r0.z},C01],dir:'stanga'}); if(r1.x<b.xmx-0.05) sl.push({poly:[C10,{x:r1.x,z:r1.z},C11],dir:'dreapta'}); }
   else { sl.push({poly:[C00,C01,{x:r1.x,z:r1.z},{x:r0.x,z:r0.z}],dir:'stanga'}); sl.push({poly:[C10,C11,{x:r1.x,z:r1.z},{x:r0.x,z:r0.z}],dir:'dreapta'});
     if(r0.z>b.zmn+0.05) sl.push({poly:[C00,{x:r0.x,z:r0.z},C10],dir:'fata'}); if(r1.z<b.zmx-0.05) sl.push({poly:[C01,{x:r1.x,z:r1.z},C11],dir:'spate'}); }
   sl.forEach((s,i)=>{ s.id=i+1; let cx=0,cz=0; s.poly.forEach(p=>{cx+=p.x;cz+=p.z;}); s.cx=cx/s.poly.length; s.cz=cz/s.poly.length; }); return sl; }
-function slopeAt(x,z){ const sl=roofSlopes(); for(const s of sl){ if(pointInPolyG(s.poly,x,z)) return s.id; } return 0; }
+// apele unui singur dreptunghi (bara sau picior) - aceeasi logica ca la acoperisul dreptunghiular, dar pe limitele lui
+function rectSlopes(r,rp){ const axX=rectAxX(r); const aMn=axX?r.x0:r.z0,aMx=axX?r.x1:r.z1; const a0=aMn+rp.a0*(aMx-aMn), a1=aMn+rp.a1*(aMx-aMn); const rg=rectRidgeSeg(r,rp), r0=rg.a, r1=rg.b;
+  const C00={x:r.x0,z:r.z0},C10={x:r.x1,z:r.z0},C11={x:r.x1,z:r.z1},C01={x:r.x0,z:r.z1}; const sl=[];
+  if(axX){ sl.push({poly:[C00,C10,{x:r1.x,z:r1.z},{x:r0.x,z:r0.z}],dir:'fata'}); sl.push({poly:[C01,C11,{x:r1.x,z:r1.z},{x:r0.x,z:r0.z}],dir:'spate'});
+    if(a0>r.x0+0.05) sl.push({poly:[C00,{x:r0.x,z:r0.z},C01],dir:'stanga'}); if(a1<r.x1-0.05) sl.push({poly:[C10,{x:r1.x,z:r1.z},C11],dir:'dreapta'}); }
+  else { sl.push({poly:[C00,C01,{x:r1.x,z:r1.z},{x:r0.x,z:r0.z}],dir:'stanga'}); sl.push({poly:[C10,C11,{x:r1.x,z:r1.z},{x:r0.x,z:r0.z}],dir:'dreapta'});
+    if(a0>r.z0+0.05) sl.push({poly:[C00,{x:r0.x,z:r0.z},C10],dir:'fata'}); if(a1<r.z1-0.05) sl.push({poly:[C01,{x:r1.x,z:r1.z},C11],dir:'spate'}); }
+  return sl; }
+// la T/L, intr-un punct pot fi 2 ape suprapuse (in dreptul vaii) - apa "buna" e cea a dreptunghiului mai inalt acolo
+function slopeDominant(ri,x,z){ const rects=footRects(); const me=rectRoofY(rects[ri],x,z,getAR(ri)); if(me<0) return false; for(let j=0;j<rects.length;j++){ if(j===ri) continue; if(rectRoofY(rects[j],x,z,getAR(j))>me+0.02) return false; } return true; }
+function slopeAt(x,z){ const sl=roofSlopes(); for(const s of sl){ if(pointInPolyG(s.poly,x,z) && (s.ri==null || slopeDominant(s.ri,x,z))) return s.id; } return 0; }
 function roofY2(x,z){ if(ridgeRaise<=0.02) return wallH+0.05; if(roofLogic==='auto' && isComplexFoot()) return roofSkelY(x,z); const b=roofBBox(), axX=ridgeAxisX();
   const along=axX?x:z, perp=axX?z:x, aMn=axX?b.xmn:b.zmn,aMx=axX?b.xmx:b.zmx,pMn=axX?b.zmn:b.xmn,pMx=axX?b.zmx:b.xmx;
   const a0=aMn+ridgeA0*(aMx-aMn), a1=aMn+ridgeA1*(aMx-aMn), pr=(pMn+pMx)/2+ridgeOffFrac*(pMx-pMn);
