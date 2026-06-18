@@ -72,7 +72,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R88 (coame L/T editabile: cate o coama pe fiecare aripa, trageti cu mouse-ul)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R89 (coame L/T: pozitie+lungime cu mouse, inaltime separata prin dublu-click)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -213,7 +213,7 @@ const OPEN_DEF={ usa:{w:0.9,sill:0,head:2.05}, gol_usa:{w:0.9,sill:0,head:2.05},
 function normalizeRidges(arr){ if(!Array.isArray(arr)) return []; return arr.map(r=>{ if(r&&r.a&&r.b) return {a:{x:+r.a.x,z:+r.a.z},b:{x:+r.b.x,z:+r.b.z}}; if(Array.isArray(r)&&r.length>=2){ const f=r[0],l=r[r.length-1]; return {a:{x:+f.x,z:+f.z},b:{x:+l.x,z:+l.z}}; } return null; }).filter(Boolean); }
 function snapshot(){ return JSON.stringify({foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,autoRidges,orientationDeg,roofType,wallColorHex,roofColorHex}); }
 function commit(){ const s=snapshot(); if(history.length && history[history.length-1]===s) return; history.push(s); if(history.length>100) history.shift(); }
-function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; if(o.ridgeA0!=null)ridgeA0=o.ridgeA0; if(o.ridgeA1!=null)ridgeA1=o.ridgeA1; if(o.ridgeOffFrac!=null)ridgeOffFrac=o.ridgeOffFrac; autoRidges=Array.isArray(o.autoRidges)?o.autoRidges.map(r=>({a0:r.a0,a1:r.a1,off:r.off})):[]; orientationDeg=o.orientationDeg; roofType=o.roofType; wallColorHex=o.wallColorHex||'#eef1f4'; roofColorHex=o.roofColorHex||'';
+function restore(s){ const o=JSON.parse(s); foot=o.foot; footClosed=o.footClosed; ridges=normalizeRidges(o.ridges); pendingRidge=null; openings=o.openings; chimneys=o.chimneys; pvItems=o.pvItems||[]; veluxes=o.veluxes||[]; wallH=o.wallH; ridgeRaise=o.ridgeRaise; eaveOverhang=o.eaveOverhang||0; roofLogic=o.roofLogic||'auto'; if(o.ridgeA0!=null)ridgeA0=o.ridgeA0; if(o.ridgeA1!=null)ridgeA1=o.ridgeA1; if(o.ridgeOffFrac!=null)ridgeOffFrac=o.ridgeOffFrac; autoRidges=Array.isArray(o.autoRidges)?o.autoRidges.map(r=>({a0:r.a0,a1:r.a1,off:r.off,rh:r.rh})):[]; orientationDeg=o.orientationDeg; roofType=o.roofType; wallColorHex=o.wallColorHex||'#eef1f4'; roofColorHex=o.roofColorHex||'';
   $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; if($('wallColor'))$('wallColor').value=wallColorHex; if($('roofColor')&&roofColorHex)$('roofColor').value=roofColorHex; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); drawPlan(); build3D(); renderBom(); renderElemList(); }
 function undo(){ if(history.length<2) return; history.pop(); restore(history[history.length-1]); }
 
@@ -268,7 +268,7 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
       px.strokeStyle='#a64a32'; px.lineWidth=3; px.setLineDash([7,4]); px.beginPath(); px.moveTo(SX(rs.a.x),SY(rs.a.z)); px.lineTo(SX(rs.b.x),SY(rs.b.z)); px.stroke(); px.setLineDash([]);
       [rs.a,rs.b].forEach(p=>{ px.fillStyle='#a64a32'; px.beginPath(); px.arc(SX(p.x),SY(p.z),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); });
       px.fillStyle='#d98200'; px.beginPath(); px.arc(SX(mx),SY(mz),6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=2; px.stroke(); };
-    if(isComplexFoot()){ const rects=footRects(); syncAutoRidges(rects.length); rects.forEach((r,i)=> drawRidge(rectRidgeSeg(r,getAR(i)))); }   // T/L: cate o coama editabila pe fiecare aripa
+    if(isComplexFoot()){ const rects=footRects(); syncAutoRidges(rects.length); rects.forEach((r,i)=>{ const rp=getAR(i); const rs=rectRidgeSeg(r,rp); drawRidge(rs); const mx=(rs.a.x+rs.b.x)/2,mz=(rs.a.z+rs.b.z)/2; px.fillStyle='#a64a32'; px.font='700 11px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText(Math.round((rp.rh!=null?rp.rh:ridgeRaise)*100)+' cm', SX(mx), SY(mz)-12); }); }   // T/L: cate o coama editabila/aripa (dublu-click = inaltime)
     else { drawRidge(ridgeSeg()); roofSlopes().forEach(s=>{ px.fillStyle='rgba(166,74,50,.85)'; px.font='800 13px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('A'+s.id, SX(s.cx), SY(s.cz)); }); } }
   // contur
   if(foot.length){ px.strokeStyle='#1c7bd6'; px.lineWidth=4; px.lineJoin='round'; px.beginPath(); foot.forEach((p,i)=> i?px.lineTo(SX(p.x),SY(p.z)):px.moveTo(SX(p.x),SY(p.z))); if(footClosed) px.closePath(); px.stroke();
@@ -509,7 +509,13 @@ pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev
   drawPlan(); build3D(); renderElemList(); });
 pc.addEventListener('pointermove',ev=>{ if(mode==='ridge'&&pendingRidge&&!drag){ mouseW=snapRidgePoint(world(ev)); drawPlan(); } });
 window.addEventListener('pointerup',()=>{ drag=null; commit(); });
-pc.addEventListener('dblclick',()=>{ if(mode==='ridge'&&pendingRidge){ pendingRidge=null; drawPlan(); } });
+pc.addEventListener('dblclick',ev=>{ if(mode==='ridge'&&pendingRidge){ pendingRidge=null; drawPlan(); return; }
+  // dublu-click pe o coama (T/L) = editezi inaltimea ei
+  if(planView==='sus' && footClosed && foot.length>=3 && ridgeRaise>0.02 && roofLogic==='auto' && isComplexFoot()){
+    const sp=screenPt(ev), wpt=world(ev), rects=footRects(); syncAutoRidges(rects.length);
+    for(let i=0;i<rects.length;i++){ const rs=rectRidgeSeg(rects[i],getAR(i)); const q=projOnSeg(wpt,rs.a,rs.b);
+      if(Math.hypot(sp.x-SX(q.x),sp.y-SY(q.z))<16){ const rp=getAR(i); const cur=Math.round((rp.rh!=null?rp.rh:ridgeRaise)*100);
+        const v=prompt('Inaltime coama (cm, peste pereti):', cur); if(v!=null){ const nv=parseInt(v,10); if(!isNaN(nv)){ rp.rh=Math.max(0,nv/100); drawPlan(); build3D(); commit(); } } return; } } } });
 pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top;
   // Shift+scroll sau scroll lateral (trackpad) = pan stanga/dreapta (toate categoriile/fatadele)
   if(ev.shiftKey || Math.abs(ev.deltaX)>Math.abs(ev.deltaY)){ planPan.x -= (ev.shiftKey?ev.deltaY:ev.deltaX)*0.8; drawPlan(); return; }
@@ -927,7 +933,8 @@ function rectRoofY(r,x,z,rp){ if(x<r.x0-0.001||x>r.x1+0.001||z<r.z0-0.001||z>r.z
   const a0=aMn+rp.a0*(aMx-aMn), a1=aMn+rp.a1*(aMx-aMn), pr=(pMn+pMx)/2+rp.off*(pMx-pMn);
   let fz; if(perp<=pr) fz=(pr>pMn)?(perp-pMn)/(pr-pMn):1; else fz=(pMx>pr)?(pMx-perp)/(pMx-pr):1;
   let gx; if(along>=a0&&along<=a1) gx=1; else if(along<a0) gx=(a0>aMn)?(along-aMn)/(a0-aMn):1; else gx=(aMx>a1)?(aMx-along)/(aMx-a1):1;
-  return wallH + ridgeRaise*Math.max(0,Math.min(fz,gx)); }
+  const rr=(rp.rh!=null)?rp.rh:ridgeRaise;   // inaltime coama proprie (sau cea globala)
+  return wallH + rr*Math.max(0,Math.min(fz,gx)); }
 function rectRidgeSeg(r,rp){ const axX=rectAxX(r); const aMn=axX?r.x0:r.z0,aMx=axX?r.x1:r.z1,pMn=axX?r.z0:r.x0,pMx=axX?r.z1:r.x1; const a0=aMn+rp.a0*(aMx-aMn), a1=aMn+rp.a1*(aMx-aMn), pr=(pMn+pMx)/2+rp.off*(pMx-pMn); return axX?{a:{x:a0,z:pr},b:{x:a1,z:pr}}:{a:{x:pr,z:a0},b:{x:pr,z:a1}}; }
 function roofSkelY(x,z){ const rects=footRects(); syncAutoRidges(rects.length); let h=-1; for(let i=0;i<rects.length;i++){ const v=rectRoofY(rects[i],x,z,getAR(i)); if(v>h) h=v; } return h<0?wallH:h; }
 function inAnyRect(x,z){ const rects=footRects(); for(const r of rects){ if(x>=r.x0-0.001&&x<=r.x1+0.001&&z>=r.z0-0.001&&z<=r.z1+0.001) return true; } return false; }
@@ -1056,7 +1063,7 @@ if($('sunSlider')) $('sunSlider').oninput=()=>{ sunPlaying=false; if($('sunBtn')
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
   getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,autoRidges,orientationDeg,roofType}; },
-  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; veluxes=s.veluxes||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; if(s.ridgeA0!=null)ridgeA0=s.ridgeA0; if(s.ridgeA1!=null)ridgeA1=s.ridgeA1; if(s.ridgeOffFrac!=null)ridgeOffFrac=s.ridgeOffFrac; autoRidges=Array.isArray(s.autoRidges)?s.autoRidges.map(r=>({a0:r.a0,a1:r.a1,off:r.off})):[]; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
+  setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; veluxes=s.veluxes||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; if(s.ridgeA0!=null)ridgeA0=s.ridgeA0; if(s.ridgeA1!=null)ridgeA1=s.ridgeA1; if(s.ridgeOffFrac!=null)ridgeOffFrac=s.ridgeOffFrac; autoRidges=Array.isArray(s.autoRidges)?s.autoRidges.map(r=>({a0:r.a0,a1:r.a1,off:r.off,rh:r.rh})):[]; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
     $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); renderElemList(); }
 };
 
