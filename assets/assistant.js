@@ -70,8 +70,11 @@
     try{ if(window.speechSynthesis){ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=function(){ window.speechSynthesis.getVoices(); }; } }catch(e){}
     // Pe mobil, sinteza vocala porneste doar daca a fost "deblocata" printr-o atingere directa. Cheama asta la primul tap.
     function unlockSpeech(){ if(ttsUnlocked||!window.speechSynthesis) return; ttsUnlocked=true; try{ var u=new SpeechSynthesisUtterance(' '); u.volume=0.01; u.lang='ro-RO'; window.speechSynthesis.resume(); window.speechSynthesis.speak(u); }catch(e){} }
-    function pickVoice(){ try{ var vs=window.speechSynthesis.getVoices()||[]; return vs.filter(function(x){return /^ro/i.test(x.lang);})[0]||vs.filter(function(x){return /ro/i.test(x.name||'');})[0]||null; }catch(e){ return null; } }
-    function speak(text){ try{ if(!speakOn||!window.speechSynthesis) return; lastSpoken=(text||'').toLowerCase(); var u=new SpeechSynthesisUtterance(text); u.lang='ro-RO'; u.rate=1.02; var vc=pickVoice(); if(vc) u.voice=vc; u.onstart=function(){ speaking=true; }; u.onend=function(){ speaking=false; }; try{ window.speechSynthesis.resume(); }catch(e){} window.speechSynthesis.speak(u); }catch(e){} }
+    function pickVoice(){ try{ var vs=window.speechSynthesis.getVoices()||[]; return vs.filter(function(x){return /^ro(-|_|$)/i.test(x.lang);})[0] || vs.filter(function(x){return /roman|ioana/i.test((x.name||'')+' '+(x.lang||''));})[0] || null; }catch(e){ return null; } }
+    var _voiceNoticed=false;
+    function checkRoVoice(){ if(_voiceNoticed||!window.speechSynthesis) return; if(pickVoice()) return; _voiceNoticed=true;
+      add('Nota: pe acest dispozitiv nu e instalata o voce romaneasca, de aceea pronuntia iese cu accent englezesc. Instaleaz-o: pe Android — Setari > Gestionarea generala / Accesibilitate > Text-in-vorbire (TTS) > Google > instaleaza limba Romana; pe iPhone — Setari > Accesibilitate > Continut rostit > Voci > adauga Romana (Ioana). Apoi reincarca pagina.','a'); }
+    function speak(text){ try{ if(!speakOn||!window.speechSynthesis) return; lastSpoken=(text||'').toLowerCase(); var u=new SpeechSynthesisUtterance(text); u.lang='ro-RO'; u.rate=1.02; var vc=pickVoice(); if(vc) u.voice=vc; else checkRoVoice(); u.onstart=function(){ speaking=true; }; u.onend=function(){ speaking=false; }; try{ window.speechSynthesis.resume(); }catch(e){} window.speechSynthesis.speak(u); }catch(e){} }
 
     var handlers=[];   // fiecare aplicatie isi inregistreaza un (text)->raspuns sau null
     function respond(text){

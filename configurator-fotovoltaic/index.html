@@ -4251,6 +4251,19 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
         if(v.charAt(0)==='p'){ var pc=v.slice(1); if(g('adaosglobal_adp')){ g('adaosglobal_adp').value=pc; try{ onAdaosEdit('adaosglobal','pct'); }catch(e){} } return 'adaos '+pc+'%'; }
         var ron=v.slice(1); if(g('adaosglobal_adr')){ g('adaosglobal_adr').value=ron; try{ onAdaosEdit('adaosglobal','ron'); }catch(e){} } return 'adaos '+ron+' RON'; } }
   ];
+  var DEF_CHIPS=['Fa-mi o oferta'];
+  function pcChips(arr){ if(window.PCAssistant) try{ window.PCAssistant.setChips(arr); }catch(e){} }
+  function chipsFor(key){
+    if(key==='firma') return ['Profceiss','Profceiss Green Energy'];
+    if(key==='struct') return structOpts().map(function(x){return x.label;});
+    if(key==='faz') return ['Monofazat','Trifazat'];
+    if(key==='inv'){ var o=invOpts(); return o.length?o.slice(0,8).map(function(x){return x.label;}):['10 kW']; }
+    if(key==='kw') return ['3 kW','5 kW','6 kW','8 kW','10 kW'];
+    if(key==='bat') return ['Fara baterie','5 kWh','10 kWh'];
+    if(key==='adaos') return ['Fara adaos','10%','15%','20%'];
+    if(key==='gen') return ['Da, genereaza','Nu'];
+    return DEF_CHIPS;
+  }
   function isPV(s){ s=low(s); return /sistem|fotovoltaic|oferta|invertor|panou|baterie|monofaz|trifaz|profceiss|structura|tigla|tabla|adaos|\bkw/.test(s); }
   function prefill(sl,s){ s=low(s); STEPS.forEach(function(st){ if(sl[st.key]==null){ var d=st.detect(s); if(d!=null) sl[st.key]=d; } }); }
   var wiz=null;
@@ -4258,22 +4271,22 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
     while(wiz.i<STEPS.length){ var st=STEPS[wiz.i];
       if(st.skipIf && st.skipIf(wiz.slots) && wiz.slots[st.key]==null){ wiz.i++; continue; }
       if(wiz.slots[st.key]!=null){ wiz.done.push(st.apply(wiz.slots[st.key])); wiz.i++; continue; }
-      wiz.waiting=st.key; return st.q();
+      wiz.waiting=st.key; pcChips(chipsFor(st.key)); return st.q();
     }
     try{ if(typeof goStep==='function') goStep(7); }catch(e){}
-    wiz.waiting='gen';
+    wiz.waiting='gen'; pcChips(chipsFor('gen'));
     return 'Am parcurs tot: '+wiz.done.filter(Boolean).join('; ')+'. Esti la pasul Oferta. Generez fisierul Word al ofertei acum? (da / nu)';
   }
   function handler(text){
     var s=text||'', sl=low(s);
-    if(wiz && wiz.waiting==='gen'){ if(/^(da|genereaza|sigur|ok|yes|hai)/.test(sl)){ wiz=null; try{ wrapExport(); window.exportOfertaWord(); }catch(e){} return 'Generez oferta Word. Asistentul nu apare in document.'; } wiz=null; return 'Bine, nu generez acum. Poti apasa „Export Word" cand vrei.'; }
-    if(wiz && /anuleaza|renunta|opreste|\bstop\b/.test(sl)){ wiz=null; return 'Am anulat.'; }
+    if(wiz && wiz.waiting==='gen'){ if(/^(da|genereaza|sigur|ok|yes|hai)/.test(sl)){ wiz=null; pcChips(DEF_CHIPS); try{ wrapExport(); window.exportOfertaWord(); }catch(e){} return 'Generez oferta Word. Asistentul nu apare in document.'; } wiz=null; pcChips(DEF_CHIPS); return 'Bine, nu generez acum. Poti apasa „Export Word" cand vrei.'; }
+    if(wiz && /anuleaza|renunta|opreste|\bstop\b/.test(sl)){ wiz=null; pcChips(DEF_CHIPS); return 'Am anulat.'; }
     if(!wiz){ if(!isPV(s)) return null; wiz={ slots:{}, i:0, done:[], waiting:null }; prefill(wiz.slots, s); return nextStep(); }
     var st=null; for(var k=0;k<STEPS.length;k++){ if(STEPS[k].key===wiz.waiting){ st=STEPS[k]; break; } }
     if(st){ var d=st.detect(sl); if(d==null) return 'N-am prins raspunsul. '+st.q(); wiz.slots[st.key]=d; prefill(wiz.slots, s); }
     return nextStep();
   }
-  function reg(){ if(window.PCAssistant){ window.PCAssistant.setApp('Configurator fotovoltaic'); window.PCAssistant.register(handler); window.PCAssistant.setChips(['Fa-mi o oferta','Monofazat 6 kW, GoodWe, baterie 10 kWh, adaos 15%','Cum incep?']); wrapExport(); } else setTimeout(reg,400); }
+  function reg(){ if(window.PCAssistant){ window.PCAssistant.setApp('Configurator fotovoltaic'); window.PCAssistant.register(handler); window.PCAssistant.setChips(DEF_CHIPS); wrapExport(); } else setTimeout(reg,400); }
   reg();
 })();
 </script>
