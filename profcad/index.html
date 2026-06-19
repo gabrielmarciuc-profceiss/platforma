@@ -107,6 +107,7 @@
       <button class="btn" id="tClose">⭙ Inchide</button>
       <button class="btn bad" id="tClearAll">Goleste tot</button>
       <button class="btn" id="tMapOpen" title="Deschide harta satelit, gaseste casa, insereaz-o pe sol la scara reala">🛰 Harta satelit</button>
+      <button class="btn" id="tMapLoad" title="Incarca o poza/schita (ex. desen pe foaie) ca fundal de trasare">🖼 Poza / schita</button>
       <input id="mapFile" type="file" accept="image/*" style="display:none">
       <span id="mapCtl" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
         <button class="btn" id="tMapCalib" title="Click 2 puncte la o distanta cunoscuta, apoi metri">📐 Scara</button>
@@ -853,6 +854,11 @@ function insertSatellite(){ const c=satMap.getCenter(), z=Math.round(satMap.getZ
       const iw=img.width*mpp, ih=img.height*mpp, W2=pc.clientWidth||600, H2=pc.clientHeight||400, s=Math.min((W2-40)/Math.max(0.5,iw),(H2-40)/Math.max(0.5,ih)); planFit={s:s,cx:mapPlace.cx,cz:mapPlace.cz}; planZoom=1; planPan={x:0,y:0};   // incadreaza tot satelitul
       drawPlan(); if($('mapMsg'))$('mapMsg').textContent='Satelit inserat la scara reala (~'+mpp.toFixed(3)+' m/pixel). Mareste (scroll) pe casa si traseaza conturul.'; }; img.src=url; }); }
 if($('tMapOpen')) $('tMapOpen').onclick=openSatModal;
+// Incarca o poza / schita desenata pe foaie ca fundal de trasare (fara scara automata -> calibrezi cu "Scara")
+if($('tMapLoad')) $('tMapLoad').onclick=()=>{ const f=$('mapFile'); if(f) f.click(); };
+if($('mapFile')) $('mapFile').onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const img=new Image(); img.onload=()=>{ mapImg=img; mapPlace.mpp=18/Math.max(1,img.width); mapPlace.op=0.6; mapPlace.cx=4; mapPlace.cz=3; const op=$('mapOpacity'); if(op) op.value=60;
+    const W2=pc.clientWidth||600,H2=pc.clientHeight||400, iw=img.width*mapPlace.mpp, ih=img.height*mapPlace.mpp, s=Math.min((W2-40)/Math.max(0.5,iw),(H2-40)/Math.max(0.5,ih)); planFit={s:s,cx:mapPlace.cx,cz:mapPlace.cz}; planZoom=1; planPan={x:0,y:0};
+    showMapCtl(true); drawPlan(); if($('mapMsg'))$('mapMsg').textContent='Poza inserata. Apasa „Scara" si marcheaza o distanta cunoscuta (ex. o latura) ca sa fie la dimensiuni reale, apoi traseaza conturul.'; }; img.src=URL.createObjectURL(f); e.target.value=''; };
 if($('mapOpacity')) $('mapOpacity').oninput=()=>{ mapPlace.op=(parseInt($('mapOpacity').value,10)||55)/100; drawPlan(); };
 if($('tMapMove')) $('tMapMove').onclick=()=>{ mapMode=(mapMode==='move')?null:'move'; $('tMapMove').classList.toggle('on',mapMode==='move'); const c=$('tMapCalib'); if(c)c.classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent=mapMode==='move'?'Trage harta ca sa o pozitionezi peste contur.':''; };
 if($('tMapCalib')) $('tMapCalib').onclick=()=>{ if(!mapImg) return; mapMode=(mapMode==='calib')?null:'calib'; mapCalibP=null; $('tMapCalib').classList.toggle('on',mapMode==='calib'); const m=$('tMapMove'); if(m)m.classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent=mapMode==='calib'?'Click pe primul punct al unei distante cunoscute (ex. o latura de casa de pe imagine).':''; };
