@@ -82,3 +82,12 @@
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+
+/* Asistent comun PROFCEISS: incarca widget-ul de chat (assistant.js) din acelasi folder assets/, pe TOATE paginile */
+(function(){ try{
+  if(document.getElementById('pc-assistant-loader')) return;
+  var cur=document.currentScript, src=cur?cur.src:'';
+  if(!src){ var ss=document.getElementsByTagName('script'); for(var i=0;i<ss.length;i++){ if(ss[i].src&&/no-diacritics\.js/.test(ss[i].src)){ src=ss[i].src; break; } } }
+  if(!src) return;
+  var s=document.createElement('script'); s.defer=true; s.id='pc-assistant-loader'; s.src=src.replace(/[^\/]*$/,'assistant.js'); (document.head||document.documentElement).appendChild(s);
+}catch(e){} })();
