@@ -114,6 +114,9 @@ th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;le
   <div class="hint" id="topHint">Pasul 1 — deseneaza planul camerei in cm</div>
   <button class="btn" id="toggleView" style="padding:7px 12px;flex:none">⇆ 2D / 3D</button>
   <button class="btn" id="undoBtn" style="padding:7px 12px;flex:none">↩ Undo</button>
+  <button class="btn" id="wsNewBtn" style="padding:7px 12px;flex:none">📄 Proiect nou</button>
+  <button class="btn" id="wsLoadBtn" style="padding:7px 12px;flex:none">📂 Incarcare proiect</button>
+  <button class="btn" id="wsSaveBtn" style="padding:7px 12px;flex:none">💾 Salvare proiect</button>
   <div class="sysseg" id="sysSeg"><button data-sys-seg="mono">Monofazat</button><button data-sys-seg="tri">Trifazat</button></div>
 </header>
 
@@ -1011,7 +1014,7 @@ function openProject(o){
   } else { state.mode='plan'; renderWallRows(); refreshPlan(); }
 }
 function saveProject(name){ name=(name||'').trim(); if(!name) return false; const s=loadStore(); state.projName=name; s[name]=serializeProject(); saveStore(s); return true; }
-function autosave(){ try{ localStorage.setItem(AKEY, JSON.stringify(serializeProject())); }catch(e){} }
+function autosave(){ try{ localStorage.setItem(AKEY, JSON.stringify(serializeProject())); }catch(e){} if(window.__wsReady){ try{ wsCapture(); wsPersist(); }catch(e){} } }
 setInterval(autosave, 4000); window.addEventListener('beforeunload', autosave);
 function quickSave(){ const def=state.projName||('Proiect '+new Date().toLocaleDateString('ro-RO')); const name=prompt('Salveaza proiectul cu numele:', def); if(name===null) return; if(saveProject(name)){ autosave(); alert('✅ Proiect salvat: '+name+'\nIl gasesti in „📂 Proiectele mele".'); } }
 function projectModal(){ const s=loadStore(); const names=Object.keys(s).sort((a,b)=>(s[b].savedAt||0)-(s[a].savedAt||0));
@@ -1023,7 +1026,7 @@ function projectModal(){ const s=loadStore(); const names=Object.keys(s).sort((a
     <input type="file" id="pFile" accept="application/json,.json" style="display:none">`);
   $('mClose').onclick=closeModal;
   $('pSave').onclick=()=>{ const n=($('pName').value||'').trim(); if(!n){ alert('Scrie un nume.'); return; } saveProject(n); autosave(); projectModal(); };
-  document.querySelectorAll('[data-load]').forEach(b=> b.onclick=()=>{ const n=decodeURIComponent(b.dataset.load); const st=loadStore(); if(st[n]){ closeModal(); openProject(st[n]); } });
+  document.querySelectorAll('[data-load]').forEach(b=> b.onclick=()=>{ const n=decodeURIComponent(b.dataset.load); const st=loadStore(); if(st[n]){ closeModal(); if(window.__wsReady && typeof wsAddFromData==='function') wsAddFromData(n, st[n]); else openProject(st[n]); } });
   document.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ const n=decodeURIComponent(b.dataset.del); if(confirm('Stergi proiectul „'+n+'"?')){ const st=loadStore(); delete st[n]; saveStore(st); projectModal(); } });
   $('pExport').onclick=()=>{ const n=(state.projName||'proiect').replace(/[^\w\-]+/g,'_'); download(n+'.pce.json', JSON.stringify(serializeProject(),null,1)); };
   $('pImport').onclick=()=>$('pFile').click();
@@ -1262,15 +1265,53 @@ $('cursorTool').onclick=()=>{ addType=null; document.querySelectorAll('[data-add
 $('backPlan').onclick=()=>{ state.mode='plan'; if(renderer) renderer.domElement.style.display='none'; $('planCanvas').style.display='block'; $('planPanel').classList.remove('hidden'); $('elecPanel').classList.add('hidden'); $('legend').classList.add('hidden'); $('measure').classList.add('hidden'); $('viewcube').classList.add('hidden'); selectedEl=null; dragging=null; $('topHint').textContent='Pasul 1 — deseneaza planul camerei in cm'; $('mode').innerHTML='Defineste peretii (cm + cotitura). Apasa <b>Ridica 3D</b>.'; drawPlan(); };
 window.addEventListener('resize',()=>{ if(state.mode==='plan') drawPlan(); else if(renderer) sizeRenderer(); });
 
+/* ===== WORKSPACE: mai multe proiecte ca file (sheet-uri Excel) ===== */
+const WKEY='pce_workspace'; let ws={ sheets:[], active:0 }; window.__wsReady=false;
+function blankProject(){ return { v:1, mode:'plan', name:'', H:2.6, system:state.system||'mono', plan:{ points:[{x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3}], closed:true, openings:[] }, circuits:[], devices:[], dozas:[], props:[], uid:1, cuid:1 }; }
+function wsPersist(){ try{ localStorage.setItem(WKEY, JSON.stringify(ws)); }catch(e){} }
+function wsCapture(){ if(ws.sheets[ws.active]){ try{ ws.sheets[ws.active].data=serializeProject(); }catch(e){} ws.sheets[ws.active].name=state.projName||ws.sheets[ws.active].name; } }
+function wsStyle(){ if(document.getElementById('wsStyle')) return; const st=document.createElement('style'); st.id='wsStyle'; st.textContent=
+  '.wstabs{flex:none;height:34px;display:flex;align-items:stretch;gap:3px;padding:3px 8px 0 78px;background:#e7edf4;border-top:1px solid #cdd8e6;overflow-x:auto}'+
+  '.wstab{display:flex;align-items:center;gap:7px;padding:0 11px;background:#f5f9fd;border:1px solid #cdd8e6;border-bottom:none;border-radius:9px 9px 0 0;font-size:12px;color:#33506f;cursor:pointer;white-space:nowrap;max-width:210px}'+
+  '.wstab.on{background:#fff;color:#1c7bd6;font-weight:700;box-shadow:0 -2px 0 #1c7bd6 inset}'+
+  '.wstab.dragover{outline:2px dashed #1c7bd6;outline-offset:-2px}'+
+  '.wstab .nm{overflow:hidden;text-overflow:ellipsis;max-width:170px}'+
+  '.wstab .cl{border:none;background:transparent;color:#9aa7b6;cursor:pointer;font-size:15px;line-height:1;padding:0}'+
+  '.wstab .cl:hover{color:#c0392b}'+
+  '.wsadd{border:1px dashed #b9c6d6;background:#fff;color:#33506f;border-radius:9px 9px 0 0;padding:0 13px;cursor:pointer;font-size:16px;flex:none}';
+  document.head.appendChild(st); }
+function wsTabsEl(){ wsStyle(); let el=document.getElementById('wsTabs'); if(!el){ el=document.createElement('div'); el.id='wsTabs'; el.className='wstabs'; document.body.appendChild(el); } return el; }
+function wsRender(){ const el=wsTabsEl(); el.innerHTML='';
+  ws.sheets.forEach((sh,i)=>{ const t=document.createElement('div'); t.className='wstab'+(i===ws.active?' on':''); const nm=sh.name||('Proiect '+(i+1));
+    t.innerHTML='<span class="nm"></span>'+(ws.sheets.length>1?'<button class="cl" title="Inchide fila">&times;</button>':''); t.querySelector('.nm').textContent=nm;
+    t.onclick=function(){ wsSwitch(i); };
+    t.ondblclick=function(){ const v=prompt('Nume fila:', nm); if(v){ sh.name=v; if(i===ws.active) state.projName=v; wsRender(); wsPersist(); } };
+    const cl=t.querySelector('.cl'); if(cl) cl.onclick=function(e){ e.stopPropagation(); wsClose(i); };
+    el.appendChild(t); });
+  const add=document.createElement('button'); add.className='wsadd'; add.textContent='+'; add.title='Proiect nou (fila)'; add.onclick=wsNew; el.appendChild(add);
+  setTimeout(function(){ try{ window.dispatchEvent(new Event('resize')); }catch(e){} },0); }
+function wsSwitch(i){ if(i===ws.active||!ws.sheets[i]) return; wsCapture(); ws.active=i; openProject(ws.sheets[i].data||blankProject()); state.projName=ws.sheets[i].name||''; wsRender(); wsPersist(); }
+function wsNew(){ wsCapture(); ws.sheets.push({ id:Date.now(), name:'Proiect '+(ws.sheets.length+1), data:blankProject() }); ws.active=ws.sheets.length-1; openProject(ws.sheets[ws.active].data); state.projName=ws.sheets[ws.active].name; wsRender(); wsPersist(); }
+function wsClose(i){ if(ws.sheets.length<=1) return; const nm=ws.sheets[i].name||('Proiect '+(i+1)); if(!confirm('Inchizi fila „'+nm+'"? (Daca l-ai salvat cu „Salvare proiect", ramane in „Proiectele mele".)')) return; if(i===ws.active) wsCapture(); ws.sheets.splice(i,1); if(ws.active>=ws.sheets.length) ws.active=ws.sheets.length-1; openProject(ws.sheets[ws.active].data); state.projName=ws.sheets[ws.active].name; wsRender(); wsPersist(); }
+function wsAddFromData(name,data){ wsCapture(); ws.sheets.push({ id:Date.now(), name:name||('Proiect '+(ws.sheets.length+1)), data:data }); ws.active=ws.sheets.length-1; openProject(data); state.projName=name||''; wsRender(); wsPersist(); }
+function wsSaveActive(){ const def=state.projName||(ws.sheets[ws.active]&&ws.sheets[ws.active].name)||('Proiect '+new Date().toLocaleDateString('ro-RO')); const name=prompt('Salveaza proiectul (fila) cu numele:', def); if(name===null) return; const n=(name||'').trim(); if(!n){ alert('Scrie un nume.'); return; } if(saveProject(n)){ if(ws.sheets[ws.active]) ws.sheets[ws.active].name=n; state.projName=n; wsCapture(); wsRender(); wsPersist(); alert('✅ Proiect salvat: '+n+'\nIl gasesti si in „Proiectele mele".'); } }
+function wsBoot(){ let saved=null; try{ saved=JSON.parse(localStorage.getItem(WKEY)||'null'); }catch(e){} if(saved && saved.sheets && saved.sheets.length){ ws=saved; if(!(ws.active>=0&&ws.active<ws.sheets.length)) ws.active=0; window.__wsReady=true; openProject(ws.sheets[ws.active].data||blankProject()); state.projName=ws.sheets[ws.active].name||''; wsRender(); return true; } return false; }
+if($('wsNewBtn')) $('wsNewBtn').onclick=wsNew;
+if($('wsLoadBtn')) $('wsLoadBtn').onclick=projectModal;
+if($('wsSaveBtn')) $('wsSaveBtn').onclick=wsSaveActive;
+
 /* ===== start ===== */
 setPlanModeUI(); renderWallRows(); renderOpRows(); refreshPlan();
-let _last=null; try{ _last=JSON.parse(localStorage.getItem(AKEY)||'null'); }catch(e){ _last=null; }
-if(projHasContent(_last)){
-  const when=_last.savedAt?new Date(_last.savedAt).toLocaleString('ro-RO'):'';
-  openModal(`<h2>↩ Reluam ultima sesiune?</h2><p class="muted">Ai o lucrare nesalvata din ${when}${_last.name?(' · „'+_last.name+'"'):''}. Vrei sa continui de unde ai ramas?</p><div class="cbtns"><button class="btn act" id="rsYes">Da, continua</button><button class="btn" id="rsNo">Nu, incepe nou</button></div>`);
-  $('rsYes').onclick=()=>{ closeModal(); openProject(_last); };
-  $('rsNo').onclick=()=>{ closeModal(); localStorage.removeItem(AKEY); askSystem(); };
-} else askSystem();
+if(!wsBoot()){
+  let _last=null; try{ _last=JSON.parse(localStorage.getItem(AKEY)||'null'); }catch(e){ _last=null; }
+  const _startWS=(data,name)=>{ ws={sheets:[{id:Date.now(),name:name||'Proiect 1',data:data||serializeProject()}],active:0}; window.__wsReady=true; wsRender(); wsPersist(); };
+  if(projHasContent(_last)){
+    const when=_last.savedAt?new Date(_last.savedAt).toLocaleString('ro-RO'):'';
+    openModal(`<h2>↩ Reluam ultima sesiune?</h2><p class="muted">Ai o lucrare nesalvata din ${when}${_last.name?(' · „'+_last.name+'"'):''}. Vrei sa continui de unde ai ramas?</p><div class="cbtns"><button class="btn act" id="rsYes">Da, continua</button><button class="btn" id="rsNo">Nu, incepe nou</button></div>`);
+    $('rsYes').onclick=()=>{ closeModal(); openProject(_last); _startWS(serializeProject(), _last.name); };
+    $('rsNo').onclick=()=>{ closeModal(); localStorage.removeItem(AKEY); askSystem(); _startWS(blankProject(),'Proiect 1'); };
+  } else { askSystem(); _startWS(blankProject(),'Proiect 1'); }
+}
 </script>
 <script src="../assets/no-diacritics.js"></script>
 </body>
