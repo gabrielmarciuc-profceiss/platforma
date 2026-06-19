@@ -43,13 +43,18 @@
     +'.ipt input{flex:1;border:1px solid #d4dde8;border-radius:10px;padding:8px 10px;font-size:12.5px;outline:none;min-width:0}'
     +'.ipt input:focus{border-color:#2f6fd0}'
     +'.ipt button{border:none;background:#2f6fd0;color:#fff;border-radius:10px;padding:0 13px;font-size:14px;cursor:pointer}'
+    +'.ipt .mic{background:#eaf0f7;color:#2f6fd0}'
+    +'.ipt .mic.listening{background:#e23b3b;color:#fff;animation:pcpulse 1s infinite}'
+    +'@keyframes pcpulse{0%,100%{box-shadow:0 0 0 0 rgba(226,59,59,.45)}50%{box-shadow:0 0 0 6px rgba(226,59,59,0)}}'
+    +'.hd .spk{background:rgba(255,255,255,.2);border:none;color:#fff;width:24px;height:24px;border-radius:7px;cursor:pointer;font-size:13px;margin-right:2px}'
+    +'.hd .spk.off{opacity:.45}'
     +'</style>'
     +'<button class="launch" id="lc" title="Profceiss AI">&#128172;</button>'
     +'<div class="panel" id="pn">'
-    +'  <div class="hd"><span style="font-size:18px">&#129302;</span><b>Profceiss AI<span class="sub" id="appn"></span></b><button class="x" id="cl">&times;</button></div>'
+    +'  <div class="hd"><span style="font-size:18px">&#129302;</span><b>Profceiss AI<span class="sub" id="appn"></span></b><button class="spk" id="spk" title="Citeste cu voce raspunsurile">&#128266;</button><button class="x" id="cl">&times;</button></div>'
     +'  <div class="msgs" id="ms"></div>'
     +'  <div class="chips" id="ch"></div>'
-    +'  <div class="ipt"><input id="in" placeholder="Scrie ce doresti..." autocomplete="off"><button id="sd">&#10148;</button></div>'
+    +'  <div class="ipt"><input id="in" placeholder="Scrie sau apasa microfonul..." autocomplete="off"><button class="mic" id="mic" title="Vorbeste (comanda vocala)">&#127908;</button><button id="sd">&#10148;</button></div>'
     +'</div>';
 
     var $=function(id){ return root.getElementById?root.getElementById(id):document.getElementById(id); };
@@ -60,6 +65,10 @@
     function open(){ pn.classList.add('open'); setTimeout(function(){ inp.focus(); },50); if(!ms.children.length) greet(); }
     function close(){ pn.classList.remove('open'); }
 
+    /* ----- voce: iesire (text-to-speech) ----- */
+    var speakOn=true, lastWasVoice=false;
+    function speak(text){ try{ if(!speakOn||!window.speechSynthesis) return; var u=new SpeechSynthesisUtterance(text); u.lang='ro-RO'; u.rate=1.02; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){} }
+
     var handlers=[];   // fiecare aplicatie isi inregistreaza un (text)->raspuns sau null
     function respond(text){
       var t=(text||'').trim(); if(!t) return;
@@ -67,7 +76,7 @@
       var reply=null;
       for(var i=0;i<handlers.length && reply==null;i++){ try{ reply=handlers[i](t); }catch(e){ reply=null; } }
       if(reply==null) reply=ruleReply(t);
-      setTimeout(function(){ add(reply,'a'); },180);
+      setTimeout(function(){ add(reply,'a'); if(lastWasVoice) speak(reply); lastWasVoice=false; },180);
     }
     function ruleReply(t){
       var s=t.toLowerCase();
@@ -87,13 +96,32 @@
 
     $('lc').onclick=function(){ pn.classList.contains('open')?close():open(); };
     $('cl').onclick=close;
-    $('sd').onclick=function(){ var v=inp.value; inp.value=''; respond(v); };
-    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var v=inp.value; inp.value=''; respond(v); } });
+    $('sd').onclick=function(){ var v=inp.value; inp.value=''; lastWasVoice=false; respond(v); };
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var v=inp.value; inp.value=''; lastWasVoice=false; respond(v); } });
+
+    /* ----- voce: intrare (microfon, recunoastere vocala) + toggle citire ----- */
+    $('spk').onclick=function(){ speakOn=!speakOn; $('spk').classList.toggle('off',!speakOn); if(!speakOn && window.speechSynthesis) window.speechSynthesis.cancel(); };
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition, rec=null, listening=false;
+    var micBtn=$('mic');
+    if(!SR){ micBtn.style.display='none'; }   // browserul nu suporta (ex. unele versiuni) -> ramane doar tastatura
+    else {
+      micBtn.onclick=function(){ if(listening){ try{ rec.stop(); }catch(e){} return; }
+        try{ rec=new SR(); }catch(e){ return; }
+        rec.lang='ro-RO'; rec.interimResults=false; rec.maxAlternatives=1;
+        rec.onstart=function(){ listening=true; micBtn.classList.add('listening'); inp.placeholder='Ascult... vorbeste'; };
+        rec.onerror=function(){ listening=false; micBtn.classList.remove('listening'); inp.placeholder='Scrie sau apasa microfonul...'; };
+        rec.onend=function(){ listening=false; micBtn.classList.remove('listening'); inp.placeholder='Scrie sau apasa microfonul...'; };
+        rec.onresult=function(ev){ var txt=''; for(var i=0;i<ev.results.length;i++) txt+=ev.results[i][0].transcript; txt=(txt||'').trim(); if(txt){ lastWasVoice=true; respond(txt); } };
+        if(!pn.classList.contains('open')) open();
+        try{ rec.start(); }catch(e){}
+      };
+    }
 
     // API publica (pentru integrari per-aplicatie, acum sau dupa ce adaugam AI)
     window.PCAssistant={
       open:open, close:close,
-      say:function(t){ add(t,'a'); if(!pn.classList.contains('open')) open(); },
+      say:function(t,alsoSpeak){ add(t,'a'); if(alsoSpeak||lastWasVoice) speak(t); if(!pn.classList.contains('open')) open(); },
+      speak:speak,
       register:function(fn){ if(typeof fn==='function') handlers.push(fn); },
       setChips:setChips,
       setApp:function(n){ appName=(n||appName).toString(); $('appn').textContent=' · '+appName+' · beta'; }
