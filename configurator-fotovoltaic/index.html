@@ -4208,6 +4208,46 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
   setState(s){ if(s && typeof restoreOfferState==='function') restoreOfferState(s); }
 };
 </script>
+<script>
+/* ===== Profceiss AI: executie comenzi in configuratorul fotovoltaic (voce + text, cu intrebari de clarificare) ===== */
+(function(){
+  function g(id){ return document.getElementById(id); }
+  function fnum(s,re){ var m=(s||'').match(re); return m?parseFloat(m[1].replace(',','.')):null; }
+  function readKwp(){ var t=(g('panouri_simple_kwp')||{}).textContent||''; var m=t.match(/([\d.,]+)\s*kWp/i); return m?parseFloat(m[1].replace(',','.')):0; }
+  function isPV(s){ s=(s||'').toLowerCase(); return /sistem|fotovoltaic|invertor|panou|baterie|monofaz|trifaz|\bkw/.test(s); }
+  function parse(s){ s=(s||'').toLowerCase(); var o={};
+    if(/trifaz|3\s*faz/.test(s)) o.faz='tri'; else if(/monofaz|1\s*faz/.test(s)) o.faz='mono';
+    var bat=fnum(s,/(\d+(?:[.,]\d+)?)\s*kwh/); if(bat==null) bat=fnum(s,/baterie[^\d]*(\d+(?:[.,]\d+)?)/); if(bat!=null) o.bat=bat;
+    var kw=fnum(s,/(\d+(?:[.,]\d+)?)\s*kw(?:p)?(?!h)/); if(kw!=null) o.kw=kw;
+    var br=(s.match(/invertor\s+([a-z]{3,})/)||[])[1]; if(br && br!=='din' && br!=='de' && br!=='cu') o.inv=br;
+    return o;
+  }
+  var wiz=null;
+  function apply(){
+    var p=wiz, done=[];
+    if(p.faz && typeof setBransament==='function'){ try{ setBransament(p.faz); done.push('bransament '+(p.faz==='mono'?'monofazat':'trifazat')); }catch(e){} }
+    if(p.kw!=null){ try{ if(g('put_inv')) g('put_inv').value=p.kw; }catch(e){}
+      try{ var n=Math.max(1,Math.round(p.kw)); g('panouri_total').value=n; if(typeof onSimplePanouriChange==='function') onSimplePanouriChange(); var kwp=readKwp(); if(kwp>0){ n=Math.max(1,Math.round(n*p.kw/kwp)); g('panouri_total').value=n; onSimplePanouriChange(); kwp=readKwp(); } done.push(n+' panouri (~'+(kwp||p.kw).toFixed(2)+' kWp)'); }catch(e){}
+    }
+    if(p.inv) done.push('invertor '+p.inv.toUpperCase()+' ~'+(p.kw!=null?p.kw:'?')+' kW (alege modelul exact la pasul Sistem)');
+    if(p.bat!=null) done.push('baterie '+p.bat+' kWh (alege modelul la pasul Baterie)');
+    try{ if(typeof goStep==='function') goStep(7); }catch(e){}
+    wiz=null;
+    return 'Gata. Am configurat: '+done.join('; ')+'. Te-am dus la pasul Oferta — verifica si ajusteaza la nevoie.';
+  }
+  function handler(text){
+    var s=(text||''), low=s.toLowerCase();
+    if(wiz && /anuleaza|renunta|\bstop\b|opreste/.test(low)){ wiz=null; return 'Am anulat comanda.'; }
+    if(!wiz && !isPV(s)) return null;
+    var p=parse(s); wiz=wiz||{}; if(p.faz)wiz.faz=p.faz; if(p.kw!=null)wiz.kw=p.kw; if(p.inv)wiz.inv=p.inv; if(p.bat!=null)wiz.bat=p.bat;
+    if(!wiz.faz) return 'Sistemul e monofazat sau trifazat?';
+    if(wiz.kw==null) return 'Ce putere are sistemul, in kW? De exemplu: 6 kW.';
+    return apply();
+  }
+  function reg(){ if(window.PCAssistant){ window.PCAssistant.setApp('Configurator fotovoltaic'); window.PCAssistant.register(handler); window.PCAssistant.setChips(['Sistem monofazat 6 kW, invertor GoodWe, baterie 10 kWh','Trifazat 10 kW','Cum incep?']); } else setTimeout(reg,400); }
+  reg();
+})();
+</script>
 <script src="../assets/no-diacritics.js"></script>
 </body>
 </html>

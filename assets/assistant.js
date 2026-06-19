@@ -66,7 +66,7 @@
     function close(){ pn.classList.remove('open'); }
 
     /* ----- voce: iesire (text-to-speech) ----- */
-    var speakOn=true, lastWasVoice=false;
+    var speakOn=true, voiceMode=false;   // voiceMode: odata ce dai comanda vocal, ramai pe voce (intrebari + raspunsuri citite) pana scrii la tastatura
     function speak(text){ try{ if(!speakOn||!window.speechSynthesis) return; var u=new SpeechSynthesisUtterance(text); u.lang='ro-RO'; u.rate=1.02; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){} }
 
     var handlers=[];   // fiecare aplicatie isi inregistreaza un (text)->raspuns sau null
@@ -76,7 +76,7 @@
       var reply=null;
       for(var i=0;i<handlers.length && reply==null;i++){ try{ reply=handlers[i](t); }catch(e){ reply=null; } }
       if(reply==null) reply=ruleReply(t);
-      setTimeout(function(){ add(reply,'a'); if(lastWasVoice) speak(reply); lastWasVoice=false; },180);
+      setTimeout(function(){ add(reply,'a'); if(voiceMode) speak(reply); },180);
     }
     function ruleReply(t){
       var s=t.toLowerCase();
@@ -96,8 +96,8 @@
 
     $('lc').onclick=function(){ pn.classList.contains('open')?close():open(); };
     $('cl').onclick=close;
-    $('sd').onclick=function(){ var v=inp.value; inp.value=''; lastWasVoice=false; respond(v); };
-    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var v=inp.value; inp.value=''; lastWasVoice=false; respond(v); } });
+    $('sd').onclick=function(){ var v=inp.value; inp.value=''; voiceMode=false; respond(v); };
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var v=inp.value; inp.value=''; voiceMode=false; respond(v); } });
 
     /* ----- voce: intrare (microfon, recunoastere vocala) + toggle citire ----- */
     $('spk').onclick=function(){ speakOn=!speakOn; $('spk').classList.toggle('off',!speakOn); if(!speakOn && window.speechSynthesis) window.speechSynthesis.cancel(); };
@@ -105,22 +105,29 @@
     var micBtn=$('mic');
     if(!SR){ micBtn.style.display='none'; }   // browserul nu suporta (ex. unele versiuni) -> ramane doar tastatura
     else {
-      micBtn.onclick=function(){ if(listening){ try{ rec.stop(); }catch(e){} return; }
-        try{ rec=new SR(); }catch(e){ return; }
-        rec.lang='ro-RO'; rec.interimResults=false; rec.maxAlternatives=1;
-        rec.onstart=function(){ listening=true; micBtn.classList.add('listening'); inp.placeholder='Ascult... vorbeste'; };
-        rec.onerror=function(){ listening=false; micBtn.classList.remove('listening'); inp.placeholder='Scrie sau apasa microfonul...'; };
-        rec.onend=function(){ listening=false; micBtn.classList.remove('listening'); inp.placeholder='Scrie sau apasa microfonul...'; };
-        rec.onresult=function(ev){ var txt=''; for(var i=0;i<ev.results.length;i++) txt+=ev.results[i][0].transcript; txt=(txt||'').trim(); if(txt){ lastWasVoice=true; respond(txt); } };
+      // PUSH-TO-TALK: tii apasat microfonul ca sa vorbesti; cand eliberezi, mesajul se trimite automat
+      function stopUI(){ listening=false; micBtn.classList.remove('listening'); inp.placeholder='Tine apasat microfonul ca sa vorbesti...'; }
+      function startRec(){ if(listening) return; try{ rec=new SR(); }catch(e){ return; }
+        rec.lang='ro-RO'; rec.interimResults=false; rec.maxAlternatives=1; rec._got=false;
+        rec.onstart=function(){ listening=true; micBtn.classList.add('listening'); inp.placeholder='Ascult... (tine apasat)'; };
+        rec.onerror=stopUI; rec.onend=stopUI;
+        rec.onresult=function(ev){ var txt=''; for(var i=0;i<ev.results.length;i++) txt+=ev.results[i][0].transcript; txt=(txt||'').trim(); if(txt){ rec._got=true; voiceMode=true; respond(txt); } };
         if(!pn.classList.contains('open')) open();
         try{ rec.start(); }catch(e){}
-      };
+      }
+      function stopRec(){ if(rec && listening){ try{ rec.stop(); }catch(e){} } }
+      micBtn.addEventListener('pointerdown',function(e){ e.preventDefault(); startRec(); });
+      micBtn.addEventListener('pointerup',function(e){ e.preventDefault(); stopRec(); });
+      micBtn.addEventListener('pointerleave',function(){ stopRec(); });
+      micBtn.addEventListener('pointercancel',function(){ stopRec(); });
+      micBtn.addEventListener('contextmenu',function(e){ e.preventDefault(); });   // pe telefon, apasarea lunga sa nu deschida meniul
     }
 
     // API publica (pentru integrari per-aplicatie, acum sau dupa ce adaugam AI)
     window.PCAssistant={
       open:open, close:close,
-      say:function(t,alsoSpeak){ add(t,'a'); if(alsoSpeak||lastWasVoice) speak(t); if(!pn.classList.contains('open')) open(); },
+      say:function(t,alsoSpeak){ add(t,'a'); if(alsoSpeak||voiceMode) speak(t); if(!pn.classList.contains('open')) open(); },
+      isVoice:function(){ return voiceMode; },
       speak:speak,
       register:function(fn){ if(typeof fn==='function') handlers.push(fn); },
       setChips:setChips,
