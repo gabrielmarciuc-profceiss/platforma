@@ -249,7 +249,7 @@ const route={mode:'chain', path:'tavan', shortLight:false};   // mode: chain|eac
 const listOpen={};   // expand/collapse categorii in lista
 let H=2.6;                                   // inaltime camera (m)
 const plan={ points:[ {x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3} ], closed:true, openings:[] };
-let planMode='edit', planDrag=-1, planMap={s:1,ox:0,oy:0};
+let planMode='edit', planDrag=null, planMap={s:1,ox:0,oy:0}, planMouseW=null;
 const OPEN_DEF={ usa:{sill:0,head:2.05,w:0.9,label:'Usa'}, gol_usa:{sill:0,head:2.05,w:0.9,label:'Gol usa'}, fereastra:{sill:0.9,head:2.1,w:1.2,label:'Fereastra'}, gol_fereastra:{sill:0.9,head:2.1,w:1.2,label:'Gol fereastra'} };
 
 const DEF_POWER={bec:10,priza:2000,intrerupator:0,tablou:0,ventilator:60};
@@ -295,16 +295,37 @@ function drawPlan(){
   plan.openings.forEach(o=>{ const e=out[o.wall]; if(!e) return; const dirx=(e.p2.x-e.p1.x), dirz=(e.p2.z-e.p1.z); const L=Math.hypot(dirx,dirz)||1; const ux=dirx/L, uz=dirz/L;
     const a={x:e.p1.x+ux*o.pos, z:e.p1.z+uz*o.pos}, b={x:e.p1.x+ux*(o.pos+o.w), z:e.p1.z+uz*(o.pos+o.w)};
     px.strokeStyle=o.type.startsWith('gol')?'#34d399':'#f2c14e'; px.lineWidth=6; px.beginPath(); px.moveTo(X(a.x),Y(a.z)); px.lineTo(X(b.x),Y(b.z)); px.stroke(); });
+  // mâner mijloc de perete (patrat verde) = muta peretele intreg, in editare
+  if(planMode==='edit'){ out.forEach(e=>{ const mx=(e.p1.x+e.p2.x)/2, mz=(e.p1.z+e.p2.z)/2; px.fillStyle='#1d9e75'; px.fillRect(X(mx)-5,Y(mz)-5,10,10); px.strokeStyle='#fff'; px.lineWidth=2; px.strokeRect(X(mx)-5,Y(mz)-5,10,10); }); }
+  // DESENARE: linie elastica de la ultimul colt la cursor + cota live (ca "line" din Paint)
+  if(planMode==='draw' && plan.points.length && planMouseW){ const last=plan.points[plan.points.length-1];
+    px.strokeStyle='#1d9e75'; px.lineWidth=2; px.setLineDash([6,5]); px.beginPath(); px.moveTo(X(last.x),Y(last.z)); px.lineTo(X(planMouseW.x),Y(planMouseW.z)); px.stroke(); px.setLineDash([]);
+    const Lcm=Math.round(Math.hypot(planMouseW.x-last.x,planMouseW.z-last.z)*100); px.fillStyle='#0d8f55'; px.font='800 13px "IBM Plex Sans"'; px.textAlign='left'; px.fillText(Lcm+' cm', X(planMouseW.x)+12, Y(planMouseW.z)-8);
+    if(plan.points.length>=3){ const f=plan.points[0]; if(pxDist(planMouseW,f)<14){ px.strokeStyle='#34d399'; px.lineWidth=3; px.beginPath(); px.arc(X(f.x),Y(f.z),10,0,7); px.stroke(); } } }
+  // EDITARE: cota live cat tragem un perete intreg
+  if(planMode==='edit' && planDrag && planDrag.kind==='edge' && planMouseW){ const e=out[planDrag.i]; if(e){ const Lcm=Math.round(Math.hypot(e.p2.x-e.p1.x,e.p2.z-e.p1.z)*100); px.fillStyle='#0d8f55'; px.font='800 13px "IBM Plex Sans"'; px.textAlign='left'; px.fillText(Lcm+' cm', X(planMouseW.x)+12, Y(planMouseW.z)-8); } }
 }
 /* screen → world + interactiune mouse pe plan */
 function pcWorld(e){ const r=pc.getBoundingClientRect(); const sx=e.clientX-r.left, sy=e.clientY-r.top; return {x:(sx-planMap.ox)/planMap.s, z:(planMap.oy-sy)/planMap.s}; }
 const snap=v=>Math.round(v/0.05)*0.05;
-pc.addEventListener('pointerdown',e=>{ if(state.mode!=='plan') return; const w=pcWorld(e);
-  if(planMode==='draw'){ if(plan.points.length>=3){ const f=plan.points[0]; if(Math.hypot(w.x-f.x,w.z-f.z)<0.25){ plan.closed=true; planMode='edit'; setPlanModeUI(); renderWallRows(); refreshPlan(); return; } } plan.closed=false; plan.points.push({x:snap(w.x),z:snap(w.z)}); renderWallRows(); refreshPlan(); }
-  else { let bi=-1,bd=0.3; plan.points.forEach((p,i)=>{ const d=Math.hypot(w.x-p.x,w.z-p.z); if(d<bd){bd=d;bi=i;} }); planDrag=bi; } });
-pc.addEventListener('pointermove',e=>{ if(state.mode!=='plan'||planDrag<0) return; const w=pcWorld(e); plan.points[planDrag].x=snap(w.x); plan.points[planDrag].z=snap(w.z); renderWallRows(); refreshPlan(); });
-window.addEventListener('pointerup',()=>{ planDrag=-1; });
-function setPlanModeUI(){ $('drawMode').classList.toggle('on',planMode==='draw'); $('editMode').classList.toggle('on',planMode==='edit'); $('planTool').textContent= planMode==='draw'?'Deseneaza: click adauga colturi; click pe primul colt (verde) inchide conturul.':'Muta: trage colturile (punctele galbene).'; }
+function pxDist(w,p){ return Math.hypot(planMap.s*(w.x-p.x), planMap.s*(w.z-p.z)); }   // distanta in pixeli (prag stabil indiferent de zoom)
+pc.addEventListener('pointerdown',e=>{ if(state.mode!=='plan') return; const w=pcWorld(e); planMouseW=w;
+  if(planMode==='draw'){
+    if(plan.points.length>=3 && pxDist(w,plan.points[0])<14){ plan.closed=true; planMode='edit'; setPlanModeUI(); renderWallRows(); refreshPlan(); return; }   // click pe primul colt = inchide
+    plan.closed=false; plan.points.push({x:snap(w.x),z:snap(w.z)}); renderWallRows(); refreshPlan(); return;
+  }
+  // EDITARE: capatul (coltul) are prioritate, apoi mijlocul peretelui (muta tot peretele)
+  let bi=-1,bd=15; plan.points.forEach((p,i)=>{ const d=pxDist(w,p); if(d<bd){bd=d;bi=i;} });
+  if(bi>=0){ planDrag={kind:'corner',i:bi}; return; }
+  const {out}=edges(); let be=-1,bed=15; out.forEach(ed=>{ const m={x:(ed.p1.x+ed.p2.x)/2,z:(ed.p1.z+ed.p2.z)/2}; const d=pxDist(w,m); if(d<bed){bed=d;be=ed.i;} });
+  if(be>=0){ planDrag={kind:'edge',i:be,lx:w.x,lz:w.z}; } });
+pc.addEventListener('pointermove',e=>{ if(state.mode!=='plan') return; const w=pcWorld(e); planMouseW=w;
+  if(!planDrag){ if(planMode==='draw') drawPlan(); return; }   // doar previzualizare elastica in desenare
+  if(planDrag.kind==='corner'){ plan.points[planDrag.i].x=snap(w.x); plan.points[planDrag.i].z=snap(w.z); }
+  else if(planDrag.kind==='edge'){ const n=plan.points.length, i1=planDrag.i, i2=(planDrag.i+1)%n; const ddx=w.x-planDrag.lx, ddz=w.z-planDrag.lz; if(plan.points[i1]){ plan.points[i1].x+=ddx; plan.points[i1].z+=ddz; } if(plan.points[i2]&&i2!==i1){ plan.points[i2].x+=ddx; plan.points[i2].z+=ddz; } planDrag.lx=w.x; planDrag.lz=w.z; }
+  renderWallRows(); refreshPlan(); });
+window.addEventListener('pointerup',()=>{ planDrag=null; });
+function setPlanModeUI(){ $('drawMode').classList.toggle('on',planMode==='draw'); $('editMode').classList.toggle('on',planMode==='edit'); $('planTool').textContent= planMode==='draw'?'Linie perete: click = inceput, misca mouse-ul (vezi cota), click = sfarsit. Click pe primul colt (verde) inchide camera.':'Editare: trage bulinele galbene (capete) ca sa intinzi peretele, sau patratul verde (mijloc) ca sa muti tot peretele. Cota se vede live.'; }
 
 /* ===== PLAN: UI ===== */
 function renderWallRows(){
@@ -325,7 +346,7 @@ function renderOpRows(){
   c.querySelectorAll('[data-delo]').forEach(b=> b.onclick=()=>{ plan.openings.splice(+b.dataset.delo,1); renderOpRows(); refreshPlan(); });
 }
 function refreshPlan(){ const closed=isClosed(); $('planStatus').innerHTML = closed?('<span style="color:var(--good)">✓ Contur inchis · '+plan.points.length+' colturi</span>'):'<span style="color:var(--bad)">Contur deschis — inchide-l (buton sau click pe primul colt)</span>'; drawPlan(); }
-$('addWall').onclick=()=>{ const p=plan.points[plan.points.length-1]||{x:0,z:0}; plan.points.push({x:p.x+1,z:p.z}); plan.closed=false; renderWallRows(); refreshPlan(); };
+$('addWall').onclick=()=>{ planMode='draw'; planMouseW=null; setPlanModeUI(); refreshPlan(); };   // intra in modul linie: click inceput -> click sfarsit
 
 /* ===== Incarca schita (detectie OpenCV + indreptare hand-drawn) ===== */
 let sketchResult=null;
