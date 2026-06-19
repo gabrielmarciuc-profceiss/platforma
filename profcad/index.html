@@ -85,7 +85,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R94 (harta satelit integrata: cauti adresa, inserezi pe sol la scara reala automata)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R95 (detectie contur OpenCV: satelit click pe acoperis + schita foto auto)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -108,6 +108,7 @@
       <button class="btn bad" id="tClearAll">Goleste tot</button>
       <button class="btn" id="tMapOpen" title="Deschide harta satelit, gaseste casa, insereaz-o pe sol la scara reala">🛰 Harta satelit</button>
       <button class="btn" id="tMapLoad" title="Incarca o poza/schita (ex. desen pe foaie) ca fundal de trasare">🖼 Poza / schita</button>
+      <button class="btn" id="tDetect" title="Detecteaza automat conturul (satelit: click pe acoperis · schita: automat)">🔎 Detecteaza contur</button>
       <input id="mapFile" type="file" accept="image/*" style="display:none">
       <span id="mapCtl" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
         <button class="btn" id="tMapCalib" title="Click 2 puncte la o distanta cunoscuta, apoi metri">📐 Scara</button>
@@ -456,6 +457,10 @@ function nearestWall(w){ let bi=-1,bd=0.6,bt=0; const n=foot.length; for(let i=0
 function screenPt(ev){ const r=pc.getBoundingClientRect(); return {x:ev.clientX-r.left, y:ev.clientY-r.top}; }
 pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev); return; } const w=world(ev);
   // fundal satelit: calibrare scara / mutare harta (au prioritate cat sunt active)
+  if(roofDetectMode && mapImg){ roofDetectMode=false; if($('tDetect'))$('tDetect').classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent='Detectez acoperisul...';
+    const px=(w.x-mapPlace.cx)/mapPlace.mpp + mapImg.width/2, py=(w.z-mapPlace.cz)/mapPlace.mpp + mapImg.height/2;
+    detectRoof(px,py).then(pts=>{ applyDetected(pts,false); if($('mapMsg'))$('mapMsg').textContent='Contur detectat. Ajusteaza colturile (Muta colturi) daca e nevoie.'; }).catch(e=>{ if($('mapMsg'))$('mapMsg').textContent=''; alert('Eroare detectie: '+e.message); });
+    return; }
   if(mapMode==='calib' && mapImg){ if(!mapCalibP){ mapCalibP={x:w.x,z:w.z}; if($('mapMsg'))$('mapMsg').textContent='Acum click pe al 2-lea punct al distantei cunoscute.'; }
     else { const d=Math.hypot(w.x-mapCalibP.x,w.z-mapCalibP.z); const r=prompt('Distanta reala intre cele 2 puncte (metri):',''); const R=parseFloat((r||'').replace(',','.')); if(R>0 && d>1e-4){ const f=R/d; mapPlace.mpp*=f; mapPlace.cx=mapCalibP.x+(mapPlace.cx-mapCalibP.x)*f; mapPlace.cz=mapCalibP.z+(mapPlace.cz-mapCalibP.z)*f; } mapMode=null; mapCalibP=null; if($('tMapCalib'))$('tMapCalib').classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent=''; drawPlan(); } return; }
   if(mapMode==='move' && mapImg){ drag={kind:'map',lx:w.x,lz:w.z}; return; }
@@ -850,19 +855,40 @@ function captureSatellite(lat,lng,z,W,H,cb){ const ws=256*Math.pow(2,z); const g
 function insertSatellite(){ const c=satMap.getCenter(), z=Math.round(satMap.getZoom()); const cont=document.getElementById('pcSatMap'); const W=Math.min(1400,Math.max(400,cont.clientWidth||900)), H=Math.min(1000,Math.max(300,cont.clientHeight||560));
   if($('pcSatInsert')) $('pcSatInsert').textContent='Se captureaza...';
   captureSatellite(c.lat,c.lng,z,W,H,function(url,mpp){ if($('pcSatInsert')) $('pcSatInsert').textContent='📌 Insereaza pe sol'; if(!url){ alert('Nu am putut captura harta (CORS). Incearca alt zoom.'); return; }
-    const img=new Image(); img.onload=function(){ mapImg=img; mapPlace.mpp=mpp; mapPlace.op=0.85; mapPlace.cx=4; mapPlace.cz=3; const op=$('mapOpacity'); if(op) op.value=85; showMapCtl(true); closeSatModal();
+    const img=new Image(); img.onload=function(){ mapImg=img; mapPlace.mpp=mpp; mapPlace.op=0.85; mapPlace.cx=4; mapPlace.cz=3; mapPlace.sat=true; const op=$('mapOpacity'); if(op) op.value=85; showMapCtl(true); closeSatModal();
       const iw=img.width*mpp, ih=img.height*mpp, W2=pc.clientWidth||600, H2=pc.clientHeight||400, s=Math.min((W2-40)/Math.max(0.5,iw),(H2-40)/Math.max(0.5,ih)); planFit={s:s,cx:mapPlace.cx,cz:mapPlace.cz}; planZoom=1; planPan={x:0,y:0};   // incadreaza tot satelitul
       drawPlan(); if($('mapMsg'))$('mapMsg').textContent='Satelit inserat la scara reala (~'+mpp.toFixed(3)+' m/pixel). Mareste (scroll) pe casa si traseaza conturul.'; }; img.src=url; }); }
 if($('tMapOpen')) $('tMapOpen').onclick=openSatModal;
 // Incarca o poza / schita desenata pe foaie ca fundal de trasare (fara scara automata -> calibrezi cu "Scara")
 if($('tMapLoad')) $('tMapLoad').onclick=()=>{ const f=$('mapFile'); if(f) f.click(); };
-if($('mapFile')) $('mapFile').onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const img=new Image(); img.onload=()=>{ mapImg=img; mapPlace.mpp=18/Math.max(1,img.width); mapPlace.op=0.6; mapPlace.cx=4; mapPlace.cz=3; const op=$('mapOpacity'); if(op) op.value=60;
+if($('mapFile')) $('mapFile').onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const img=new Image(); img.onload=()=>{ mapImg=img; mapPlace.mpp=18/Math.max(1,img.width); mapPlace.op=0.6; mapPlace.cx=4; mapPlace.cz=3; mapPlace.sat=false; const op=$('mapOpacity'); if(op) op.value=60;
     const W2=pc.clientWidth||600,H2=pc.clientHeight||400, iw=img.width*mapPlace.mpp, ih=img.height*mapPlace.mpp, s=Math.min((W2-40)/Math.max(0.5,iw),(H2-40)/Math.max(0.5,ih)); planFit={s:s,cx:mapPlace.cx,cz:mapPlace.cz}; planZoom=1; planPan={x:0,y:0};
     showMapCtl(true); drawPlan(); if($('mapMsg'))$('mapMsg').textContent='Poza inserata. Apasa „Scara" si marcheaza o distanta cunoscuta (ex. o latura) ca sa fie la dimensiuni reale, apoi traseaza conturul.'; }; img.src=URL.createObjectURL(f); e.target.value=''; };
 if($('mapOpacity')) $('mapOpacity').oninput=()=>{ mapPlace.op=(parseInt($('mapOpacity').value,10)||55)/100; drawPlan(); };
 if($('tMapMove')) $('tMapMove').onclick=()=>{ mapMode=(mapMode==='move')?null:'move'; $('tMapMove').classList.toggle('on',mapMode==='move'); const c=$('tMapCalib'); if(c)c.classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent=mapMode==='move'?'Trage harta ca sa o pozitionezi peste contur.':''; };
 if($('tMapCalib')) $('tMapCalib').onclick=()=>{ if(!mapImg) return; mapMode=(mapMode==='calib')?null:'calib'; mapCalibP=null; $('tMapCalib').classList.toggle('on',mapMode==='calib'); const m=$('tMapMove'); if(m)m.classList.remove('on'); if($('mapMsg'))$('mapMsg').textContent=mapMode==='calib'?'Click pe primul punct al unei distante cunoscute (ex. o latura de casa de pe imagine).':''; };
-if($('tMapClear')) $('tMapClear').onclick=()=>{ mapImg=null; mapMode=null; mapCalibP=null; showMapCtl(false); drawPlan(); };
+if($('tMapClear')) $('tMapClear').onclick=()=>{ mapImg=null; mapMode=null; mapCalibP=null; roofDetectMode=false; showMapCtl(false); drawPlan(); };
+
+/* ===== Detectie automata contur (OpenCV.js): satelit -> click pe acoperis ; schita pe foaie -> automat ===== */
+let roofDetectMode=false;
+function loadCV(){ return new Promise((res,rej)=>{ if(window.cv&&window.cv.Mat) return res(); const s=document.createElement('script'); s.src='https://docs.opencv.org/4.x/opencv.js'; s.async=true; s.onload=()=>{ if(window.cv&&window.cv.Mat) res(); else window.cv['onRuntimeInitialized']=()=>res(); }; s.onerror=()=>rej(new Error('Nu pot incarca OpenCV (verifica internetul).')); document.head.appendChild(s); }); }
+function imgCanvas(maxDim){ const sc=Math.min(1,(maxDim||1100)/Math.max(mapImg.width,mapImg.height)); const cw=Math.round(mapImg.width*sc), ch=Math.round(mapImg.height*sc); const c=document.createElement('canvas'); c.width=cw; c.height=ch; c.getContext('2d').drawImage(mapImg,0,0,cw,ch); return {c,sc}; }
+function biggestPoly(cv,bin,eps){ const cont=new cv.MatVector(),hier=new cv.Mat(); cv.findContours(bin,cont,hier,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE); let bi=-1,ba=0; for(let i=0;i<cont.size();i++){ const a=cv.contourArea(cont.get(i)); if(a>ba){ba=a;bi=i;} } let pts=[]; if(bi>=0){ const cc=cont.get(bi); const peri=cv.arcLength(cc,true); const ap=new cv.Mat(); cv.approxPolyDP(cc,ap,(eps||0.015)*peri,true); for(let i=0;i<ap.rows;i++) pts.push({x:ap.data32S[i*2],y:ap.data32S[i*2+1]}); ap.delete(); } cont.delete();hier.delete(); return pts; }
+async function detectSketch(){ await loadCV(); const cv=window.cv; const {c,sc}=imgCanvas(1100); const src=cv.imread(c),gray=new cv.Mat(),bin=new cv.Mat(); cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.GaussianBlur(gray,gray,new cv.Size(5,5),0); cv.adaptiveThreshold(gray,bin,255,cv.ADAPTIVE_THRESH_MEAN_C,cv.THRESH_BINARY_INV,21,10); const k=cv.getStructuringElement(cv.MORPH_RECT,new cv.Size(5,5)); cv.morphologyEx(bin,bin,cv.MORPH_CLOSE,k,new cv.Point(-1,-1),2); const pts=biggestPoly(cv,bin,0.015).map(p=>({x:p.x/sc,y:p.y/sc})); src.delete();gray.delete();bin.delete();k.delete(); return pts; }
+async function detectRoof(px,py){ await loadCV(); const cv=window.cv; const {c,sc}=imgCanvas(1100); const src=cv.imread(c); const sx=Math.max(0,Math.min(c.width-1,Math.round(px*sc))), sy=Math.max(0,Math.min(c.height-1,Math.round(py*sc)));
+  const mask=cv.Mat.zeros(c.height+2,c.width+2,cv.CV_8UC1); const rect=new cv.Rect(); const tol=22, lo=new cv.Scalar(tol,tol,tol,tol), up=new cv.Scalar(tol,tol,tol,tol);
+  try{ cv.floodFill(src,mask,new cv.Point(sx,sy),new cv.Scalar(255,255,255,255),rect,lo,up,4|(255<<8)|(1<<17)); }catch(e){ console.warn(e); }   // 1<<17 = FLOODFILL_MASK_ONLY
+  const roi=mask.roi(new cv.Rect(1,1,c.width,c.height)); const k=cv.getStructuringElement(cv.MORPH_RECT,new cv.Size(5,5)); cv.morphologyEx(roi,roi,cv.MORPH_CLOSE,k,new cv.Point(-1,-1),2);
+  const pts=biggestPoly(cv,roi,0.02).map(p=>({x:p.x/sc,y:p.y/sc})); src.delete();mask.delete();roi.delete();k.delete(); return pts; }
+function applyDetected(pixPts, sketchMode){ if(!pixPts||pixPts.length<3){ alert('Nu am gasit un contur clar. Mareste/centreaza mai bine sau traseaza manual.'); return; }
+  let f;
+  if(sketchMode){ const wcm=prompt('Cat are latimea reala a casei (metri)? (ca sa stabilesc scara)','10'); const wM=parseFloat((wcm||'').replace(',','.')); if(!(wM>0)) return; let mnx=1e9,mxx=-1e9; pixPts.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);}); const scaleMpp=wM/Math.max(1,(mxx-mnx)); let cx=0,cy=0; pixPts.forEach(p=>{cx+=p.x;cy+=p.y;}); cx/=pixPts.length; cy/=pixPts.length; f=pixPts.map(p=>({x:+((p.x-cx)*scaleMpp).toFixed(2), z:+((p.y-cy)*scaleMpp).toFixed(2)})); }
+  else { f=pixPts.map(p=>({ x:+(mapPlace.cx+(p.x-mapImg.width/2)*mapPlace.mpp).toFixed(2), z:+(mapPlace.cz+(p.y-mapImg.height/2)*mapPlace.mpp).toFixed(2) })); }
+  foot=f; footClosed=true; ridges=[]; pendingRidge=null; openings=[]; chimneys=[]; veluxes=[]; autoRidges=[]; planFit=null; mode='edit'; if(typeof setTools==='function') setTools(); drawPlan(); build3D(); if(typeof renderElemList==='function') renderElemList(true); commit(); }
+if($('tDetect')) $('tDetect').onclick=async ()=>{ if(!mapImg){ alert('Pune mai intai un fundal: „Harta satelit" sau „Poza / schita".'); return; }
+  const btn=$('tDetect'), o=btn.textContent;
+  if(mapPlace.sat){ roofDetectMode=true; btn.classList.add('on'); if($('mapMsg'))$('mapMsg').textContent='Click pe ACOPERISUL casei in plan, ca sa-i detectez conturul.'; return; }
+  try{ btn.disabled=true; btn.textContent='Procesez...'; const pts=await detectSketch(); applyDetected(pts,true); }catch(e){ alert('Eroare: '+e.message); } finally{ btn.disabled=false; btn.textContent=o; } };
 $('openType').onchange=()=>{ openType=$('openType').value; if(openType){ mode='open'; } else { mode='foot'; } setTools(); };
 $('wallH').oninput=()=>{ wallH=(parseInt($('wallH').value,10)||300)/100; build3D(); if(planView!=='sus') drawPlan(); }; $('wallH').onchange=commit;
 $('ridgeH').oninput=()=>{ ridgeRaise=(parseInt($('ridgeH').value,10)||0)/100; build3D(); if(planView!=='sus') drawPlan(); }; $('ridgeH').onchange=commit;
