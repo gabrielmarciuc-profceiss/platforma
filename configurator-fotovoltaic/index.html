@@ -4209,42 +4209,71 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
 };
 </script>
 <script>
-/* ===== Profceiss AI: executie comenzi in configuratorul fotovoltaic (voce + text, cu intrebari de clarificare) ===== */
+/* ===== Profceiss AI: wizard ghidat pentru configuratorul fotovoltaic (voce + text). Intreaba tot, pas cu pas, si pre-completeaza din prima fraza. ===== */
 (function(){
   function g(id){ return document.getElementById(id); }
-  function fnum(s,re){ var m=(s||'').match(re); return m?parseFloat(m[1].replace(',','.')):null; }
+  function low(s){ return (s||'').toLowerCase(); }
+  function fnum(s,re){ var m=low(s).match(re); if(!m) return null; for(var i=1;i<m.length;i++){ if(m[i]!=null) return parseFloat(m[i].replace(',','.')); } return null; }
+  function setSel(id,val,cb){ var el=g(id); if(!el) return false; el.value=val; if(cb && typeof window[cb]==='function'){ try{ window[cb](); }catch(e){} } return true; }
+  function optsOf(id){ var el=g(id); if(!el) return []; return Array.prototype.slice.call(el.options).filter(function(o){return o.value!=='';}).map(function(o){return {label:(o.textContent||'').trim(), val:o.value};}); }
   function readKwp(){ var t=(g('panouri_simple_kwp')||{}).textContent||''; var m=t.match(/([\d.,]+)\s*kWp/i); return m?parseFloat(m[1].replace(',','.')):0; }
-  function isPV(s){ s=(s||'').toLowerCase(); return /sistem|fotovoltaic|invertor|panou|baterie|monofaz|trifaz|\bkw/.test(s); }
-  function parse(s){ s=(s||'').toLowerCase(); var o={};
-    if(/trifaz|3\s*faz/.test(s)) o.faz='tri'; else if(/monofaz|1\s*faz/.test(s)) o.faz='mono';
-    var bat=fnum(s,/(\d+(?:[.,]\d+)?)\s*kwh/); if(bat==null) bat=fnum(s,/baterie[^\d]*(\d+(?:[.,]\d+)?)/); if(bat!=null) o.bat=bat;
-    var kw=fnum(s,/(\d+(?:[.,]\d+)?)\s*kw(?:p)?(?!h)/); if(kw!=null) o.kw=kw;
-    var br=(s.match(/invertor\s+([a-z]{3,})/)||[])[1]; if(br && br!=='din' && br!=='de' && br!=='cu') o.inv=br;
-    return o;
-  }
+  function setPanForKw(kw){ var n=Math.max(1,Math.round(kw)); if(!g('panouri_total')) return {n:n,kwp:kw}; g('panouri_total').value=n; if(typeof onSimplePanouriChange==='function') onSimplePanouriChange(); var k=readKwp(); if(k>0){ n=Math.max(1,Math.round(n*kw/k)); g('panouri_total').value=n; onSimplePanouriChange(); k=readKwp(); } return {n:n,kwp:k||kw}; }
+  function wrapExport(){ if(typeof window.exportOfertaWord!=='function' || window.__pcWrapExport) return; window.__pcWrapExport=true; var orig=window.exportOfertaWord;
+    window.exportOfertaWord=function(){ var h=document.getElementById('pc-assistant-host'); if(h) h.style.display='none'; var done=function(){ if(h) h.style.display=''; }; var r; try{ r=orig.apply(this,arguments); }catch(e){ done(); throw e; } if(r&&typeof r.then==='function'){ r.then(done,done); } else { setTimeout(done,3500); } return r; }; }
+
+  function structOpts(){ return optsOf('tip_struct'); }
+  function invOpts(){ return optsOf('inv2_sel'); }
+  var STEPS=[
+    { key:'firma', q:function(){ return 'Pe ce firma facem oferta — Profceiss sau Profceiss Green Energy?'; },
+      detect:function(s){ if(/green|verde|energy/.test(s)) return 'green'; if(/profceiss|electric/.test(s)) return 'electric'; return null; },
+      apply:function(v){ try{ switchBranch(v); }catch(e){} return v==='green'?'firma Profceiss Green Energy':'firma Profceiss'; } },
+    { key:'struct', q:function(){ var o=structOpts(); return 'Ce structura de acoperis? Optiuni: '+o.map(function(x){return x.label;}).join(', ')+'.'; },
+      detect:function(s){ if(/tigla/.test(s)) return 'tigla'; if(/tabla|lindab/.test(s)) return 'tabla'; if(/\bsol\b/.test(s)) return 'sol'; if(/sud/.test(s)) return 'terasa_sud'; if(/est|vest/.test(s)) return 'terasa_ev'; if(/terasa/.test(s)) return 'terasa_sud'; return null; },
+      apply:function(v){ setSel('tip_struct',v,'onTipStructChange'); var o=structOpts().filter(function(x){return x.val===v;})[0]; return 'structura: '+(o?o.label:v); } },
+    { key:'faz', q:function(){ return 'Bransament monofazat sau trifazat?'; },
+      detect:function(s){ if(/trifaz|3\s*faz/.test(s)) return 'tri'; if(/monofaz|1\s*faz/.test(s)) return 'mono'; return null; },
+      apply:function(v){ try{ setBransament(v); }catch(e){} return v==='mono'?'bransament monofazat':'bransament trifazat'; } },
+    { key:'inv', q:function(){ var o=invOpts(); if(!o.length) return 'Nu vad invertoare in catalog (incarca Excelul de produse). Spune-mi puterea invertorului in kW si continui.'; return 'Ce invertor alegi? In catalog: '+o.slice(0,8).map(function(x){return x.label;}).join('; ')+(o.length>8?' ...':'')+'.'; },
+      detect:function(s){ var o=invOpts(); for(var i=0;i<o.length;i++){ var toks=low(o[i].label).split(/[^a-z0-9]+/).filter(function(t){return t.length>2;}); for(var j=0;j<toks.length;j++){ if(s.indexOf(toks[j])>=0) return o[i].val; } } return null; },
+      skipIf:function(sl){ return invOpts().length===0; },
+      apply:function(v){ setSel('inv2_sel',v,'onInv2Sel'); var o=invOpts().filter(function(x){return x.val===v;})[0]; var lab=o?o.label:v;
+        if(wiz && wiz.slots.kw==null){ var pk=fnum(lab,/(\d+(?:[.,]\d+)?)\s*kw/); if(pk==null && g('put_inv')) pk=parseFloat(g('put_inv').value)||null; if(pk!=null) wiz.slots.kw=pk; }   // puterea tinta = puterea invertorului ales
+        return 'invertor: '+lab+(wiz&&wiz.slots.kw!=null?(' (~'+wiz.slots.kw+' kW)'):''); } },
+    { key:'kw', q:function(){ return 'Ce putere sa dezvolte panourile, in kW? Pun automat numarul de panouri ca sa acopere invertorul.'; },
+      detect:function(s){ return fnum(s,/(\d+(?:[.,]\d+)?)\s*kw(?:p)?(?!h)/); },
+      apply:function(v){ var r=setPanForKw(v); if(g('put_inv')) g('put_inv').value=v; return r.n+' panouri (~'+r.kwp.toFixed(2)+' kWp)'; } },
+    { key:'bat', q:function(){ return 'Doresti cu baterie? Daca da, ce capacitate in kWh? (sau spune "fara baterie")'; },
+      detect:function(s){ if(/fara baterie|fara acumulator|nu vreau baterie|^nu\b|^fara\b/.test(s)) return 'nu'; var k=fnum(s,/(\d+(?:[.,]\d+)?)\s*kwh/); if(k==null) k=fnum(s,/baterie[^\d]*(\d+(?:[.,]\d+)?)/); return k!=null?String(k):null; },
+      apply:function(v){ return v==='nu'?'fara baterie':('baterie '+v+' kWh (alege modelul la pasul Baterie)'); } },
+    { key:'adaos', q:function(){ return 'Ce adaos pui pe oferta? Un procent (ex. 15%), o suma in RON, sau "fara adaos".'; },
+      detect:function(s){ if(/fara adaos/.test(s)) return 'nu'; var p=fnum(s,/(\d+(?:[.,]\d+)?)\s*(?:%|la suta|procent)/); if(p!=null) return 'p'+p; var r=fnum(s,/(\d+(?:[.,]\d+)?)\s*(?:ron|lei)/); if(r!=null) return 'r'+r; return null; },
+      apply:function(v){ if(v==='nu') return 'fara adaos'; try{ if(g('adaosglobal_config') && g('adaosglobal_config').style.display==='none' && typeof toggleAdaosGlobal==='function') toggleAdaosGlobal(); }catch(e){}
+        if(v.charAt(0)==='p'){ var pc=v.slice(1); if(g('adaosglobal_adp')){ g('adaosglobal_adp').value=pc; try{ onAdaosEdit('adaosglobal','pct'); }catch(e){} } return 'adaos '+pc+'%'; }
+        var ron=v.slice(1); if(g('adaosglobal_adr')){ g('adaosglobal_adr').value=ron; try{ onAdaosEdit('adaosglobal','ron'); }catch(e){} } return 'adaos '+ron+' RON'; } }
+  ];
+  function isPV(s){ s=low(s); return /sistem|fotovoltaic|oferta|invertor|panou|baterie|monofaz|trifaz|profceiss|structura|tigla|tabla|adaos|\bkw/.test(s); }
+  function prefill(sl,s){ s=low(s); STEPS.forEach(function(st){ if(sl[st.key]==null){ var d=st.detect(s); if(d!=null) sl[st.key]=d; } }); }
   var wiz=null;
-  function apply(){
-    var p=wiz, done=[];
-    if(p.faz && typeof setBransament==='function'){ try{ setBransament(p.faz); done.push('bransament '+(p.faz==='mono'?'monofazat':'trifazat')); }catch(e){} }
-    if(p.kw!=null){ try{ if(g('put_inv')) g('put_inv').value=p.kw; }catch(e){}
-      try{ var n=Math.max(1,Math.round(p.kw)); g('panouri_total').value=n; if(typeof onSimplePanouriChange==='function') onSimplePanouriChange(); var kwp=readKwp(); if(kwp>0){ n=Math.max(1,Math.round(n*p.kw/kwp)); g('panouri_total').value=n; onSimplePanouriChange(); kwp=readKwp(); } done.push(n+' panouri (~'+(kwp||p.kw).toFixed(2)+' kWp)'); }catch(e){}
+  function nextStep(){
+    while(wiz.i<STEPS.length){ var st=STEPS[wiz.i];
+      if(st.skipIf && st.skipIf(wiz.slots) && wiz.slots[st.key]==null){ wiz.i++; continue; }
+      if(wiz.slots[st.key]!=null){ wiz.done.push(st.apply(wiz.slots[st.key])); wiz.i++; continue; }
+      wiz.waiting=st.key; return st.q();
     }
-    if(p.inv) done.push('invertor '+p.inv.toUpperCase()+' ~'+(p.kw!=null?p.kw:'?')+' kW (alege modelul exact la pasul Sistem)');
-    if(p.bat!=null) done.push('baterie '+p.bat+' kWh (alege modelul la pasul Baterie)');
     try{ if(typeof goStep==='function') goStep(7); }catch(e){}
-    wiz=null;
-    return 'Gata. Am configurat: '+done.join('; ')+'. Te-am dus la pasul Oferta — verifica si ajusteaza la nevoie.';
+    wiz.waiting='gen';
+    return 'Am parcurs tot: '+wiz.done.filter(Boolean).join('; ')+'. Esti la pasul Oferta. Generez fisierul Word al ofertei acum? (da / nu)';
   }
   function handler(text){
-    var s=(text||''), low=s.toLowerCase();
-    if(wiz && /anuleaza|renunta|\bstop\b|opreste/.test(low)){ wiz=null; return 'Am anulat comanda.'; }
-    if(!wiz && !isPV(s)) return null;
-    var p=parse(s); wiz=wiz||{}; if(p.faz)wiz.faz=p.faz; if(p.kw!=null)wiz.kw=p.kw; if(p.inv)wiz.inv=p.inv; if(p.bat!=null)wiz.bat=p.bat;
-    if(!wiz.faz) return 'Sistemul e monofazat sau trifazat?';
-    if(wiz.kw==null) return 'Ce putere are sistemul, in kW? De exemplu: 6 kW.';
-    return apply();
+    var s=text||'', sl=low(s);
+    if(wiz && wiz.waiting==='gen'){ if(/^(da|genereaza|sigur|ok|yes|hai)/.test(sl)){ wiz=null; try{ wrapExport(); window.exportOfertaWord(); }catch(e){} return 'Generez oferta Word. Asistentul nu apare in document.'; } wiz=null; return 'Bine, nu generez acum. Poti apasa „Export Word" cand vrei.'; }
+    if(wiz && /anuleaza|renunta|opreste|\bstop\b/.test(sl)){ wiz=null; return 'Am anulat.'; }
+    if(!wiz){ if(!isPV(s)) return null; wiz={ slots:{}, i:0, done:[], waiting:null }; prefill(wiz.slots, s); return nextStep(); }
+    var st=null; for(var k=0;k<STEPS.length;k++){ if(STEPS[k].key===wiz.waiting){ st=STEPS[k]; break; } }
+    if(st){ var d=st.detect(sl); if(d==null) return 'N-am prins raspunsul. '+st.q(); wiz.slots[st.key]=d; prefill(wiz.slots, s); }
+    return nextStep();
   }
-  function reg(){ if(window.PCAssistant){ window.PCAssistant.setApp('Configurator fotovoltaic'); window.PCAssistant.register(handler); window.PCAssistant.setChips(['Sistem monofazat 6 kW, invertor GoodWe, baterie 10 kWh','Trifazat 10 kW','Cum incep?']); } else setTimeout(reg,400); }
+  function reg(){ if(window.PCAssistant){ window.PCAssistant.setApp('Configurator fotovoltaic'); window.PCAssistant.register(handler); window.PCAssistant.setChips(['Fa-mi o oferta','Monofazat 6 kW, GoodWe, baterie 10 kWh, adaos 15%','Cum incep?']); wrapExport(); } else setTimeout(reg,400); }
   reg();
 })();
 </script>
