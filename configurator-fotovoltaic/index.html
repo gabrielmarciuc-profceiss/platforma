@@ -4242,6 +4242,9 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
   function invPowers(brand){ var seen={},o=[]; invAll().filter(function(x){return x.brand===brand;}).forEach(function(x){ if(x.kw && !seen[x.kw]){ seen[x.kw]=1; o.push(x.kw); } }); o.sort(function(a,b){return a-b;}); return o; }
   function invModels(brand,kw){ return invAll().filter(function(x){ return x.brand===brand && (kw==null || Math.abs((x.kw||0)-kw)<0.01); }); }
   function selectInvByModel(brand,model){ try{ inv2BrandFilter=brand; if(typeof populateInv2==='function') populateInv2(); }catch(e){} var opts=optsOf('inv2_sel'), best=null; opts.forEach(function(o){ if(norm(o.label).indexOf(norm(model))>=0||norm(model).indexOf(norm(o.label))>=0) best=o; }); if(!best){ var bs=0; opts.forEach(function(o){ var sc=scoreMatch(model,o.label); if(sc>bs){bs=sc;best=o;} }); if(bs<0.5) best=null; } if(best){ setSel('inv2_sel',best.val,'onInv2Sel'); return best.label; } return model; }
+  // ---- panouri din catalog (CAT_PAN: nume, wp) ----
+  function panModels(){ try{ return (CAT_PAN||[]); }catch(e){ return []; } }
+  function selectPanByModel(label){ var arr=panModels(), idx=-1, bs=0; for(var i=0;i<arr.length;i++){ var sc=scoreMatch(label, arr[i].nume); if(arr[i].wp && low(label).indexOf(String(arr[i].wp))>=0) sc=Math.max(sc,0.72); if(sc>bs){bs=sc;idx=i;} } if(idx<0 && arr.length) idx=0; if(idx<0) return null; var s=g('panouri_total_pan'); if(s){ s.value=String(idx); if(typeof onSimplePanouriChange==='function') onSimplePanouriChange(); } return arr[idx]; }
   var STEPS=[
     { key:'firma', q:function(){ return 'Pe ce firma facem oferta — Profceiss sau Profceiss Green Energy?'; },
       detect:function(s){ if(/green|verde|energy/.test(s)) return 'green'; if(/profceiss|electric/.test(s)) return 'electric'; return null; },
@@ -4259,14 +4262,21 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
     { key:'inv_pow', q:function(){ return 'Ce putere nominala are invertorul (kW)?'; },
       skipIf:function(){ return !wiz._brand; },
       detect:function(s){ return fnum(s,/(\d+(?:[.,]\d+)?)\s*kw/); },
-      apply:function(v){ wiz._pow=parseFloat(v); if(wiz.slots.kw==null) wiz.slots.kw=wiz._pow; return 'putere nominala '+wiz._pow+' kW'; } },
+      apply:function(v){ wiz._pow=parseFloat(v); wiz.slots.kw=Math.round(wiz._pow*1.2*100)/100; return 'putere nominala '+wiz._pow+' kW (tinta panouri +20% = ~'+wiz.slots.kw+' kW)'; } },
     { key:'inv_model', raw:true, q:function(){ return 'Alege modelul de invertor:'; },
       skipIf:function(){ if(!wiz._brand) return true; var m=invModels(wiz._brand, wiz._pow); if(m.length===1){ selectInvByModel(wiz._brand, m[0].model); wiz.done.push('invertor: '+m[0].model); } return m.length<=1; },
       detect:function(s){ var m=invModels(wiz._brand, wiz._pow); for(var i=0;i<m.length;i++){ if(scoreMatch(s,m[i].model)>0.6) return m[i].model; } return null; },
       apply:function(v){ return 'invertor: '+selectInvByModel(wiz._brand, v); } },
-    { key:'kw', q:function(){ return 'Ce putere sa dezvolte panourile, in kW? Pun automat numarul de panouri ca sa acopere invertorul.'; },
+    { key:'pan_model', raw:true, q:function(){ return 'Ce model de panou folosesti?'; },
+      skipIf:function(){ return panModels().length===0; },
+      detect:function(s){ var a=panModels(); for(var i=0;i<a.length;i++){ if(scoreMatch(s,a[i].nume)>0.6) return a[i].nume; } return null; },
+      apply:function(v){ var p=selectPanByModel(v); var wp=p?p.wp:0; var msg='panou: '+(p?(p.nume+' '+p.wp+'W'):v); var target=wiz.slots.kw;
+        if(wp>0 && target>0){ var n=Math.ceil(target*1000/wp); if(g('panouri_total')){ g('panouri_total').value=n; if(typeof onSimplePanouriChange==='function') onSimplePanouriChange(); } wiz._panelsSet=true; msg+=' -> '+n+' panouri (~'+(n*wp/1000).toFixed(2)+' kWp, +20% peste invertor)'; }
+        return msg; } },
+    { key:'kw', q:function(){ return 'Ce putere sa dezvolte panourile, in kW? Pun automat numarul de panouri.'; },
+      skipIf:function(){ return !!wiz._panelsSet; },
       detect:function(s){ return fnum(s,/(\d+(?:[.,]\d+)?)\s*kw(?:p)?(?!h)/); },
-      apply:function(v){ var r=setPanForKw(v); if(g('put_inv')) g('put_inv').value=v; return r.n+' panouri (~'+r.kwp.toFixed(2)+' kWp)'; } },
+      apply:function(v){ if(wiz._panelsSet) return ''; var r=setPanForKw(v); if(g('put_inv')) g('put_inv').value=v; return r.n+' panouri (~'+r.kwp.toFixed(2)+' kWp)'; } },
     { key:'bat', q:function(){ return 'Doresti cu baterie? Daca da, ce capacitate in kWh? (sau spune "fara baterie")'; },
       detect:function(s){ if(/fara baterie|fara acumulator|nu vreau baterie|^nu\b|^fara\b/.test(s)) return 'nu'; var k=fnum(s,/(\d+(?:[.,]\d+)?)\s*kwh/); if(k==null) k=fnum(s,/baterie[^\d]*(\d+(?:[.,]\d+)?)/); return k!=null?String(k):null; },
       apply:function(v){ return v==='nu'?'fara baterie':('baterie '+v+' kWh (alege modelul la pasul Baterie)'); } },
@@ -4277,7 +4287,7 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
         var ron=v.slice(1); if(g('adaosglobal_adr')){ g('adaosglobal_adr').value=ron; try{ onAdaosEdit('adaosglobal','ron'); }catch(e){} } return 'adaos '+ron+' RON'; } }
   ];
   var DEF_CHIPS=['Fa-mi o oferta'];
-  var NAV={firma:1, struct:1, faz:2, inv_brand:2, inv_pow:2, inv_model:2, kw:3, bat:4, adaos:5};   // la ce pas vizual sare pentru fiecare intrebare
+  var NAV={firma:1, struct:1, faz:2, inv_brand:2, inv_pow:2, inv_model:2, pan_model:3, kw:3, bat:4, adaos:5};   // la ce pas vizual sare pentru fiecare intrebare
   function pcChips(arr){ if(window.PCAssistant) try{ window.PCAssistant.setChips(arr); }catch(e){} }
   function chipsFor(key){
     if(key==='firma') return ['Profceiss','Profceiss Green Energy'];
@@ -4286,6 +4296,7 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
     if(key==='inv_brand') return invBrands();
     if(key==='inv_pow') return invPowers(wiz&&wiz._brand).map(function(k){ return k+' kW'; });
     if(key==='inv_model'){ return invModels(wiz&&wiz._brand, wiz&&wiz._pow).map(function(x){ return x.model; }); }
+    if(key==='pan_model'){ return panModels().map(function(p){ return p.nume+' · '+p.wp+'W'; }); }
     if(key==='kw') return ['3 kW','5 kW','6 kW','8 kW','10 kW'];
     if(key==='bat') return ['Fara baterie','5 kWh','10 kWh'];
     if(key==='adaos') return ['Fara adaos','10%','15%','20%'];

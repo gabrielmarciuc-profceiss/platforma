@@ -13,6 +13,8 @@
     host.id='pc-assistant-host';
     host.style.cssText='position:fixed;left:16px;bottom:16px;z-index:2147483000';
     document.body.appendChild(host);
+    // la printare / salvare PDF (window.print) asistentul NU trebuie sa apara in document
+    try{ var ps=document.createElement('style'); ps.textContent='@media print{#pc-assistant-host{display:none !important}}'; document.head.appendChild(ps); }catch(e){}
     var root=host.attachShadow?host.attachShadow({mode:'open'}):host;
 
     var appName=(window.PC_ASSIST_APP||document.title||'PROFCEISS').toString().slice(0,40);
