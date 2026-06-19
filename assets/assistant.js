@@ -66,8 +66,12 @@
     function close(){ pn.classList.remove('open'); }
 
     /* ----- voce: iesire (text-to-speech) ----- */
-    var speakOn=true, voiceMode=false, speaking=false, lastSpoken='';   // voiceMode: raspunsuri citite; speaking: asistentul vorbeste acum (pentru barge-in)
-    function speak(text){ try{ if(!speakOn||!window.speechSynthesis) return; lastSpoken=(text||'').toLowerCase(); var u=new SpeechSynthesisUtterance(text); u.lang='ro-RO'; u.rate=1.02; u.onstart=function(){ speaking=true; }; u.onend=function(){ speaking=false; }; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){} }
+    var speakOn=true, voiceMode=false, speaking=false, lastSpoken='', ttsUnlocked=false;
+    try{ if(window.speechSynthesis){ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=function(){ window.speechSynthesis.getVoices(); }; } }catch(e){}
+    // Pe mobil, sinteza vocala porneste doar daca a fost "deblocata" printr-o atingere directa. Cheama asta la primul tap.
+    function unlockSpeech(){ if(ttsUnlocked||!window.speechSynthesis) return; ttsUnlocked=true; try{ var u=new SpeechSynthesisUtterance(' '); u.volume=0.01; u.lang='ro-RO'; window.speechSynthesis.resume(); window.speechSynthesis.speak(u); }catch(e){} }
+    function pickVoice(){ try{ var vs=window.speechSynthesis.getVoices()||[]; return vs.filter(function(x){return /^ro/i.test(x.lang);})[0]||vs.filter(function(x){return /ro/i.test(x.name||'');})[0]||null; }catch(e){ return null; } }
+    function speak(text){ try{ if(!speakOn||!window.speechSynthesis) return; lastSpoken=(text||'').toLowerCase(); var u=new SpeechSynthesisUtterance(text); u.lang='ro-RO'; u.rate=1.02; var vc=pickVoice(); if(vc) u.voice=vc; u.onstart=function(){ speaking=true; }; u.onend=function(){ speaking=false; }; try{ window.speechSynthesis.resume(); }catch(e){} window.speechSynthesis.speak(u); }catch(e){} }
 
     var handlers=[];   // fiecare aplicatie isi inregistreaza un (text)->raspuns sau null
     function respond(text){
@@ -94,9 +98,9 @@
     function setChips(list){ var c=$('ch'); c.innerHTML=''; (list||[]).forEach(function(txt){ var b=document.createElement('button'); b.className='chip'; b.textContent=txt; b.onclick=function(){ respond(txt); }; c.appendChild(b); }); }
     setChips(['Ce poate face acest instrument?','Cum incep?','Da-mi un sfat']);
 
-    $('lc').onclick=function(){ pn.classList.contains('open')?close():open(); };
+    $('lc').onclick=function(){ unlockSpeech(); pn.classList.contains('open')?close():open(); };
     $('cl').onclick=close;
-    $('sd').onclick=function(){ var v=inp.value; inp.value=''; voiceMode=false; respond(v); };
+    $('sd').onclick=function(){ unlockSpeech(); var v=inp.value; inp.value=''; voiceMode=false; respond(v); };
     inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var v=inp.value; inp.value=''; voiceMode=false; respond(v); } });
 
     /* ----- voce: intrare (microfon, recunoastere vocala) + toggle citire ----- */
@@ -123,7 +127,7 @@
       }
       function startLive(){ liveMode=true; voiceMode=true; listening=true; micBtn.classList.add('listening'); inp.placeholder='Conversatie live — vorbeste, te ascult...'; if(!pn.classList.contains('open')) open(); beginRec(); }
       function stopLive(){ liveMode=false; listening=false; clearTimeout(restartT); try{ if(rec) rec.abort(); }catch(e){} rec=null; try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){} speaking=false; micBtn.classList.remove('listening'); inp.placeholder='Apasa microfonul pentru conversatie vocala'; }
-      micBtn.onclick=function(){ liveMode?stopLive():startLive(); };
+      micBtn.onclick=function(){ unlockSpeech(); liveMode?stopLive():startLive(); };
     }
 
     // API publica (pentru integrari per-aplicatie, acum sau dupa ce adaugam AI)
