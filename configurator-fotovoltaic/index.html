@@ -2965,37 +2965,25 @@ function onEurEdit(){
   let st=v('eur_rate_status'); if(st) st.textContent='valoare manuala';
   updTotal();
 }
-// Curs BNR oficial + 2%. bnr.ro nu permite citire directa din browser (CORS),
-// asa ca trecem prin proxy-uri publice gratuite, cu fallback la manual.
+// Curs BNR oficial + 2%. Sursa: Edge Function Supabase "curs-bnr", care citeste
+// cursul oficial BNR pe server (fara CORS) si il salveaza zilnic in tabel.
+// Inlocuieste vechile proxy-uri publice (allorigins/corsproxy), care erau nesigure.
+var CURS_BNR_URL='https://ecpuyftrrndkgpjwhskt.supabase.co/functions/v1/curs-bnr';
 function fetchEurRate(){
   const st=v('eur_rate_status');
   const setS=(t,c)=>{ if(st){ st.textContent=t; st.style.color=c||'#aaa'; } };
   setS('se incarca cursul BNR...','#888');
-  const xml='https://www.bnr.ro/nbrfxrates.xml';
-  const urls=[
-    'https://api.allorigins.win/raw?url='+encodeURIComponent(xml),
-    'https://corsproxy.io/?url='+encodeURIComponent(xml),
-    xml
-  ];
-  (async()=>{
-    for(const u of urls){
-      try{
-        const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw 0;
-        const txt=await r.text();
-        const doc=new DOMParser().parseFromString(txt,'text/xml');
-        const cube=doc.getElementsByTagName('Cube')[0]; const dateAttr=cube?(cube.getAttribute('date')||''):'';
-        const rates=doc.getElementsByTagName('Rate'); let eur=null;
-        for(let i=0;i<rates.length;i++){ if(rates[i].getAttribute('currency')==='EUR'){ eur=parseFloat(rates[i].textContent); break; } }
-        if(!(eur&&eur>3&&eur<8)) throw 0;
-        const withMargin=Math.round(eur*1.02*10000)/10000;
-        const el=v('eur_rate'); if(el) el.value=withMargin.toFixed(4);
-        setS('Curs BNR'+(dateAttr?' '+dateAttr:'')+': '+eur.toFixed(4)+' + 2% = '+withMargin.toFixed(4),'#0F6E56');
-        if(typeof updTotal==='function') updTotal();
-        return;
-      }catch(e){ /* incearca urmatorul proxy */ }
-    }
-    setS('Curs BNR indisponibil automat — pune-l manual cu „Editez".','#A32D2D');
-  })();
+  fetch(CURS_BNR_URL,{cache:'no-store'})
+    .then(r=>r.json())
+    .then(d=>{
+      const eur=d?parseFloat(d.rate):NaN;
+      if(!(eur&&eur>3&&eur<8)){ setS('Curs BNR indisponibil automat — pune-l manual cu „Editez".','#A32D2D'); return; }
+      const withMargin=Math.round(eur*1.02*10000)/10000;
+      const el=v('eur_rate'); if(el) el.value=withMargin.toFixed(4);
+      setS('Curs BNR'+(d.date?' '+d.date:'')+': '+eur.toFixed(4)+' + 2% = '+withMargin.toFixed(4)+(d.stale?' (ultima valoare)':''),'#0F6E56');
+      if(typeof updTotal==='function') updTotal();
+    })
+    .catch(()=>{ setS('Curs BNR indisponibil automat — pune-l manual cu „Editez".','#A32D2D'); });
 }
 
 function updPanTotal(i){
@@ -4332,6 +4320,9 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
   reg();
 })();
 </script>
+<!-- Biblioteca Supabase + clientul comun: necesare pentru salvarea ofertelor in cloud. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/supabase.js"></script>
 <script>
 /* Cloud (Supabase): butoane Salveaza/Proiectele mele pentru oferta */
 (function(){ function go(){ if(window.PCCloud&&window.PCCloud.mountButtons){ window.PCCloud.mountButtons({

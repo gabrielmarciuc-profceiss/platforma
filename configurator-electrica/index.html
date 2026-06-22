@@ -1316,6 +1316,9 @@ if(!wsBoot()){
 /* Expune in window functiile necesare salvarii in cloud (codul ruleaza in <script type="module">, deci nu sunt globale automat) */
 try{ window.serializeProject=serializeProject; window.openProject=openProject; window.applyProject=applyProject; window.state=state; window.projHasContent=projHasContent; }catch(e){}
 </script>
+<!-- Biblioteca Supabase + clientul comun: necesare pentru salvarea in cloud. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/supabase.js"></script>
 <script>
 /* Cloud (Supabase): butoane Salveaza/Proiectele mele pentru instalatia electrica */
 (function(){ function go(){ if(window.PCCloud&&window.PCCloud.mountButtons){ window.PCCloud.mountButtons({

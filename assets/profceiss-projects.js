@@ -224,6 +224,43 @@
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', build);
   else build();
 
+  /* ============================================================
+     CLOUD (Supabase) - activare automata
+     Incarca dinamic biblioteca Supabase + assets/supabase.js (daca nu sunt deja
+     in pagina) si monteaza butoanele "Salveaza in cloud" / "Proiectele mele".
+     Astfel toate modulele care includ acest fisier capata salvare in baza de
+     date, fara a edita fiecare modul in parte. Salvarea locala / autosalvarea
+     raman ca plasa de siguranta.
+     ============================================================ */
+  function mountCloud(){
+    if(!(window.PCCloud && window.PCCloud.mountButtons)){ return setTimeout(mountCloud, 300); }
+    if(window.__pceCloudMounted) return; window.__pceCloudMounted = true;
+    window.PCCloud.mountButtons({
+      app: APP,
+      serialize: serialize,
+      apply: function(d){ apply(d); if(d && d.name){ setName(d.name); } },
+      name: curName
+    });
+  }
+  function injectCloud(){
+    if(window.__pceCloudInjected) return; window.__pceCloudInjected = true;
+    var me = document.querySelector('script[src*="profceiss-projects.js"]');
+    var base = me ? me.getAttribute('src').replace(/profceiss-projects\.js.*$/, '') : '../assets/';
+    function loadLocal(){
+      if(window.PCCloud){ mountCloud(); return; }
+      var s=document.createElement('script'); s.src=base+'supabase.js';
+      s.onload=mountCloud; s.onerror=mountCloud; document.head.appendChild(s);
+    }
+    if(window.supabase && window.supabase.createClient){ loadLocal(); }
+    else {
+      var c=document.createElement('script');
+      c.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+      c.onload=loadLocal; c.onerror=loadLocal; document.head.appendChild(c);
+    }
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', injectCloud);
+  else injectCloud();
+
   /* API public, pentru integrari avansate */
   window.PCEProjects = { save:saveProject, serialize:serialize, apply:apply, export:fileExport };
 })();

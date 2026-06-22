@@ -209,15 +209,9 @@
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-/* Cloud (Supabase): butoane Salveaza/Proiectele mele pentru proiectul profcad */
-(function(){ function go(){ if(window.PCCloud&&window.PCCloud.mountButtons&&window.PROFCEISS_PROJECT){ window.PCCloud.mountButtons({
-  app:'profcad',
-  serialize:function(){ return window.PROFCEISS_PROJECT.getState(); },
-  apply:function(d){ window.PROFCEISS_PROJECT.setState(d); },
-  name:function(){ return 'Casa profcad'; }
-}); } else setTimeout(go,500); } go(); })();
-</script>
+<!-- Cloud (Supabase): montat acum centralizat din assets/profceiss-projects.js
+     (acelasi mecanism pentru toate modulele). Blocul inline vechi a fost scos
+     ca sa nu existe doua montari / doua formate de date in conflict. -->
 <script src="../assets/no-diacritics.js"></script>
 <script type="module">
 import * as THREE from 'three';

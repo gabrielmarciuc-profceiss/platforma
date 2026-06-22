@@ -1,0 +1,9 @@
+# Config Supabase CLI - doar partea relevanta pentru functia curs-bnr.
+# Daca ai deja un config.toml in proiect, copiaza DOAR blocul [functions.curs-bnr] in al tau.
+
+project_id = "ecpuyftrrndkgpjwhskt"
+
+# Functia de curs trebuie sa fie apelabila public (din browser, fara login),
+# pentru ca o cheama configuratorul fotovoltaic. De aceea dezactivam verificarea JWT.
+[functions.curs-bnr]
+verify_jwt = false
