@@ -85,7 +85,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R98 (zoom 2D mai mare + velux rotibil din maner verde)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R99 (cloud salveaza si setarile: culori, textura, harta, catalog PV)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -925,8 +925,8 @@ $('roofType').onchange=()=>{ roofType=$('roofType').value; build3D(); commit(); 
 if($('wallColor')) $('wallColor').oninput=()=>{ wallColorHex=$('wallColor').value; build3D(); commit(); };
 if($('roofColor')) $('roofColor').oninput=()=>{ roofColorHex=$('roofColor').value; build3D(); commit(); };
 if($('roofColorReset')) $('roofColorReset').onclick=()=>{ roofColorHex=''; build3D(); commit(); };
-if($('roofTexFile')) $('roofTexFile').onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const url=URL.createObjectURL(f); new THREE.TextureLoader().load(url,tex=>{ tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.colorSpace=THREE.SRGBColorSpace; roofUserTex=tex; roofColorHex=''; if($('roofColor'))$('roofColor').value='#ffffff'; build3D(); }); };
-if($('roofTexClear')) $('roofTexClear').onclick=()=>{ roofUserTex=null; if($('roofTexFile'))$('roofTexFile').value=''; build3D(); };
+if($('roofTexFile')) $('roofTexFile').onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ roofTexDataURL=fr.result; new THREE.TextureLoader().load(roofTexDataURL,tex=>{ tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.colorSpace=THREE.SRGBColorSpace; roofUserTex=tex; roofColorHex=''; if($('roofColor'))$('roofColor').value='#ffffff'; build3D(); commit(); }); }; fr.readAsDataURL(f); };
+if($('roofTexClear')) $('roofTexClear').onclick=()=>{ roofUserTex=null; roofTexDataURL=null; if($('roofTexFile'))$('roofTexFile').value=''; build3D(); commit(); };
 /* ===== busola rotativa 2D ===== */
 function drawCompassDial(){ const cv=$('compassDial'); if(!cv) return; const g=cv.getContext('2d'); const W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=W/2-12;
   g.clearRect(0,0,W,H);
@@ -987,7 +987,7 @@ const clouds=new THREE.Group(); scene.add(clouds); { const ct=makeCloudTex(); fo
 const building=new THREE.Group(); scene.add(building);
 const compass=new THREE.Group(); scene.add(compass);
 const ROOF_MAT={ tigla:{color:0xb0533a,rough:.92,metal:0}, tabla:{color:0x8a93a0,rough:.5,metal:.45}, tabla_tigla:{color:0x8a5a40,rough:.7,metal:.25}, terasa:{color:0x474c54,rough:1,metal:0} };
-let roofUserTex=null; const _roofTexCache={};
+let roofUserTex=null, roofTexDataURL=null; const _roofTexCache={};
 function roofTex(type){ if(_roofTexCache[type]) return _roofTexCache[type]; const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
   if(type==='tabla'){ for(let x=0;x<256;x+=16){ const sh=Math.sin(x/16*Math.PI); const v=160+sh*26; g.fillStyle='rgb('+(v-8|0)+','+(v|0)+','+(v+10|0)+')'; g.fillRect(x,0,16,256); } }
   else if(type==='terasa'){ g.fillStyle='#474c54'; g.fillRect(0,0,256,256); for(let i=0;i<900;i++){ g.fillStyle='rgba(0,0,0,'+(Math.random()*0.06)+')'; g.fillRect(Math.random()*256,Math.random()*256,2,2); } }
@@ -1238,9 +1238,21 @@ if($('sunSlider')) $('sunSlider').oninput=()=>{ sunPlaying=false; if($('sunBtn')
 
 /* ===== salvare ===== */
 window.PROFCEISS_PROJECT={app:'profcad',label:'Casa',full:true,
-  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,ridgeRot,autoRidges,orientationDeg,roofType}; },
+  getState(){ return {foot,footClosed,ridges,openings,chimneys,pvItems,veluxes,wallH,ridgeRaise,eaveOverhang,roofLogic,ridgeA0,ridgeA1,ridgeOffFrac,ridgeRot,autoRidges,orientationDeg,roofType,
+    wallColorHex,roofColorHex,roofTexDataURL,
+    pvCatalog,pvRouteByKind,pvFillSlopes:Array.from(pvFillSlopes||[]),
+    chimSize,chimH,openType,curCat,sunT,
+    mapSrc:(mapImg&&typeof mapImg.src==='string'&&/^data:/.test(mapImg.src))?mapImg.src:null,
+    mapPlace:Object.assign({},mapPlace)}; },
   setState(s){ if(!s) return; foot=s.foot||[]; footClosed=!!s.footClosed; ridges=normalizeRidges(s.ridges); pendingRidge=null; openings=s.openings||[]; chimneys=s.chimneys||[]; pvItems=s.pvItems||[]; veluxes=s.veluxes||[]; wallH=s.wallH||3; ridgeRaise=s.ridgeRaise||0; eaveOverhang=s.eaveOverhang||0; roofLogic=s.roofLogic||'auto'; if(s.ridgeA0!=null)ridgeA0=s.ridgeA0; if(s.ridgeA1!=null)ridgeA1=s.ridgeA1; if(s.ridgeOffFrac!=null)ridgeOffFrac=s.ridgeOffFrac; ridgeRot=s.ridgeRot||0; autoRidges=Array.isArray(s.autoRidges)?s.autoRidges.map(r=>({a0:r.a0,a1:r.a1,off:r.off,rh:r.rh})):[]; orientationDeg=s.orientationDeg||0; roofType=s.roofType||'tigla';
-    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); renderElemList(); }
+    wallColorHex=s.wallColorHex||'#eef1f4'; roofColorHex=s.roofColorHex||'';
+    if(s.pvCatalog) pvCatalog=s.pvCatalog; if(s.pvRouteByKind) pvRouteByKind=s.pvRouteByKind; pvFillSlopes=new Set(Array.isArray(s.pvFillSlopes)?s.pvFillSlopes:[]);
+    if(s.chimSize!=null)chimSize=s.chimSize; if(s.chimH!=null)chimH=s.chimH; if(s.openType!=null)openType=s.openType; if(s.curCat)curCat=s.curCat; if(s.sunT!=null)sunT=s.sunT;
+    roofTexDataURL=s.roofTexDataURL||null; roofUserTex=null;
+    if(roofTexDataURL){ try{ new THREE.TextureLoader().load(roofTexDataURL,tex=>{ tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.colorSpace=THREE.SRGBColorSpace; roofUserTex=tex; build3D(); }); }catch(e){} }
+    mapPlace=Object.assign({cx:4,cz:3,mpp:0.05,op:0.55,sat:false}, s.mapPlace||{});
+    if(s.mapSrc){ const im=new Image(); im.onload=function(){ mapImg=im; try{ if(typeof showMapCtl==='function') showMapCtl(true); }catch(e){} try{updateSatGround();}catch(e){} drawPlan(); }; im.src=s.mapSrc; } else { mapImg=null; try{ if(typeof showMapCtl==='function') showMapCtl(false); }catch(e){} try{updateSatGround();}catch(e){} }
+    $('wallH').value=Math.round(wallH*100); $('ridgeH').value=Math.round(ridgeRaise*100); $('eaveH').value=Math.round(eaveOverhang*100); $('roofLogic').value=roofLogic; $('roofType').value=roofType; if($('wallColor'))$('wallColor').value=wallColorHex; if($('roofColor')&&roofColorHex)$('roofColor').value=roofColorHex; const ov=$('orientVal'); if(ov) ov.innerHTML=orientationDeg+'&deg;'; drawCompassDial(); framed=false; drawPlan(); build3D(); renderBom(); renderElemList(); }
 };
 
 /* ===== start ===== */

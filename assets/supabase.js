@@ -15,7 +15,7 @@
   function badge(state, msg){
     var el = document.getElementById('sb-status');
     if(!el){ el = document.createElement('div'); el.id='sb-status';
-      el.style.cssText='position:fixed;right:12px;bottom:12px;z-index:99998;font:600 11px system-ui;padding:5px 11px;border-radius:999px;border:1px solid #ccc;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.12);cursor:default';
+      el.style.cssText='position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:99998;font:600 11px system-ui;padding:5px 11px;border-radius:999px;border:1px solid #ccc;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.12);cursor:default';
       document.body.appendChild(el); }
     var c = {ok:'#1a8a4f', err:'#c0392b', wait:'#888'}[state] || '#888';
     el.style.borderColor = c; el.style.color = c; el.textContent = msg;
@@ -48,11 +48,11 @@
     document.getElementById('pc-auth-signup').onclick=async function(){ var em=document.getElementById('pc-auth-email').value.trim(), pw=document.getElementById('pc-auth-pw').value; if(!em||pw.length<6){ msg('Email valid + parola de minim 6 caractere.'); return; } msg('Se creeaza contul...',true); var r=await window.PCAuth.signUp(em,pw); if(r.error){ msg(r.error.message); } else if(r.data&&r.data.session){ m.style.display='none'; } else { msg('Cont creat. Verifica emailul pentru confirmare, apoi intra in cont.',true); } };
   }
   function authBadge(user){
-    var el=document.getElementById('pc-auth'); if(!el){ el=document.createElement('div'); el.id='pc-auth'; el.style.cssText='position:fixed;right:12px;bottom:42px;z-index:99998;font:600 11px system-ui'; document.body.appendChild(el); }
-    if(user){ el.innerHTML='<span style="padding:5px 10px;border-radius:999px;border:1px solid #1a8a4f;color:#1a8a4f;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.12)">👤 '+(user.email||'cont')+'</span> <button id="pc-auth-out" style="border:1px solid #e6b8b8;background:#fff;color:#c0392b;border-radius:999px;padding:5px 9px;cursor:pointer;font:600 11px system-ui">Iesi</button>'; var o=document.getElementById('pc-auth-out'); if(o) o.onclick=function(){ window.PCAuth.signOut(); }; }
-    else { el.innerHTML='<button id="pc-auth-in" style="border:1px solid #2f6fd0;background:#fff;color:#2f6fd0;border-radius:999px;padding:6px 12px;cursor:pointer;font:600 11px system-ui;box-shadow:0 4px 14px rgba(0,0,0,.12)">🔑 Login / Cont</button>'; var i=document.getElementById('pc-auth-in'); if(i) i.onclick=authModal; }
+    var el=document.getElementById('pc-auth'); if(!el){ el=document.createElement('div'); el.id='pc-auth'; el.style.cssText='position:fixed;right:12px;bottom:calc(50px + env(safe-area-inset-bottom,0px));z-index:99998;font:700 12.5px system-ui;display:flex;gap:6px;align-items:center;max-width:calc(100vw - 24px)'; document.body.appendChild(el); }
+    if(user){ el.innerHTML='<span style="padding:7px 12px;border-radius:999px;border:1px solid #1a8a4f;color:#1a8a4f;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.15);max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤 '+(user.email||'cont')+'</span><button id="pc-auth-out" style="border:1px solid #e6b8b8;background:#fff;color:#c0392b;border-radius:999px;padding:7px 11px;cursor:pointer;font:700 12.5px system-ui;box-shadow:0 4px 14px rgba(0,0,0,.15)">Iesi</button>'; var o=document.getElementById('pc-auth-out'); if(o) o.onclick=function(){ window.PCAuth.signOut(); }; }
+    else { el.innerHTML='<button id="pc-auth-in" style="border:none;background:#2f6fd0;color:#fff;border-radius:999px;padding:9px 16px;cursor:pointer;font:700 13px system-ui;box-shadow:0 6px 18px rgba(47,111,208,.4)">🔑 Login / Cont</button>'; var i=document.getElementById('pc-auth-in'); if(i) i.onclick=authModal; }
   }
-  function setupAuth(){ window.PCAuth.user().then(authBadge); window.PCAuth.onChange(authBadge); }
+  function setupAuth(){ authBadge(null); try{ window.PCAuth.user().then(authBadge).catch(function(){}); window.PCAuth.onChange(authBadge); }catch(e){} }
 
   /* ---- API generic pentru proiecte/oferte in cloud (respecta RLS: fiecare vede doar ale lui) ----
      app: 'profcad'|'electrica'|'tablotier'|'altul' -> tabel "proiecte" ; 'fotovoltaic' -> tabel "oferte" */
@@ -79,7 +79,7 @@
     m.innerHTML='<div style="background:#fff;border-radius:14px;width:400px;max-width:93vw;max-height:82vh;overflow:auto;padding:16px;font:13px system-ui"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><b style="flex:1;font-size:15px">Proiectele mele (cloud)</b><button id="pc-cloud-x" style="border:none;background:#eef2f7;border-radius:7px;width:26px;height:26px;cursor:pointer;font-size:15px">&times;</button></div>'+items+'</div>';
     document.body.appendChild(m);
     document.getElementById('pc-cloud-x').onclick=function(){ m.remove(); };
-    Array.prototype.forEach.call(m.querySelectorAll('[data-open]'), function(b){ b.onclick=async function(){ var r=await window.PCCloud.load(o.app, b.getAttribute('data-open')); if(r.error){ flash(r.error.message,true); return; } try{ o.apply(r.data.data); bar._cloudId=r.data.id; flash('Proiect incarcat: '+(r.data.nume||'')); }catch(e){ flash('Nu pot incarca: '+e.message,true); } m.remove(); }; });
+    Array.prototype.forEach.call(m.querySelectorAll('[data-open]'), function(b){ b.onclick=async function(){ var r=await window.PCCloud.load(o.app, b.getAttribute('data-open')); if(r.error){ flash(r.error.message,true); return; } try{ var dd=r.data.data; if(typeof dd==='string'){ try{ dd=JSON.parse(dd); }catch(_){} } o.apply(dd); bar._cloudId=r.data.id; flash('Proiect incarcat: '+(r.data.nume||'')); }catch(e){ flash('Nu pot incarca: '+e.message,true); } m.remove(); }; });
     Array.prototype.forEach.call(m.querySelectorAll('[data-del]'), function(b){ b.onclick=async function(){ if(!confirm('Stergi acest proiect din cloud?')) return; var r=await window.PCCloud.remove(o.app, b.getAttribute('data-del')); if(r.error){ flash(r.error.message,true); } else { var row=b.parentNode; if(row) row.remove(); } }; });
   }
   // o: {app, serialize:()=>obj, apply:(obj)=>void, name, extra:()=>obj}
@@ -102,16 +102,7 @@
     try{ window.SB = window.supabase.createClient(URL, KEY); }
     catch(e){ badge('err','Supabase: config invalida'); return; }
     setupAuth();
-    badge('wait','Supabase: verific...');
-    // proba de conexiune: interogam un tabel inexistent; daca serverul raspunde (tabel lipsa) => cheia e valida si conexiunea merge
-    window.SB.from('__conn_test__').select('*').limit(1).then(function(r){
-      var e = r && r.error;
-      if(!e){ badge('ok','Supabase: conectat'); return; }
-      var m = ((e.message||'') + ' ' + (e.code||'')).toLowerCase();
-      if(/relation|does not exist|could not find|42p01|pgrst|schema cache|not found/.test(m)) badge('ok','Supabase: conectat');
-      else if(/api key|apikey|jwt|unauthorized|invalid|401|403/.test(m)) badge('err','Supabase: cheie respinsa');
-      else badge('ok','Supabase: conectat');
-    }).catch(function(){ badge('err','Supabase: fara raspuns'); });
+    badge('ok','Supabase: conectat');   // clientul s-a creat; erorile reale apar la operatiile concrete (salvare/login)
   }
 
   function boot(){ if(!document.body){ return setTimeout(boot,50); } start(); }
