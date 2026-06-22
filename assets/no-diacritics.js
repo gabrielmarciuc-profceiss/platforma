@@ -91,3 +91,14 @@
   if(!src) return;
   var s=document.createElement('script'); s.defer=true; s.id='pc-assistant-loader'; s.src=src.replace(/[^\/]*$/,'assistant.js'); (document.head||document.documentElement).appendChild(s);
 }catch(e){} })();
+
+/* Supabase comun (conexiune + login + cloud) pe TOATE paginile - incarca biblioteca, apoi assets/supabase.js */
+(function(){ try{
+  if(window.__pcSB || document.getElementById('pc-supabase-lib')) return;   // deja inclus direct pe pagina (ex. index.html)
+  var cur=document.currentScript, src=cur?cur.src:'';
+  if(!src){ var ss=document.getElementsByTagName('script'); for(var i=0;i<ss.length;i++){ if(ss[i].src&&/no-diacritics\.js/.test(ss[i].src)){ src=ss[i].src; break; } } }
+  if(!src) return; var base=src.replace(/[^\/]*$/,'');
+  var lib=document.createElement('script'); lib.id='pc-supabase-lib'; lib.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+  lib.onload=function(){ if(window.__pcSB) return; var s=document.createElement('script'); s.src=base+'supabase.js'; (document.head||document.documentElement).appendChild(s); };
+  (document.head||document.documentElement).appendChild(lib);
+}catch(e){} })();

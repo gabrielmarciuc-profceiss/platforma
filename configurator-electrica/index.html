@@ -1313,6 +1313,15 @@ if(!wsBoot()){
   } else { askSystem(); _startWS(blankProject(),'Proiect 1'); }
 }
 </script>
+<script>
+/* Cloud (Supabase): butoane Salveaza/Proiectele mele pentru instalatia electrica */
+(function(){ function go(){ if(window.PCCloud&&window.PCCloud.mountButtons){ window.PCCloud.mountButtons({
+  app:'electrica',
+  serialize:function(){ return (typeof serializeProject==='function')?serializeProject():null; },
+  apply:function(d){ if(typeof openProject==='function') openProject(d); else if(typeof applyProject==='function') applyProject(d); },
+  name:function(){ return (window.state&&state.projName)||'Instalatie electrica'; }
+}); } else setTimeout(go,500); } go(); })();
+</script>
 <script src="../assets/no-diacritics.js"></script>
 </body>
 </html>

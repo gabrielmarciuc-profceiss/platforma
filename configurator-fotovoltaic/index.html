@@ -4332,6 +4332,16 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
   reg();
 })();
 </script>
+<script>
+/* Cloud (Supabase): butoane Salveaza/Proiectele mele pentru oferta */
+(function(){ function go(){ if(window.PCCloud&&window.PCCloud.mountButtons){ window.PCCloud.mountButtons({
+  app:'fotovoltaic',
+  serialize:function(){ return (typeof captureOfferState==='function')?captureOfferState():null; },
+  apply:function(d){ if(typeof restoreOfferState==='function') restoreOfferState(d); },
+  name:function(){ var f=document.getElementById('oferta_nr'); return (f&&f.value)?('Oferta '+f.value):'Oferta'; },
+  extra:function(){ var f=document.getElementById('oferta_nr'); return { numar:(f&&f.value)||null }; }
+}); } else setTimeout(go,500); } go(); })();
+</script>
 <script src="../assets/no-diacritics.js"></script>
 </body>
 </html>
