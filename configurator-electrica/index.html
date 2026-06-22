@@ -967,7 +967,7 @@ function removeDevice(id){ const i=devices.findIndex(d=>d.id===id); if(i<0) retu
 /* ===== salvare / incarcare proiecte ===== */
 const PKEY='pce_projects', AKEY='pce_autosave';
 function loadStore(){ try{ return JSON.parse(localStorage.getItem(PKEY)||'{}'); }catch(e){ return {}; } }
-function saveStore(s){ try{ localStorage.setItem(PKEY, JSON.stringify(s)); }catch(e){ alert('Nu pot salva (memoria browserului e plina).'); } }
+function saveStore(s){ /* dezactivat: fara salvare locala (doar cloud) */ }
 function serializeProject(){
   return { v:1, savedAt:Date.now(), name:state.projName||'', mode:state.mode,
     H, system:state.system, mainOverride:state.mainOverride||null, mainPoles:state.mainPoles||null,
@@ -1014,23 +1014,18 @@ function openProject(o){
   } else { state.mode='plan'; renderWallRows(); refreshPlan(); }
 }
 function saveProject(name){ name=(name||'').trim(); if(!name) return false; const s=loadStore(); state.projName=name; s[name]=serializeProject(); saveStore(s); return true; }
-function autosave(){ try{ localStorage.setItem(AKEY, JSON.stringify(serializeProject())); }catch(e){} if(window.__wsReady){ try{ wsCapture(); wsPersist(); }catch(e){} } }
-setInterval(autosave, 4000); window.addEventListener('beforeunload', autosave);
+// Salvarea locala / autosalvarea au fost eliminate - salvarea se face DOAR in cloud.
+function autosave(){ /* dezactivat */ }
 function quickSave(){ const def=state.projName||('Proiect '+new Date().toLocaleDateString('ro-RO')); const name=prompt('Salveaza proiectul cu numele:', def); if(name===null) return; if(saveProject(name)){ autosave(); alert('✅ Proiect salvat: '+name+'\nIl gasesti in „📂 Proiectele mele".'); } }
 function projectModal(){ const s=loadStore(); const names=Object.keys(s).sort((a,b)=>(s[b].savedAt||0)-(s[a].savedAt||0));
   const rows = names.length? names.map(n=>{ const d=new Date(s[n].savedAt||0); const when=isNaN(d)?'':d.toLocaleString('ro-RO'); return `<div class="row" style="justify-content:space-between"><span style="flex:1">📁 <b>${n}</b><br><span class="muted" style="font-size:11px">${when}</span></span><button class="btn" data-load="${encodeURIComponent(n)}">Deschide</button><button class="btn" data-del="${encodeURIComponent(n)}" style="border-color:#e6b8b8">🗑</button></div>`; }).join('') : '<p class="muted">Niciun proiect salvat inca.</p>';
   openModal(`<button class="close" id="mClose">✕</button><h2>📂 Proiectele mele</h2>
     <div class="row" style="gap:6px;margin-bottom:10px"><input id="pName" placeholder="Nume proiect nou…" value="${(state.projName||'').replace(/"/g,'&quot;')}" style="flex:1"><button class="btn act" id="pSave">💾 Salveaza</button></div>
-    <div class="list" style="max-height:320px;overflow:auto">${rows}</div>
-    <div class="dl" style="gap:6px;flex-wrap:wrap"><button class="btn" id="pExport">⬇ Backup in fisier</button><button class="btn" id="pImport">⬆ Incarca din fisier</button></div>
-    <input type="file" id="pFile" accept="application/json,.json" style="display:none">`);
+    <div class="list" style="max-height:320px;overflow:auto">${rows}</div>`);
   $('mClose').onclick=closeModal;
   $('pSave').onclick=()=>{ const n=($('pName').value||'').trim(); if(!n){ alert('Scrie un nume.'); return; } saveProject(n); autosave(); projectModal(); };
   document.querySelectorAll('[data-load]').forEach(b=> b.onclick=()=>{ const n=decodeURIComponent(b.dataset.load); const st=loadStore(); if(st[n]){ closeModal(); if(window.__wsReady && typeof wsAddFromData==='function') wsAddFromData(n, st[n]); else openProject(st[n]); } });
   document.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ const n=decodeURIComponent(b.dataset.del); if(confirm('Stergi proiectul „'+n+'"?')){ const st=loadStore(); delete st[n]; saveStore(st); projectModal(); } });
-  $('pExport').onclick=()=>{ const n=(state.projName||'proiect').replace(/[^\w\-]+/g,'_'); download(n+'.pce.json', JSON.stringify(serializeProject(),null,1)); };
-  $('pImport').onclick=()=>$('pFile').click();
-  $('pFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ const o=JSON.parse(rd.result); closeModal(); openProject(o); if(o.name) saveProject(o.name); }catch(err){ alert('Fisier invalid.'); } }; rd.readAsText(f); };
 }
 
 /* ===== generatoare ===== */
@@ -1250,7 +1245,8 @@ function genSTL(){
   out+='endsolid profceiss\n'; download('model-instalatie.stl', out);
 }
 $('genBOM').onclick=genBOM; $('genSchema').onclick=sendToSchema; $('genTut').onclick=genTut; $('genPanel').onclick=genPanel; $('genPDF').onclick=exportPDF; $('genCheck').onclick=genCheck; $('genDXF').onclick=genDXF; $('genSTL').onclick=genSTL;
-$('saveProj').onclick=quickSave; $('openProj').onclick=projectModal;
+$('saveProj').onclick=()=>{ var b=document.getElementById('pc-cl-save'); if(b) b.click(); else alert('Cloud-ul nu e gata. Asteapta o secunda si reincearca.'); };
+$('openProj').onclick=()=>{ var b=document.getElementById('pc-cl-list'); if(b) b.click(); else alert('Cloud-ul nu e gata. Asteapta o secunda si reincearca.'); };
 
 /* ===== sistem mono/tri ===== */
 function setSystem(s){ state.system=s; document.querySelectorAll('[data-sys-seg]').forEach(x=>x.classList.toggle('on',x.dataset.sysSeg===s)); if(circuits.length) renderLists(); }
@@ -1268,7 +1264,7 @@ window.addEventListener('resize',()=>{ if(state.mode==='plan') drawPlan(); else 
 /* ===== WORKSPACE: mai multe proiecte ca file (sheet-uri Excel) ===== */
 const WKEY='pce_workspace'; let ws={ sheets:[], active:0 }; window.__wsReady=false;
 function blankProject(){ return { v:1, mode:'plan', name:'', H:2.6, system:state.system||'mono', plan:{ points:[{x:0,z:0},{x:4,z:0},{x:4,z:3},{x:0,z:3}], closed:true, openings:[] }, circuits:[], devices:[], dozas:[], props:[], uid:1, cuid:1 }; }
-function wsPersist(){ try{ localStorage.setItem(WKEY, JSON.stringify(ws)); }catch(e){} }
+function wsPersist(){ /* dezactivat: filele raman doar pe sesiune (fara localStorage) */ }
 function wsCapture(){ if(ws.sheets[ws.active]){ try{ ws.sheets[ws.active].data=serializeProject(); }catch(e){} ws.sheets[ws.active].name=state.projName||ws.sheets[ws.active].name; } }
 function wsStyle(){ if(document.getElementById('wsStyle')) return; const st=document.createElement('style'); st.id='wsStyle'; st.textContent=
   '.wstabs{flex:none;height:34px;display:flex;align-items:stretch;gap:3px;padding:3px 8px 0 78px;background:#e7edf4;border-top:1px solid #cdd8e6;overflow-x:auto}'+
@@ -1295,22 +1291,17 @@ function wsNew(){ wsCapture(); ws.sheets.push({ id:Date.now(), name:'Proiect '+(
 function wsClose(i){ if(ws.sheets.length<=1) return; const nm=ws.sheets[i].name||('Proiect '+(i+1)); if(!confirm('Inchizi fila „'+nm+'"? (Daca l-ai salvat cu „Salvare proiect", ramane in „Proiectele mele".)')) return; if(i===ws.active) wsCapture(); ws.sheets.splice(i,1); if(ws.active>=ws.sheets.length) ws.active=ws.sheets.length-1; openProject(ws.sheets[ws.active].data); state.projName=ws.sheets[ws.active].name; wsRender(); wsPersist(); }
 function wsAddFromData(name,data){ wsCapture(); ws.sheets.push({ id:Date.now(), name:name||('Proiect '+(ws.sheets.length+1)), data:data }); ws.active=ws.sheets.length-1; openProject(data); state.projName=name||''; wsRender(); wsPersist(); }
 function wsSaveActive(){ const def=state.projName||(ws.sheets[ws.active]&&ws.sheets[ws.active].name)||('Proiect '+new Date().toLocaleDateString('ro-RO')); const name=prompt('Salveaza proiectul (fila) cu numele:', def); if(name===null) return; const n=(name||'').trim(); if(!n){ alert('Scrie un nume.'); return; } if(saveProject(n)){ if(ws.sheets[ws.active]) ws.sheets[ws.active].name=n; state.projName=n; wsCapture(); wsRender(); wsPersist(); alert('✅ Proiect salvat: '+n+'\nIl gasesti si in „Proiectele mele".'); } }
-function wsBoot(){ let saved=null; try{ saved=JSON.parse(localStorage.getItem(WKEY)||'null'); }catch(e){} if(saved && saved.sheets && saved.sheets.length){ ws=saved; if(!(ws.active>=0&&ws.active<ws.sheets.length)) ws.active=0; window.__wsReady=true; openProject(ws.sheets[ws.active].data||blankProject()); state.projName=ws.sheets[ws.active].name||''; wsRender(); return true; } return false; }
+function wsBoot(){ return false; } /* fara restaurare din localStorage - salvarea e in cloud */
 if($('wsNewBtn')) $('wsNewBtn').onclick=wsNew;
-if($('wsLoadBtn')) $('wsLoadBtn').onclick=projectModal;
-if($('wsSaveBtn')) $('wsSaveBtn').onclick=wsSaveActive;
+if($('wsLoadBtn')) $('wsLoadBtn').onclick=()=>{ var b=document.getElementById('pc-cl-list'); if(b) b.click(); };
+if($('wsSaveBtn')) $('wsSaveBtn').onclick=()=>{ var b=document.getElementById('pc-cl-save'); if(b) b.click(); };
 
 /* ===== start ===== */
 setPlanModeUI(); renderWallRows(); renderOpRows(); refreshPlan();
 if(!wsBoot()){
-  let _last=null; try{ _last=JSON.parse(localStorage.getItem(AKEY)||'null'); }catch(e){ _last=null; }
-  const _startWS=(data,name)=>{ ws={sheets:[{id:Date.now(),name:name||'Proiect 1',data:data||serializeProject()}],active:0}; window.__wsReady=true; wsRender(); wsPersist(); };
-  if(projHasContent(_last)){
-    const when=_last.savedAt?new Date(_last.savedAt).toLocaleString('ro-RO'):'';
-    openModal(`<h2>↩ Reluam ultima sesiune?</h2><p class="muted">Ai o lucrare nesalvata din ${when}${_last.name?(' · „'+_last.name+'"'):''}. Vrei sa continui de unde ai ramas?</p><div class="cbtns"><button class="btn act" id="rsYes">Da, continua</button><button class="btn" id="rsNo">Nu, incepe nou</button></div>`);
-    $('rsYes').onclick=()=>{ closeModal(); openProject(_last); _startWS(serializeProject(), _last.name); };
-    $('rsNo').onclick=()=>{ closeModal(); localStorage.removeItem(AKEY); askSystem(); _startWS(blankProject(),'Proiect 1'); };
-  } else { askSystem(); _startWS(blankProject(),'Proiect 1'); }
+  // Fara salvare locala/restaurare: pornim curat. Salvarea se face in cloud.
+  askSystem();
+  ws={sheets:[{id:Date.now(),name:'Proiect 1',data:blankProject()}],active:0}; window.__wsReady=true; wsRender();
 }
 
 /* Expune in window functiile necesare salvarii in cloud (codul ruleaza in <script type="module">, deci nu sunt globale automat) */

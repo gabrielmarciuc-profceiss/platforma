@@ -3818,26 +3818,10 @@ function applyCompany(){
 // ═══════════════════════════════════════════════════════════════════════════
 const OFFERS_STORAGE_KEY = 'profceiss_saved_offers_v1';
 
-function getSavedOffers(){
-  try {
-    const raw = localStorage.getItem(OFFERS_STORAGE_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
-  } catch(e){
-    console.error('[oferte] read error:', e);
-    return [];
-  }
-}
+// Salvarea locala a fost eliminata - ofertele se tin in cloud (Supabase).
+function getSavedOffers(){ return []; }
 
-function setSavedOffers(arr){
-  try {
-    localStorage.setItem(OFFERS_STORAGE_KEY, JSON.stringify(arr));
-  } catch(e){
-    console.error('[oferte] write error:', e);
-    alert('Nu s-a putut salva in memoria browserului: ' + e.message);
-  }
-}
+function setSavedOffers(arr){ /* dezactivat: fara salvare locala (doar cloud) */ }
 
 // Capteaza TOATA starea ofertei intr-un obiect serializabil JSON-compatibil.
 // Itereaza peste toate input/select/textarea din toate panourile (1-7) cu id.
@@ -3961,7 +3945,7 @@ function buildOfferName(){
 function genOferta(){
   const f=document.getElementById('oferta_nr'); if(f) f.value=makeOfferNumber();
   calcAll();
-  try{ saveCurrentOffer(true); }catch(e){ console.warn('autosave oferta', e); }
+  // Fara salvare locala automata - salveaza explicit cu butonul „Salveaza in cloud".
 }
 // Vizualizare = reincarca oferta + genereaza si deschide PDF-ul (print)
 function viewOffer(id){ const offers=getSavedOffers(); const o=offers.find(x=>x.id===id); if(!o){ alert('Oferta nu a fost gasita.'); return; }
@@ -4147,31 +4131,50 @@ function fmtOfferDate(iso){
   } catch(e){ return iso; }
 }
 
+// Lista ofertelor din CLOUD (Supabase). Necesita login.
 function renderSavedOffersList(){
   const w = v('saved_offers_list');
   const cnt = v('saved_offers_count');
   if (!w) return;
-  const offers = getSavedOffers();
-  if (cnt) cnt.textContent = offers.length ? '(' + offers.length + ')' : '';
-  if (offers.length === 0){
-    w.innerHTML = '<div style="font-size:12px;color:#888;padding:12px;background:#fff;border:0.5px dashed #ccc;border-radius:8px;text-align:center;">Nu exista oferte salvate.<br>Apasa <strong>„Genereaza oferta"</strong> (pasul 5) si oferta se salveaza automat aici.</div>';
-    return;
-  }
-  w.innerHTML = offers.map(o => `
+  const box = (msg)=>{ w.innerHTML='<div style="font-size:12px;color:#888;padding:12px;background:#fff;border:0.5px dashed #ccc;border-radius:8px;text-align:center;">'+msg+'</div>'; };
+  if (cnt) cnt.textContent='';
+  if (!(window.PCCloud && window.PCAuth)){ box('Se incarca modulul de cloud…'); setTimeout(renderSavedOffersList, 700); return; }
+  window.PCAuth.user().then(function(u){
+    if(!u){ box('Intra in cont (butonul „Login / Cont" jos-dreapta) ca sa vezi ofertele salvate in cloud.'); return; }
+    window.PCCloud.list('fotovoltaic').then(function(r){
+      if(r.error){ box('Eroare cloud: '+r.error.message); return; }
+      const offers=r.data||[];
+      if (cnt) cnt.textContent = offers.length ? '('+offers.length+')' : '';
+      if (!offers.length){ box('Nu ai oferte salvate in cloud.<br>Completeaza oferta si apasa <strong>„&#9729; Salveaza in cloud"</strong> (bara de sus).'); return; }
+      w.innerHTML = offers.map(o => `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:0.5px solid #e0e0e0;border-radius:8px;margin-bottom:6px;">
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.4;">${(o.title||'(fara titlu)').replace(/</g,'&lt;')}</div>
-        <div style="font-size:11px;color:#888;margin-top:3px;">📅 ${fmtOfferDate(o.createdAt)}</div>
+        <div style="font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.4;">${(o.nume||'(fara titlu)').replace(/</g,'&lt;')}</div>
+        <div style="font-size:11px;color:#888;margin-top:3px;">&#128197; ${fmtOfferDate(o.updated_at)}</div>
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;">
-        <button class="btn" type="button" onclick="viewOffer('${o.id}')" style="padding:5px 10px;font-size:11px;background:#185FA5;color:#fff;border-color:#185FA5;" title="Deschide PDF-ul ofertei">👁 Vizualizare</button>
-        <button class="btn" type="button" onclick="editOffer('${o.id}')" style="padding:5px 10px;font-size:11px;background:#1D9E75;color:#fff;border-color:#1D9E75;" title="Editeaza oferta (precompleteaza tot sistemul)">✏️ Editare</button>
-        <button class="btn" type="button" onclick="exportOfferAsJson('${o.id}')" style="padding:5px 10px;font-size:11px;" title="Descarca aceasta oferta ca fisier JSON">⬇ JSON</button>
-        <button class="btn" type="button" onclick="deleteSavedOffer('${o.id}')" style="padding:5px 10px;font-size:11px;color:#A32D2D;border-color:#A32D2D;" title="Sterge oferta">🗑</button>
+        <button class="btn" type="button" onclick="cloudViewOffer('${o.id}')" style="padding:5px 10px;font-size:11px;background:#185FA5;color:#fff;border-color:#185FA5;" title="Deschide PDF-ul ofertei">&#128065; Vizualizare</button>
+        <button class="btn" type="button" onclick="cloudEditOffer('${o.id}')" style="padding:5px 10px;font-size:11px;background:#1D9E75;color:#fff;border-color:#1D9E75;" title="Editeaza oferta (precompleteaza tot sistemul)">&#9999; Editare</button>
+        <button class="btn" type="button" onclick="cloudDeleteOffer('${o.id}')" style="padding:5px 10px;font-size:11px;color:#A32D2D;border-color:#A32D2D;" title="Sterge oferta din cloud">&#128465;</button>
       </div>
     </div>
   `).join('');
+    });
+  });
 }
+// Incarca o oferta din cloud si o aplica in formular
+function cloudOpenOffer(id, then){
+  if(!window.PCCloud){ alert('Cloud-ul nu e gata. Asteapta o secunda si reincearca.'); return; }
+  window.PCCloud.load('fotovoltaic', id).then(function(r){
+    if(r.error){ alert('Nu pot incarca: '+r.error.message); return; }
+    var dd=r.data&&r.data.data; if(typeof dd==='string'){ try{ dd=JSON.parse(dd); }catch(_){} }
+    try{ restoreOfferState(dd); }catch(e){ console.error('[cloudOpenOffer] restore', e); }
+    if(then) then();
+  });
+}
+function cloudViewOffer(id){ cloudOpenOffer(id, function(){ try{ calcAll(); }catch(e){} setTimeout(function(){ try{ window.print(); }catch(e){} }, 500); }); }
+function cloudEditOffer(id){ cloudOpenOffer(id, function(){ try{ if(typeof goStep==='function') goStep(2); }catch(e){} try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){} var det=document.getElementById('saved_offers_details'); if(det) det.open=false; }); }
+function cloudDeleteOffer(id){ if(!confirm('Stergi aceasta oferta din cloud?')) return; window.PCCloud.remove('fotovoltaic', id).then(function(r){ if(r.error){ alert(r.error.message); } else { renderSavedOffersList(); } }); }
 
 // ── INITIALIZARE LA PORNIRE ────────────────────────────────────────────────
 // Auto-load catalog PRIMUL — async fetch porneste imediat si nu depinde de
@@ -4336,3 +4339,4 @@ window.PROFCEISS_PROJECT={app:'configurator-fotovoltaic',label:'Oferta',full:tru
 <script src="../assets/no-diacritics.js"></script>
 </body>
 </html>
+                                                                                                                                                                                         

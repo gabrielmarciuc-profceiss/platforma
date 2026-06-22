@@ -4,10 +4,12 @@ Pana acum modulele salvau doar in localStorage + backup in fisier `.pce.json`.
 Acum salvarea se face in baza de date Supabase (tabelele `proiecte` si `oferte`),
 legata de contul utilizatorului (fiecare isi vede doar proiectele lui — RLS).
 
-> Faza 1 (acum): cloud-ul a fost ACTIVAT peste tot, dar metoda JSON a ramas pe loc
-> ca plasa de siguranta. Nu s-a stricat nimic din ce exista.
-> Faza 2 (dupa ce confirmi ca merge cloud-ul): scot complet butoanele/functiile
-> `.pce.json`, conform deciziei tale.
+> Stare finala (iunie 2026): salvarea se face EXCLUSIV in cloud. Au fost eliminate:
+> backup-ul `.pce.json`, salvarea locala (localStorage „Proiectele mele") si autosalvarea.
+> In configurator-electrica, filele/tab-urile raman doar pe sesiune (nu se mai pastreaza
+> dupa refresh); butoanele „Salveaza" / „Proiectele mele" folosesc cloud-ul.
+> In configurator-fotovoltaic, panoul „Oferte salvate" citeste din cloud (necesita login);
+> ofertele se salveaza explicit cu „Salveaza in cloud" (nu se mai auto-salveaza local).
 
 ## Ce s-a modificat (faza 1)
 - `assets/profceiss-projects.js` — incarca automat biblioteca Supabase + `assets/supabase.js`
