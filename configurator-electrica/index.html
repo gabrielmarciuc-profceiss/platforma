@@ -1312,6 +1312,9 @@ if(!wsBoot()){
     $('rsNo').onclick=()=>{ closeModal(); localStorage.removeItem(AKEY); askSystem(); _startWS(blankProject(),'Proiect 1'); };
   } else { askSystem(); _startWS(blankProject(),'Proiect 1'); }
 }
+
+/* Expune in window functiile necesare salvarii in cloud (codul ruleaza in <script type="module">, deci nu sunt globale automat) */
+try{ window.serializeProject=serializeProject; window.openProject=openProject; window.applyProject=applyProject; window.state=state; window.projHasContent=projHasContent; }catch(e){}
 </script>
 <script>
 /* Cloud (Supabase): butoane Salveaza/Proiectele mele pentru instalatia electrica */
