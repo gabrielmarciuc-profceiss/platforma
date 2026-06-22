@@ -85,7 +85,7 @@
 <header>
   <img src="../profceiss-logo.svg" alt="Profceiss" onerror="this.style.display='none'">
   <span class="ttl">Prof<b>cad</b></span>
-  <span class="badge">Configurator fotovoltaic 3D · build R97 (satelit pe sol 3D + coama dreptunghi: rotire libera din maner verde)</span>
+  <span class="badge">Configurator fotovoltaic 3D · build R98 (zoom 2D mai mare + velux rotibil din maner verde)</span>
   <a class="back" href="../">&larr; Instrumente</a>
 </header>
 
@@ -343,11 +343,13 @@ function drawPlan(){ fitPC(); if(planView!=='sus'){ try{ drawElevation(); }catch
     px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+ahw,cy-ahh,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.fillText('x',cx+ahw,cy-ahh);
     px.fillStyle='#1a8a4f'; px.beginPath(); px.arc(cx-ahw,cy-ahh,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 12px system-ui'; px.fillText('↻',cx-ahw,cy-ahh); });
   // velux (dreptunghi pe acoperis + maner resize + X)
-  veluxes.forEach(v=>{ const w_=Math.max(10,v.w*planMap.s), l_=Math.max(10,v.l*planMap.s), cx=SX(v.x), cy=SY(v.z);
-    px.fillStyle='rgba(159,210,255,.35)'; px.strokeStyle='#2b8fd6'; px.lineWidth=2; px.fillRect(cx-w_/2,cy-l_/2,w_,l_); px.strokeRect(cx-w_/2,cy-l_/2,w_,l_);
+  veluxes.forEach(v=>{ const rot=v.rot||0, c=Math.cos(rot), s=Math.sin(rot); const w_=Math.max(10,v.w*planMap.s), l_=Math.max(10,v.l*planMap.s), cx=SX(v.x), cy=SY(v.z);
+    px.save(); px.translate(cx,cy); px.rotate(rot); px.fillStyle='rgba(159,210,255,.35)'; px.strokeStyle='#2b8fd6'; px.lineWidth=2; px.fillRect(-w_/2,-l_/2,w_,l_); px.strokeRect(-w_/2,-l_/2,w_,l_); px.restore();
     px.fillStyle='#2b8fd6'; px.font='700 10px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('Velux',cx,cy);
-    px.fillStyle='#1c7bd6'; px.beginPath(); px.arc(cx+w_/2,cy+l_/2,6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=1.5; px.stroke();
-    px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+w_/2,cy-l_/2,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.fillText('x',cx+w_/2,cy-l_/2); });
+    const cor=(ox,oy)=>({x:cx+ox*c-oy*s, y:cy+ox*s+oy*c}); const pRes=cor(w_/2,l_/2), pX=cor(w_/2,-l_/2), pRot=cor(-w_/2,-l_/2);
+    px.fillStyle='#1c7bd6'; px.beginPath(); px.arc(pRes.x,pRes.y,6,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=1.5; px.stroke();
+    px.fillStyle='#1d9e75'; px.beginPath(); px.arc(pRot.x,pRot.y,7,0,7); px.fill(); px.strokeStyle='#fff'; px.lineWidth=1.5; px.stroke(); px.fillStyle='#fff'; px.font='800 11px system-ui'; px.fillText('⟳',pRot.x,pRot.y);
+    px.fillStyle='#c0392b'; px.beginPath(); px.arc(pX.x,pX.y,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.fillText('x',pX.x,pX.y); });
   // X pe goluri (usa/fereastra)
   openings.forEach(o=>{ const A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) return; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2),cx=SX(mx),cy=SY(mz);
     px.fillStyle='#c0392b'; px.beginPath(); px.arc(cx+10,cy-10,7,0,7); px.fill(); px.fillStyle='#fff'; px.font='700 11px system-ui'; px.textAlign='center'; px.textBaseline='middle'; px.fillText('x',cx+10,cy-10); });
@@ -492,10 +494,11 @@ pc.addEventListener('pointerdown',ev=>{ if(planView!=='sus'){ elevPointerDown(ev
       if(Math.hypot(sp.x-(cx+half),sp.y-(cy+half))<12){ drag={kind:'hornsize',i}; return; }
       if(Math.abs(sp.x-cx)<=half+2 && Math.abs(sp.y-cy)<=half+2){ drag={kind:'horn',i}; return; } } }
   // manere velux
-  { const sp=screenPt(ev); for(let i=veluxes.length-1;i>=0;i--){ const v=veluxes[i], cx=SX(v.x), cy=SY(v.z), hw=Math.max(5,v.w*planMap.s/2), hl=Math.max(5,v.l*planMap.s/2);
-      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy-hl))<12){ veluxes.splice(i,1); drawPlan(); build3D(); renderElemList(true); commit(); return; }
-      if(Math.hypot(sp.x-(cx+hw),sp.y-(cy+hl))<12){ drag={kind:'veluxsize',i}; return; }
-      if(Math.abs(sp.x-cx)<=hw+2 && Math.abs(sp.y-cy)<=hl+2){ drag={kind:'velux',i}; return; } } }
+  { const sp=screenPt(ev); for(let i=veluxes.length-1;i>=0;i--){ const v=veluxes[i], rot=v.rot||0,c=Math.cos(rot),s=Math.sin(rot), cx=SX(v.x), cy=SY(v.z), hw=Math.max(5,v.w*planMap.s/2), hl=Math.max(5,v.l*planMap.s/2); const cor=(ox,oy)=>({x:cx+ox*c-oy*s, y:cy+ox*s+oy*c}); const pRes=cor(hw,hl), pX=cor(hw,-hl), pRot=cor(-hw,-hl);
+      if(Math.hypot(sp.x-pX.x,sp.y-pX.y)<13){ veluxes.splice(i,1); drawPlan(); build3D(); renderElemList(true); commit(); return; }
+      if(Math.hypot(sp.x-pRot.x,sp.y-pRot.y)<13){ drag={kind:'veluxrot',i}; return; }
+      if(Math.hypot(sp.x-pRes.x,sp.y-pRes.y)<13){ drag={kind:'veluxsize',i}; return; }
+      const lx2=(sp.x-cx)*c+(sp.y-cy)*s, ly2=-(sp.x-cx)*s+(sp.y-cy)*c; if(Math.abs(lx2)<=hw+2 && Math.abs(ly2)<=hl+2){ drag={kind:'velux',i}; return; } } }
   // manere goluri (usa/fereastra)
   { const sp=screenPt(ev); for(let i=openings.length-1;i>=0;i--){ const o=openings[i],A=foot[o.wall],B=foot[(o.wall+1)%foot.length]; if(!A||!B) continue; const ux=(B.x-A.x),uz=(B.z-A.z),L=Math.hypot(ux,uz)||1; const mx=A.x+ux/L*(o.pos+o.w/2),mz=A.z+uz/L*(o.pos+o.w/2),cx=SX(mx),cy=SY(mz);
       if(Math.hypot(sp.x-(cx+10),sp.y-(cy-10))<12){ openings.splice(i,1); drawPlan(); build3D(); renderElemList(true); commit(); return; }
@@ -549,7 +552,8 @@ pc.addEventListener('pointermove',ev=>{ if(planView!=='sus'){ if(drag&&drag.elev
   else if(drag.kind==='hornsize'){ const c=chimneys[drag.i]; if(c){ const d=Math.max(Math.abs(w.x-c.x),Math.abs(w.z-c.z))*2; c.size=Math.max(0.2,Math.min(3,snap(d))); } }
   else if(drag.kind==='pv'){ const it=pvItems[drag.i]; if(it){ if(it.place==='acoperis'){ const c=clampRoofXZ(w.x,w.z,it.w,it.h,it.rot); it.x=snap(c.x); it.z=snap(c.z); } else { it.x=snap(w.x); it.z=snap(w.z); } } }
   else if(drag.kind==='velux'){ const v=veluxes[drag.i]; if(v){ v.x=snap(w.x); v.z=snap(w.z); } }
-  else if(drag.kind==='veluxsize'){ const v=veluxes[drag.i]; if(v){ v.w=Math.max(0.4,Math.min(3,snap(Math.abs(w.x-v.x)*2))); v.l=Math.max(0.4,Math.min(4,snap(Math.abs(w.z-v.z)*2))); } }
+  else if(drag.kind==='veluxsize'){ const v=veluxes[drag.i]; if(v){ const rot=v.rot||0,c=Math.cos(rot),s=Math.sin(rot); const sx=(w.x-v.x)*planMap.s, sy=(w.z-v.z)*planMap.s; const lx=sx*c+sy*s, ly=-sx*s+sy*c; v.w=Math.max(0.4,Math.min(3,snap(2*Math.abs(lx)/planMap.s))); v.l=Math.max(0.4,Math.min(4,snap(2*Math.abs(ly)/planMap.s))); } }
+  else if(drag.kind==='veluxrot'){ const v=veluxes[drag.i]; if(v){ v.rot=Math.atan2((w.z-v.z),(w.x-v.x)) - Math.atan2(-v.l,-v.w); } }
   else if(drag.kind==='opening'){ const o=openings[drag.i]; const hit=nearestWall(w); if(o&&hit){ o.wall=hit.wall; const L=wallLen(hit.wall); o.pos=Math.max(0,Math.min(L-o.w,hit.pos-o.w/2)); } }
   else if(drag.kind==='rdgEnd'){ const F=roofRidgeFrame(); const along=(w.x-F.c.x)*F.dx+(w.z-F.c.z)*F.dz; let f=(along-F.aMn)/((F.aMx-F.aMn)||1); f=Math.max(0,Math.min(1,f)); if(drag.end==='a') ridgeA0=Math.min(f,ridgeA1-0.03); else ridgeA1=Math.max(f,ridgeA0+0.03); }
   else if(drag.kind==='rdgMid'){ const F=roofRidgeFrame(); const along=(w.x-F.c.x)*F.dx+(w.z-F.c.z)*F.dz, perp=(w.x-F.c.x)*F.pxx+(w.z-F.c.z)*F.pzz; const len=ridgeA1-ridgeA0; let c=(along-F.aMn)/((F.aMx-F.aMn)||1); c=Math.max(len/2,Math.min(1-len/2,c)); ridgeA0=c-len/2; ridgeA1=c+len/2; ridgeOffFrac=Math.max(-0.45,Math.min(0.45,(perp-(F.pMn+F.pMx)/2)/((F.pMx-F.pMn)||1))); }
@@ -571,10 +575,10 @@ pc.addEventListener('wheel',ev=>{ ev.preventDefault(); const r=pc.getBoundingCli
   if(ev.shiftKey || Math.abs(ev.deltaX)>Math.abs(ev.deltaY)){ planPan.x -= (ev.shiftKey?ev.deltaY:ev.deltaX)*0.8; drawPlan(); return; }
   if(planView!=='sus'){ // zoom centrat pe cursor (pastreaza punctul de sub mouse)
     const fox0=elevMap?elevMap.ox:mx, fs0=elevMap?elevMap.s:1; const h0=(mx-fox0)/(fs0||1);
-    planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89)));
+    planZoom=Math.max(0.3,Math.min(40, planZoom*(ev.deltaY<0?1.12:0.89)));
     drawPlan(); const fs1=elevMap?elevMap.s:1, fox1=elevMap?elevMap.ox:mx; planPan.x += mx-(fox1+h0*fs1); drawPlan(); return; }
   const wx=(mx-planMap.ox)/planMap.s, wz=(my-planMap.oy)/planMap.s;
-  planZoom=Math.max(0.3,Math.min(6, planZoom*(ev.deltaY<0?1.12:0.89)));
+  planZoom=Math.max(0.3,Math.min(40, planZoom*(ev.deltaY<0?1.12:0.89)));
   computeMap(); planPan.x += mx-(planMap.ox+wx*planMap.s); planPan.y += my-(planMap.oy+wz*planMap.s);
   drawPlan();
 },{passive:false});
@@ -1177,6 +1181,7 @@ function build3D(){
     let nx=0,nz=0;   // normala pantei din gradientul suprafetei roofY2 (diferenta finita)
     if(ridgeRaise>0.02){ const e=0.15; nx=-(roofY2(v.x+e,v.z)-roofY2(v.x-e,v.z))/(2*e); nz=-(roofY2(v.x,v.z+e)-roofY2(v.x,v.z-e))/(2*e); }
     const nrm=new THREE.Vector3(nx,1,nz).normalize(); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),nrm);
+    if(v.rot) m.rotateOnWorldAxis(new THREE.Vector3(0,1,0), -v.rot);   // rotire (yaw) ca in plan
     m.position.set(v.x, roofHeightAt(v.x,v.z)+0.04, v.z); building.add(m); });
   // elemente sistem fotovoltaic (cutii la dimensiunile din Excel)
   const PV_COL={ invertor:0x2b6cb0, baterii:0x2f855a, echipament:0x6b7280, panouri:0x1a3a6b };
